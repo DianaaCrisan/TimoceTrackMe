@@ -1,18 +1,18 @@
-FROM node:20-alpine
+FROM node:22-alpine
+
+# Install required OS dependencies
 RUN apk add --no-cache openssl
 
 EXPOSE 3000
-
 WORKDIR /app
-
-ENV NODE_ENV=production
-
-COPY package.json package-lock.json* ./
-
-RUN npm ci --omit=dev && npm cache clean --force
-
 COPY . .
 
+RUN npm install
 RUN npm run build
 
-CMD ["npm", "run", "docker-start"]
+# Copy your custom start script into the container
+COPY start.sh ./
+RUN chmod +x ./start.sh
+
+# Start the app via your script
+CMD ["./start.sh"]
