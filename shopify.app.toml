@@ -1,12 +1,11 @@
 
-client_id = "63821d7a2819469f621ebd8ae3f33dba"
-name = "TrackMeDev"
-application_url = "https://example.com"
+client_id = "2dcad119d4be69267ea46c2c519d3e7e"
+name = "TrackMe"
+application_url = "https://timocetrackme.onrender.com"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
-include_config_on_deploy = true
 
 [webhooks]
 api_version = "2026-04"
@@ -23,4 +22,8 @@ api_version = "2026-04"
 scopes = "write_products,read_orders,write_orders,read_merchant_managed_fulfillment_orders,write_merchant_managed_fulfillment_orders,read_metaobjects,write_metaobjects"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [
+  "https://timocetrackme.onrender.com/auth/callback",
+  "https://timocetrackme.onrender.com/auth/shopify/callback",
+  "https://timocetrackme.onrender.com/api/auth/callback"
+]
