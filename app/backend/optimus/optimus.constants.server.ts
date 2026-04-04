@@ -1,0 +1,3 @@
+export const OPTIMUS_API_URL_TEST = process.env.OPTIMUS_API_URL_TEST;
+export const OPTIMUS_USERNAME_TEST = process.env.OPTIMUS_USERNAME_TEST;
+export const OPTIMUS_API_KEY_TEST = process.env.OPTIMUS_API_KEY_TEST;

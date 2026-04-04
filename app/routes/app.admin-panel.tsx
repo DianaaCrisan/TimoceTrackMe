@@ -1,63 +1,75 @@
-import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import { useEffect, useMemo } from "react";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-
-type LoaderData = {
-  credentials: {
-    apiUrl: string;
-    username: string;
-    maskedApiKey: string;
-  };
-};
-
-function maskApiKey(apiKey: string) {
-  if (!apiKey) return "Not configured";
-
-  const visibleChars = 4;
-  if (apiKey.length <= visibleChars) {
-    return "*".repeat(apiKey.length);
-  }
-
-  const maskedPart = "*".repeat(apiKey.length - visibleChars);
-  const visiblePart = apiKey.slice(-visibleChars);
-
-  return `${maskedPart}${visiblePart}`;
-}
+import {
+  getOptimusTestCredentialsForDisplay,
+  sendOptimusConnectionTest,
+} from "../backend/optimus/optimus-test.server";
+import { ReadOnlyField } from "app/frontend/components/ReadOnlyField";
+import { ResponseViewer } from "app/frontend/components/ResponseViewer";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  const apiUrl = process.env.OPTIMUS_API_URL_TEST ?? "";
-  const username = process.env.OPTIMUS_USERNAME_TEST ?? "";
-  const apiKey = process.env.OPTIMUS_API_KEY_TEST ?? "";
-
   return {
-    credentials: {
-      apiUrl: apiUrl || "Not configured",
-      username: username || "Not configured",
-      maskedApiKey: maskApiKey(apiKey),
-    },
-  } satisfies LoaderData;
+    credentials: getOptimusTestCredentialsForDisplay(),
+  };
 };
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
-  return (
-    <s-stack direction="block" gap="xsmall">
-      <s-text fontWeight="semibold">{label}</s-text>
-      <s-box
-        padding="base"
-        borderWidth="base"
-        borderRadius="base"
-        background="subdued"
-      >
-        <s-text>{value}</s-text>
-      </s-box>
-    </s-stack>
-  );
-}
+export const action = async ({ request }: ActionFunctionArgs) => {
+  await authenticate.admin(request);
+
+  try {
+    const result = await sendOptimusConnectionTest();
+
+    return {
+      ok: result.ok,
+      data: result,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      data: {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unknown Optimus test error.",
+      },
+    };
+  }
+};
 
 export default function AdminPanelPage() {
   const { credentials } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  const shopify = useAppBridge();
+
+  const isSubmitting =
+    ["loading", "submitting"].includes(fetcher.state) &&
+    fetcher.formMethod === "POST";
+
+  const responseContent = useMemo(() => {
+    if (!fetcher.data) {
+      return `No request sent yet.
+
+The Optimus response will be displayed here after you send a test request.`;
+    }
+
+    return JSON.stringify(fetcher.data.data, null, 2);
+  }, [fetcher.data]);
+
+  useEffect(() => {
+    if (!fetcher.data) return;
+
+    if (fetcher.data.ok) {
+      shopify.toast.show("Optimus test request completed");
+      return;
+    }
+
+    shopify.toast.show("Optimus test request failed");
+  }, [fetcher.data, shopify]);
 
   return (
     <s-page heading="Admin Panel">
@@ -78,29 +90,22 @@ export default function AdminPanelPage() {
         <s-section heading="Test request">
           <s-stack direction="block" gap="base">
             <s-paragraph>
-              In the next step, this button will trigger a test request to
-              Optimus using test credentials and a mocked payload.
+              This sends a server-side test request to Optimus using test
+              credentials and a mocked AWB-style payload.
             </s-paragraph>
 
-            <s-stack direction="inline" gap="base">
-              <s-button disabled>Send test request</s-button>
-            </s-stack>
+            <fetcher.Form method="post">
+              <s-button
+                type="submit"
+                {...(isSubmitting ? { loading: true } : {})}
+              >
+                Send test request
+              </s-button>
+            </fetcher.Form>
           </s-stack>
         </s-section>
 
-        <s-section heading="Response output">
-          <s-box
-            padding="base"
-            borderWidth="base"
-            borderRadius="base"
-            background="subdued"
-          >
-            <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-              {`No request sent yet.
-The Optimus response will be displayed here in the next step.`}
-            </pre>
-          </s-box>
-        </s-section>
+        <ResponseViewer content={responseContent} />
       </s-stack>
     </s-page>
   );
