@@ -1,85 +1,20 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { Link, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
-
-const ORDER_PAGE_SIZE = 50;
-
-type OrderRow = {
-  id: string;
-  name: string;
-  createdAt: string;
-};
-
-type LoaderData = {
-  orders: OrderRow[];
-  pageInfo: {
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-    startCursor: string | null;
-    endCursor: string | null;
-  };
-};
-
-const ORDERS_QUERY = `#graphql
-  query OrdersDashboard($first: Int, $last: Int, $after: String, $before: String) {
-    orders(first: $first, last: $last, after: $after, before: $before) {
-      edges {
-        cursor
-        node {
-          id
-          name
-          createdAt
-        }
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-    }
-  }
-`;
+import {
+  getOrdersDashboardData,
+  ORDER_PAGE_SIZE,
+} from "../backend/orders/orders-dashboard.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
 
   const url = new URL(request.url);
-  const after = url.searchParams.get("after");
-  const before = url.searchParams.get("before");
 
-  const variables =
-    before != null
-      ? {
-          last: ORDER_PAGE_SIZE,
-          before,
-          first: null,
-          after: null,
-        }
-      : {
-          first: ORDER_PAGE_SIZE,
-          after,
-          last: null,
-          before: null,
-        };
-
-  const response = await admin.graphql(ORDERS_QUERY, { variables });
-  const responseJson = await response.json();
-
-  const ordersConnection = responseJson.data.orders;
-
-  const orders: OrderRow[] = ordersConnection.edges.map(
-    (edge: { node: { id: string; name: string; createdAt: string } }) => ({
-      id: edge.node.id,
-      name: edge.node.name,
-      createdAt: edge.node.createdAt,
-    }),
-  );
-
-  return {
-    orders,
-    pageInfo: ordersConnection.pageInfo,
-  } satisfies LoaderData;
+  return getOrdersDashboardData(admin, {
+    after: url.searchParams.get("after"),
+    before: url.searchParams.get("before"),
+  });
 };
 
 function formatDate(value: string) {
@@ -133,12 +68,7 @@ export default function OrdersDashboardPage() {
                 <tbody>
                   {orders.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={2}
-                        style={{
-                          padding: "12px",
-                        }}
-                      >
+                      <td colSpan={2} style={{ padding: "12px" }}>
                         No orders found.
                       </td>
                     </tr>
