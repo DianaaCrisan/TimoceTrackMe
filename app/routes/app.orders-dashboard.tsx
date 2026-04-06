@@ -5,6 +5,7 @@ import {
   getOrdersDashboardData,
   ORDER_PAGE_SIZE,
 } from "../backend/orders/orders-dashboard.server";
+import { DateUtils } from "app/frontend/core/utils/DateUtils";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
@@ -16,13 +17,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     before: url.searchParams.get("before"),
   });
 };
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 export default function OrdersDashboardPage() {
   const { orders, pageInfo } = useLoaderData<typeof loader>();
@@ -89,7 +83,7 @@ export default function OrdersDashboardPage() {
                             borderBottom: "1px solid #e1e3e5",
                           }}
                         >
-                          {formatDate(order.createdAt)}
+                          {DateUtils.formatDate(order.createdAt)}
                         </td>
                       </tr>
                     ))
