@@ -1,0 +1,50 @@
+.orders-dashboard-page {
+  width: 100%;
+  max-width: none;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "San Francisco",
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    sans-serif;
+}
+
+.orders-dashboard-page__surface {
+  width: 100%;
+  background: var(--p-color-bg-surface, #ffffff);
+  border: 1px solid var(--p-color-border-secondary, #d9d9d9);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.orders-dashboard-page__tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 0 12px;
+  background: var(--p-color-bg-surface, #ffffff);
+}
+
+.orders-dashboard-page__tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font: inherit;
+  color: inherit;
+}
+
+.orders-dashboard-page__tab--active {
+  background: var(--p-color-bg-fill-secondary, #f1f1f1);
+  font-weight: 600;
+}
+
+.orders-dashboard-page__pagination {
+  margin-top: 12px;
+}

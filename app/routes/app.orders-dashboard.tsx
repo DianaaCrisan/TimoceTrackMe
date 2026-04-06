@@ -1,9 +1,9 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
+import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { getOrdersDashboardData } from "../backend/orders/orders-dashboard.server";
-import { CursorPagination } from "app/frontend/core/components/CursorPagination";
-import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
+import { OrdersDashboardPage } from "app/frontend/orders-dashboard/components/OrdersDashboardPage";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
@@ -16,23 +16,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 };
 
-export default function OrdersDashboardPage() {
+export default function OrdersDashboardRoute() {
   const { orders, pageInfo } = useLoaderData<typeof loader>();
 
   return (
-    <s-page heading="Orders">
-      <s-stack direction="block" gap="large">
-        <s-section heading="All orders">
-          <s-stack direction="block" gap="base">
-            <OrdersDashboardTable orders={orders} />
-
-            <CursorPagination
-              basePath="/app/orders-dashboard"
-              pageInfo={pageInfo}
-            />
-          </s-stack>
-        </s-section>
-      </s-stack>
-    </s-page>
+    <>
+      <TitleBar title="Orders" />
+      <OrdersDashboardPage orders={orders} pageInfo={pageInfo} />
+    </>
   );
 }
