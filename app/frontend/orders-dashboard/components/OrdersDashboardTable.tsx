@@ -17,7 +17,7 @@ export function OrdersDashboardTable({ orders }: OrdersDashboardTableProps) {
       <thead className="orders-dashboard-table__head">
         <tr>
           <th className="orders-dashboard-table__header-cell">Order</th>
-          <th className="orders-dashboard-table__header-cell">Created at</th>
+          <th className="orders-dashboard-table__header-cell">Date</th>
         </tr>
       </thead>
 

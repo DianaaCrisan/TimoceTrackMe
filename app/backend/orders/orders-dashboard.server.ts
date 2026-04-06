@@ -26,23 +26,30 @@ type OrdersDashboardPaginationInput = {
 
 const ORDERS_DASHBOARD_QUERY = `#graphql
   query OrdersDashboard($first: Int, $last: Int, $after: String, $before: String) {
-    orders(first: $first, last: $last, after: $after, before: $before) {
-      edges {
-        cursor
-        node {
-          id
-          name
-          createdAt
+    orders(
+      first: $first
+      last: $last
+      after: $after
+      before: $before
+      sortKey: CREATED_AT
+      reverse: true
+    ) {
+        edges {
+          cursor
+          node {
+            id
+            name
+            createdAt
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
         }
       }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
     }
-  }
 `;
 
 export async function getOrdersDashboardData(
