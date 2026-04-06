@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
 import "app/frontend/orders-dashboard/components/OrdersDashboardPage.scss";
@@ -12,10 +13,68 @@ type OrdersDashboardPageProps = {
   pageInfo: PageInfo;
 };
 
+const MAX_SELECTED_ORDERS = 10;
+
 export function OrdersDashboardPage({
   orders,
   pageInfo,
 }: OrdersDashboardPageProps) {
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+
+  const selectedCount = selectedOrderIds.length;
+
+  const allVisibleSelected =
+    orders.length > 0 &&
+    orders.every((order) => selectedOrderIds.includes(order.id));
+
+  const canSelectMore = selectedCount < MAX_SELECTED_ORDERS;
+
+  const handleToggleOrder = (orderId: string) => {
+    setSelectedOrderIds((currentSelectedIds) => {
+      const isAlreadySelected = currentSelectedIds.includes(orderId);
+
+      if (isAlreadySelected) {
+        return currentSelectedIds.filter((id) => id !== orderId);
+      }
+
+      if (currentSelectedIds.length >= MAX_SELECTED_ORDERS) {
+        return currentSelectedIds;
+      }
+
+      return [...currentSelectedIds, orderId];
+    });
+  };
+
+  const handleToggleAllVisible = () => {
+    setSelectedOrderIds((currentSelectedIds) => {
+      const visibleOrderIds = orders.map((order) => order.id);
+
+      if (allVisibleSelected) {
+        return currentSelectedIds.filter((id) => !visibleOrderIds.includes(id));
+      }
+
+      const unselectedVisibleIds = visibleOrderIds.filter(
+        (id) => !currentSelectedIds.includes(id),
+      );
+
+      const remainingSlots = MAX_SELECTED_ORDERS - currentSelectedIds.length;
+
+      if (remainingSlots <= 0) {
+        return currentSelectedIds;
+      }
+
+      return [
+        ...currentSelectedIds,
+        ...unselectedVisibleIds.slice(0, remainingSlots),
+      ];
+    });
+  };
+
+  const selectionSummary = useMemo(() => {
+    if (selectedCount === 0) return null;
+    return `${selectedCount} selected`;
+  }, [selectedCount]);
+
   return (
     <div className="orders-dashboard-page">
       <div className="orders-dashboard-page__surface">
@@ -32,7 +91,35 @@ export function OrdersDashboardPage({
           </button>
         </div>
 
-        <OrdersDashboardTable orders={orders} />
+        {selectedCount > 0 ? (
+          <div className="orders-dashboard-page__bulk-bar">
+            <div className="orders-dashboard-page__bulk-bar-text">
+              {selectionSummary}
+            </div>
+
+            <button
+              type="button"
+              className="orders-dashboard-page__bulk-action-button"
+            >
+              <span
+                className="orders-dashboard-page__bulk-action-icon"
+                aria-hidden="true"
+              >
+                🚚
+              </span>
+              Add tracking numbers
+            </button>
+          </div>
+        ) : null}
+
+        <OrdersDashboardTable
+          orders={orders}
+          selectedOrderIds={selectedOrderIds}
+          canSelectMore={canSelectMore}
+          allVisibleSelected={allVisibleSelected}
+          onToggleOrder={handleToggleOrder}
+          onToggleAllVisible={handleToggleAllVisible}
+        />
       </div>
 
       <div className="orders-dashboard-page__pagination">
