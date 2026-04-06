@@ -1,0 +1,35 @@
+.orders-dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--p-color-bg-surface, white);
+}
+
+.orders-dashboard-table__head {
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+}
+
+.orders-dashboard-table__header-cell {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e1e3e5;
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.orders-dashboard-table__body-cell {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e1e3e5;
+  vertical-align: top;
+  font-size: 14px;
+}
+
+.orders-dashboard-table__empty-cell {
+  padding: 16px;
+  text-align: left;
+}
+
+.orders-dashboard-table__row:last-child .orders-dashboard-table__body-cell {
+  border-bottom: none;
+}

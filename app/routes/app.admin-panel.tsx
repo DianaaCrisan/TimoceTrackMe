@@ -7,8 +7,8 @@ import {
   getOptimusTestCredentialsForDisplay,
   sendOptimusConnectionTest,
 } from "../backend/optimus/optimus-test.server";
-import { ReadOnlyField } from "app/frontend/components/ReadOnlyField";
-import { ResponseViewer } from "app/frontend/components/ResponseViewer";
+import { ReadOnlyField } from "app/frontend/core/components/ReadOnlyField";
+import { ResponseViewer } from "app/frontend/core/components/ResponseViewer";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
