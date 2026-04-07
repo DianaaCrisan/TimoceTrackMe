@@ -1,5 +1,5 @@
-import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { getOrdersDashboardData } from "../backend/orders/orders-dashboard.server";
@@ -16,13 +16,38 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  await authenticate.admin(request);
+
+  const formData = await request.formData();
+  const selectedOrderIds = formData.getAll("selectedOrderIds").map(String);
+
+  return {
+    ok: true,
+    data: {
+      processedCount: selectedOrderIds.length,
+      successfulOrders: selectedOrderIds.map((id) => ({
+        id,
+        name: `Mock order ${id}`,
+        trackingNumbers: ["MOCK-TRACKING-123"],
+      })),
+      failedOrders: [],
+    },
+  };
+};
+
 export default function OrdersDashboardRoute() {
   const { orders, pageInfo } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
 
   return (
     <>
       <TitleBar title="Orders" />
-      <OrdersDashboardPage orders={orders} pageInfo={pageInfo} />
+      <OrdersDashboardPage
+        orders={orders}
+        pageInfo={pageInfo}
+        fetcher={fetcher}
+      />
     </>
   );
 }

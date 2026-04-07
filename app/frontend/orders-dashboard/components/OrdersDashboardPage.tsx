@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { FetcherWithComponents } from "react-router";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
 import "app/frontend/orders-dashboard/components/OrdersDashboardPage.scss";
@@ -11,6 +12,22 @@ type OrdersDashboardPageProps = {
     createdAt: string;
   }[];
   pageInfo: PageInfo;
+  fetcher: FetcherWithComponents<{
+    ok: boolean;
+    data: {
+      processedCount: number;
+      successfulOrders: {
+        id: string;
+        name: string;
+        trackingNumbers: string[];
+      }[];
+      failedOrders: {
+        id: string;
+        name: string;
+        errors: string[];
+      }[];
+    };
+  }>;
 };
 
 const MAX_SELECTED_ORDERS = 10;
@@ -18,10 +35,14 @@ const MAX_SELECTED_ORDERS = 10;
 export function OrdersDashboardPage({
   orders,
   pageInfo,
+  fetcher,
 }: OrdersDashboardPageProps) {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
 
   const selectedCount = selectedOrderIds.length;
+  const isSubmitting =
+    ["loading", "submitting"].includes(fetcher.state) &&
+    fetcher.formMethod === "POST";
 
   const allVisibleSelected =
     orders.length > 0 &&
@@ -75,6 +96,14 @@ export function OrdersDashboardPage({
     return `${selectedCount} selected`;
   }, [selectedCount]);
 
+  const responseContent = useMemo(() => {
+    if (!fetcher.data) {
+      return null;
+    }
+
+    return JSON.stringify(fetcher.data.data, null, 2);
+  }, [fetcher.data]);
+
   return (
     <div className="orders-dashboard-page">
       <div className="orders-dashboard-page__surface">
@@ -97,18 +126,32 @@ export function OrdersDashboardPage({
               {selectionSummary}
             </div>
 
-            <button
-              type="button"
-              className="orders-dashboard-page__bulk-action-button"
-            >
-              <span
-                className="orders-dashboard-page__bulk-action-icon"
-                aria-hidden="true"
+            <fetcher.Form method="post">
+              {selectedOrderIds.map((orderId) => (
+                <input
+                  key={orderId}
+                  type="hidden"
+                  name="selectedOrderIds"
+                  value={orderId}
+                />
+              ))}
+
+              <button
+                type="submit"
+                className="orders-dashboard-page__bulk-action-button"
+                disabled={isSubmitting}
               >
-                🚚
-              </span>
-              Add tracking numbers
-            </button>
+                <span
+                  className="orders-dashboard-page__bulk-action-icon"
+                  aria-hidden="true"
+                >
+                  🚚
+                </span>
+                {isSubmitting
+                  ? "Adding tracking numbers..."
+                  : "Add tracking numbers"}
+              </button>
+            </fetcher.Form>
           </div>
         ) : null}
 
@@ -128,6 +171,14 @@ export function OrdersDashboardPage({
           pageInfo={pageInfo}
         />
       </div>
+
+      {responseContent ? (
+        <div className="orders-dashboard-page__response">
+          <pre className="orders-dashboard-page__response-pre">
+            <code>{responseContent}</code>
+          </pre>
+        </div>
+      ) : null}
     </div>
   );
 }

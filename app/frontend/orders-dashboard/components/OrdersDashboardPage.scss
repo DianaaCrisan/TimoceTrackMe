@@ -81,3 +81,21 @@
 .orders-dashboard-page__pagination {
   margin-top: 12px;
 }
+
+.orders-dashboard-page__response {
+  margin-top: 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.orders-dashboard-page__response-pre {
+  margin: 0;
+  padding: 16px;
+  white-space: pre-wrap;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 13px;
+}
