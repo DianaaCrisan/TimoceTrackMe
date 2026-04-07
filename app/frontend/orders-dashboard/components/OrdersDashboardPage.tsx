@@ -4,6 +4,7 @@ import { CursorPagination } from "app/frontend/core/components/CursorPagination"
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
 import "app/frontend/orders-dashboard/components/OrdersDashboardPage.scss";
 import { PageInfo } from "app/types/admin.types";
+import { AddTrackingNumbersResult } from "app/backend/add-tracking/addTrackingNumbers.types";
 
 type OrdersDashboardPageProps = {
   orders: {
@@ -14,19 +15,7 @@ type OrdersDashboardPageProps = {
   pageInfo: PageInfo;
   fetcher: FetcherWithComponents<{
     ok: boolean;
-    data: {
-      processedCount: number;
-      successfulOrders: {
-        id: string;
-        name: string;
-        trackingNumbers: string[];
-      }[];
-      failedOrders: {
-        id: string;
-        name: string;
-        errors: string[];
-      }[];
-    };
+    data: AddTrackingNumbersResult;
   }>;
 };
 

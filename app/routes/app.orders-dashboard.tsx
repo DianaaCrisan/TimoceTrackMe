@@ -4,6 +4,9 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { getOrdersDashboardData } from "../backend/orders/orders-dashboard.server";
 import { OrdersDashboardPage } from "app/frontend/orders-dashboard/components/OrdersDashboardPage";
+import { addTrackingNumbers } from "app/backend/add-tracking/addTrackingNumbers.server";
+
+const MAX_SELECTED_ORDERS = 10;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
@@ -17,22 +20,57 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
 
   const formData = await request.formData();
-  const selectedOrderIds = formData.getAll("selectedOrderIds").map(String);
+  const selectedOrderIds = formData
+    .getAll("selectedOrderIds")
+    .map(String)
+    .filter(Boolean);
+
+  if (selectedOrderIds.length === 0) {
+    return {
+      ok: false,
+      data: {
+        ok: false,
+        successfulOrders: [],
+        failedOrders: [
+          {
+            id: "",
+            name: "-",
+            errors: ["No orders were selected."],
+          },
+        ],
+      },
+    };
+  }
+
+  if (selectedOrderIds.length > MAX_SELECTED_ORDERS) {
+    return {
+      ok: false,
+      data: {
+        ok: false,
+        successfulOrders: [],
+        failedOrders: [
+          {
+            id: "",
+            name: "-",
+            errors: [
+              `You can select at most ${MAX_SELECTED_ORDERS} orders at once.`,
+            ],
+          },
+        ],
+      },
+    };
+  }
+
+  const result = await addTrackingNumbers(admin, {
+    orderIds: selectedOrderIds,
+  });
 
   return {
-    ok: true,
-    data: {
-      processedCount: selectedOrderIds.length,
-      successfulOrders: selectedOrderIds.map((id) => ({
-        id,
-        name: `Mock order ${id}`,
-        trackingNumbers: ["MOCK-TRACKING-123"],
-      })),
-      failedOrders: [],
-    },
+    ok: result.ok,
+    data: result,
   };
 };
 
