@@ -1,0 +1,1 @@
+export const ADD_TRACKING_GRAPHQL_POOL_WORKERS = 4;

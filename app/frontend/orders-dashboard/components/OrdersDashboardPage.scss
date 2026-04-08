@@ -45,6 +45,57 @@
   font-weight: 600;
 }
 
+.orders-dashboard-page__bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e1e3e5;
+  background: #f9fafb;
+}
+
+.orders-dashboard-page__bulk-bar-text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.orders-dashboard-page__bulk-action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #c9cccf;
+  border-radius: 10px;
+  background: white;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.orders-dashboard-page__bulk-action-icon {
+  line-height: 1;
+}
+
 .orders-dashboard-page__pagination {
   margin-top: 12px;
+}
+
+.orders-dashboard-page__response {
+  margin-top: 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.orders-dashboard-page__response-pre {
+  margin: 0;
+  padding: 16px;
+  white-space: pre-wrap;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 13px;
 }
