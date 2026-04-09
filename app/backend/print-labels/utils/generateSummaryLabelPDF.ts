@@ -1,5 +1,4 @@
 import { PDFDocument } from "pdf-lib";
-import { drawRightArrowFooter } from "./drawRightArrowFooter";
 import { LineItem } from "../models/LineItem";
 import { renderTwoColumnLabel } from "./renderTwoColumnLabel";
 
@@ -114,8 +113,10 @@ async function appendPage(
   const pages = await master.copyPages(src, src.getPageIndices());
 
   pages.forEach((p) => {
-    const added = master.addPage(p);
-    drawRightArrowFooter(added);
+    master.addPage(p);
+    // temporarily disabled
+    //     const added = master.addPage(p);
+    // drawRightArrowFooter(added);
   });
 }
 

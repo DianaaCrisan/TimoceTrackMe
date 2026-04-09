@@ -1,5 +1,4 @@
 import { type PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { drawRightArrowFooter } from "./drawRightArrowFooter";
 
 const mmToPt = (mm: number) => mm * 2.83465;
 
@@ -71,6 +70,7 @@ export async function appendOrderNamePagesToPDF(
     }
 
     // arrow on every Orders page
-    drawRightArrowFooter(page);
+    // temporarily disabled
+    // drawRightArrowFooter(page);
   }
 }
