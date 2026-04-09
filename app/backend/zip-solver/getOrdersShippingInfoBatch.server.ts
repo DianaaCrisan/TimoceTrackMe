@@ -5,35 +5,7 @@ import type {
 } from "app/types/admin.generated";
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { chunk, SHOPIFY_READ_BATCH_SIZE } from "../graphql/utils/batch-utils";
-
-const GET_ORDERS_SHIPPING_INFO_BATCH_QUERY = `#graphql
-  query GetOrdersShippingInfoBatch($orderIds: [ID!]!) {
-    nodes(ids: $orderIds) {
-      __typename
-      ... on Order {
-        id
-        name
-        shippingAddress {
-          zip
-          address1
-          city
-          provinceCode
-        }
-        shippingLines(first: 2) {
-          edges {
-            node {
-              title
-              taxLines {
-                title
-                ratePercentage
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
+import { GET_ORDERS_SHIPPING_INFO_BATCH_QUERY } from "./getOrdersShippingInfoBatch.operations";
 
 export type ShopifyOrderShippingInfo = Extract<
   NonNullable<GetOrdersShippingInfoBatchQuery["nodes"]>[number],

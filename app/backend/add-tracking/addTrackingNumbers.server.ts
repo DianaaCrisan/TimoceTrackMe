@@ -2,7 +2,7 @@ import { createPool } from "app/backend/graphql/throttle-handling/helpers/create
 import { createProgressLogger } from "app/backend/graphql/throttle-handling/helpers/createProgressLogger";
 import { scheduleWithProgress } from "app/backend/graphql/throttle-handling/helpers/scheduleWithProgress";
 import {
-  getOrdersTrackingInputData,
+  getOrdersTrackingInputDataInBatches,
   type TrackingInputFulfillmentOrder,
   type TrackingInputOrder,
 } from "./getOrdersTrackingInputData.server";
@@ -15,7 +15,7 @@ import type {
 } from "./addTrackingNumbers.types";
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { ADD_TRACKING_GRAPHQL_POOL_WORKERS } from "../graphql/throttle-handling/constants";
-import { createOptimusTrackingNumber } from "../optimus/createOptimusTrackingNumber";
+import { createOptimusTrackingNumber } from "../optimus/createOptimusTrackingNumber.server";
 import { isEligibleForFulfillment } from "../graphql/utils/fulfillment-order-utils";
 import { ShopifyUtils } from "../graphql/utils/ShopifyUtils";
 
@@ -27,7 +27,10 @@ export async function addTrackingNumbers(
   const successfulOrders: AddTrackingNumbersSuccessfulOrder[] = [];
   const failedOrders: AddTrackingNumbersFailedOrder[] = [];
 
-  const orders = await getOrdersTrackingInputData(admin, request.orderIds);
+  const orders = await getOrdersTrackingInputDataInBatches(
+    admin,
+    request.orderIds,
+  );
   const ordersById = new Map(orders.map((order) => [order.id, order]));
 
   const pool = createPool(ADD_TRACKING_GRAPHQL_POOL_WORKERS);

@@ -4,29 +4,9 @@ import type {
 } from "app/types/admin.generated";
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
+import { ADD_ZIP_CODE_TO_ORDER_MUTATION } from "./addZipCodeToOrder.operations";
 
 const INITIAL_EXPECTED_COST = 80;
-
-const ADD_ZIP_CODE_TO_ORDER_MUTATION = `#graphql
-  mutation AddZipCodeToOrder($input: OrderInput!) {
-    orderUpdate(input: $input) {
-      order {
-        id
-        shippingAddress {
-          address1
-          city
-          provinceCode
-          zip
-          countryCodeV2
-        }
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
 
 export async function addZipCodeToOrderMutation(
   admin: AdminApiContextWithoutRest,

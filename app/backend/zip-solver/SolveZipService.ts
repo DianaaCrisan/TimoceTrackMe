@@ -1,9 +1,9 @@
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
-import { addZipCodeToOrderMutation } from "./addZipCodeToOrderMutation";
+import { addZipCodeToOrderMutation } from "./addZipCodeToOrder.server";
 import {
   getOrdersShippingInfoInBatches,
   ShopifyOrderShippingInfo,
-} from "./getOrdersShippingInfoBatch";
+} from "./getOrdersShippingInfoBatch.server";
 import { getZipCodeSuggestions } from "./getZipCodeSuggestions";
 import { AddressInput } from "./models/AddressInput";
 import { ProcessedOrderSolvedZip } from "./models/ProcessedOrderSolvedZip";
@@ -22,7 +22,6 @@ export class SolveZipService {
     orderIds: string[],
     solveAllZips: boolean = false,
   ): Promise<SolvedOrdersResponse> {
-    // throw new Error("");
     const unsupportedByOrder = new Map<string, UnsupportedOrder>();
 
     const fetchedOrders = await getOrdersShippingInfoInBatches(admin, orderIds);
