@@ -5,8 +5,30 @@ import { authenticate } from "../shopify.server";
 import { getOrdersDashboardData } from "../backend/orders/orders-dashboard.server";
 import { OrdersDashboardPage } from "app/frontend/orders-dashboard/components/OrdersDashboardPage";
 import { addTrackingNumbers } from "app/backend/add-tracking/addTrackingNumbers.server";
-import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { MAX_SELECTED_ORDERS } from "app/commons/constants";
+import { AddTrackingNumbersResult } from "app/backend/add-tracking/addTrackingNumbers.types";
+
+type OrdersDashboardActionData = {
+  ok: boolean;
+  data: AddTrackingNumbersResult;
+};
+
+const buildAddTrackingErrorResult = (
+  errors: string[],
+): OrdersDashboardActionData => ({
+  ok: false,
+  data: {
+    ok: false,
+    successfulOrders: [],
+    failedOrders: [
+      {
+        id: "",
+        name: "-",
+        errors,
+      },
+    ],
+  },
+});
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
@@ -19,9 +41,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
-  const shop = ShopifyUtils.getShopAdminUrl(session.shop);
+export const action = async ({
+  request,
+}: ActionFunctionArgs): Promise<OrdersDashboardActionData> => {
+  const { admin } = await authenticate.admin(request);
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -31,39 +54,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     .filter(Boolean);
 
   if (selectedOrderIds.length === 0) {
-    return {
-      ok: false,
-      data: {
-        ok: false,
-        successfulOrders: [],
-        failedOrders: [
-          {
-            id: "",
-            name: "-",
-            errors: ["No orders were selected."],
-          },
-        ],
-      },
-    };
+    return buildAddTrackingErrorResult(["No orders were selected."]);
   }
 
   if (selectedOrderIds.length > MAX_SELECTED_ORDERS) {
-    return {
-      ok: false,
-      data: {
-        ok: false,
-        successfulOrders: [],
-        failedOrders: [
-          {
-            id: "",
-            name: "-",
-            errors: [
-              `You can select at most ${MAX_SELECTED_ORDERS} orders at once.`,
-            ],
-          },
-        ],
-      },
-    };
+    return buildAddTrackingErrorResult([
+      `You can select at most ${MAX_SELECTED_ORDERS} orders at once.`,
+    ]);
   }
 
   if (intent === "add-tracking") {
@@ -77,18 +74,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     };
   }
 
-  return {
-    ok: false,
-    data: {
-      ok: false,
-      errors: [
-        {
-          orderId: "",
-          message: "Unknown action intent.",
-        },
-      ],
-    },
-  };
+  return buildAddTrackingErrorResult(["Unknown action intent."]);
 };
 
 export default function OrdersDashboardRoute() {
@@ -96,7 +82,6 @@ export default function OrdersDashboardRoute() {
 
   const addTrackingFetcher = useFetcher<typeof action>();
 
-  // TODO: fix ts errors
   return (
     <>
       <TitleBar title="Orders" />

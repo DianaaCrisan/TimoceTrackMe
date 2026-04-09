@@ -28,6 +28,19 @@ type OrdersDashboardPageProps = {
   }>;
 };
 
+type SolveZipCodesResult = {
+  ok: boolean;
+  successfulOrders: {
+    id: string;
+    name: string;
+  }[];
+  failedOrders: {
+    id: string;
+    name: string;
+    errors: string[];
+  }[];
+};
+
 export function OrdersDashboardPage({
   orders,
   pageInfo,
@@ -40,10 +53,18 @@ export function OrdersDashboardPage({
 
   const [printLabelsResult, setPrintLabelsResult] =
     useState<PrintLabelsUiResult | null>(null);
+  const [isDownloadingLabels, setIsDownloadingLabels] = useState(false);
+
+  const [solveZipCodesResult, setSolveZipCodesResult] =
+    useState<SolveZipCodesResult | null>(null);
+  const [isSolvingZipCodes, setIsSolvingZipCodes] = useState(false);
 
   const isAddTrackingSubmitting =
     ["loading", "submitting"].includes(addTrackingFetcher.state) &&
     addTrackingFetcher.formMethod === "POST";
+
+  const isAnyBulkActionRunning =
+    isAddTrackingSubmitting || isDownloadingLabels || isSolvingZipCodes;
 
   const allVisibleSelected =
     orders.length > 0 &&
@@ -98,6 +119,7 @@ export function OrdersDashboardPage({
   }, [selectedCount]);
 
   async function handleDownloadLabels() {
+    setIsDownloadingLabels(true);
     try {
       const token = await shopify.idToken();
 
@@ -169,6 +191,84 @@ export function OrdersDashboardPage({
         hasDownloadableFile: false,
         errors: [error instanceof Error ? error.message : String(error)],
       });
+    } finally {
+      setIsDownloadingLabels(false);
+    }
+  }
+
+  async function handleSolveZipCodes() {
+    setIsSolvingZipCodes(true);
+
+    try {
+      const token = await shopify.idToken();
+
+      const formData = new FormData();
+      selectedOrderIds.forEach((orderId) => {
+        formData.append("selectedOrderIds", orderId);
+      });
+
+      const response = await fetch("/app/orders-dashboard/solve-zip-codes", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const contentType = response.headers.get("Content-Type") ?? "";
+
+      if (!response.ok) {
+        if (contentType.includes("application/json")) {
+          const errorData = await response.json();
+
+          setSolveZipCodesResult({
+            ok: false,
+            successfulOrders: [],
+            failedOrders: errorData.failedOrders ?? [
+              {
+                id: "",
+                name: "-",
+                errors: errorData.errors ?? ["Failed to solve ZIP codes."],
+              },
+            ],
+          });
+
+          return;
+        }
+
+        const errorText = await response.text();
+
+        setSolveZipCodesResult({
+          ok: false,
+          successfulOrders: [],
+          failedOrders: [
+            {
+              id: "",
+              name: "-",
+              errors: [errorText || "Failed to solve ZIP codes."],
+            },
+          ],
+        });
+
+        return;
+      }
+
+      const result: SolveZipCodesResult = await response.json();
+      setSolveZipCodesResult(result);
+    } catch (error) {
+      setSolveZipCodesResult({
+        ok: false,
+        successfulOrders: [],
+        failedOrders: [
+          {
+            id: "",
+            name: "-",
+            errors: [error instanceof Error ? error.message : String(error)],
+          },
+        ],
+      });
+    } finally {
+      setIsSolvingZipCodes(false);
     }
   }
 
@@ -195,6 +295,21 @@ export function OrdersDashboardPage({
             </div>
 
             <div className="orders-dashboard-page__bulk-actions">
+              <button
+                type="button"
+                className="orders-dashboard-page__bulk-action-button"
+                disabled={isAnyBulkActionRunning}
+                onClick={handleSolveZipCodes}
+              >
+                <span
+                  className="orders-dashboard-page__bulk-action-icon"
+                  aria-hidden="true"
+                >
+                  📮
+                </span>
+                {isSolvingZipCodes ? "Solving ZIP codes..." : "Solve ZIP codes"}
+              </button>
+
               <addTrackingFetcher.Form method="post">
                 <input type="hidden" name="intent" value="add-tracking" />
 
@@ -227,7 +342,7 @@ export function OrdersDashboardPage({
               <button
                 type="button"
                 className="orders-dashboard-page__bulk-action-button"
-                disabled={isAddTrackingSubmitting}
+                disabled={isAnyBulkActionRunning}
                 onClick={handleDownloadLabels}
               >
                 <span
@@ -236,8 +351,9 @@ export function OrdersDashboardPage({
                 >
                   🖨️
                 </span>
-                {"Download labels"}
-                {/* TODO: loading/ disabled state? */}
+                {isDownloadingLabels
+                  ? "Downloading labels..."
+                  : "Download labels"}
               </button>
             </div>
           </div>
@@ -281,6 +397,18 @@ export function OrdersDashboardPage({
               : undefined
           }
           genericErrors={printLabelsResult.errors}
+        />
+      ) : null}
+
+      {solveZipCodesResult ? (
+        <OrdersActionResultPanel
+          title="Solve ZIP codes result"
+          successMessage={
+            solveZipCodesResult.successfulOrders.length > 0
+              ? `ZIP codes solved for ${solveZipCodesResult.successfulOrders.length} order(s).`
+              : undefined
+          }
+          failedOrders={solveZipCodesResult.failedOrders}
         />
       ) : null}
     </div>
