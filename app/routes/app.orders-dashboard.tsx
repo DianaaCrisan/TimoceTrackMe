@@ -5,8 +5,8 @@ import { authenticate } from "../shopify.server";
 import { getOrdersDashboardData } from "../backend/orders/orders-dashboard.server";
 import { OrdersDashboardPage } from "app/frontend/orders-dashboard/components/OrdersDashboardPage";
 import { addTrackingNumbers } from "app/backend/add-tracking/addTrackingNumbers.server";
-
-const MAX_SELECTED_ORDERS = 10;
+import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
+import { MAX_SELECTED_ORDERS } from "app/commons/constants";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
@@ -20,9 +20,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+  const shop = ShopifyUtils.getShopAdminUrl(session.shop);
 
   const formData = await request.formData();
+  const intent = formData.get("intent");
   const selectedOrderIds = formData
     .getAll("selectedOrderIds")
     .map(String)
@@ -64,27 +66,44 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     };
   }
 
-  const result = await addTrackingNumbers(admin, {
-    orderIds: selectedOrderIds,
-  });
+  if (intent === "add-tracking") {
+    const result = await addTrackingNumbers(admin, {
+      orderIds: selectedOrderIds,
+    });
+
+    return {
+      ok: result.ok,
+      data: result,
+    };
+  }
 
   return {
-    ok: result.ok,
-    data: result,
+    ok: false,
+    data: {
+      ok: false,
+      errors: [
+        {
+          orderId: "",
+          message: "Unknown action intent.",
+        },
+      ],
+    },
   };
 };
 
 export default function OrdersDashboardRoute() {
   const { orders, pageInfo } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<typeof action>();
 
+  const addTrackingFetcher = useFetcher<typeof action>();
+
+  // TODO: fix ts errors
   return (
     <>
       <TitleBar title="Orders" />
       <OrdersDashboardPage
         orders={orders}
         pageInfo={pageInfo}
-        fetcher={fetcher}
+        addTrackingFetcher={addTrackingFetcher}
       />
     </>
   );

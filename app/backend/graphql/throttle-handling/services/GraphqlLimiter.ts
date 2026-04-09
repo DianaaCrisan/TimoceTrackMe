@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { CostExtensions } from "../models/CostExtensions";
 
 const MIN_RESERVE = 300;
@@ -43,7 +44,7 @@ export class GraphqlLimiter {
     if (elapsedSec > 0 && this.restoreRate > 0) {
       this.available = Math.min(
         this.max,
-        this.available + elapsedSec * this.restoreRate
+        this.available + elapsedSec * this.restoreRate,
       );
     }
     this.lastRefillAt = now;
@@ -63,7 +64,7 @@ export class GraphqlLimiter {
     if (!cost) return;
 
     console.log(
-      `[ThrottleMonitoring] ${opName} -> currentlyAvailableCost: ${cost.throttleStatus?.currentlyAvailable}`
+      `[ThrottleMonitoring] ${opName} -> currentlyAvailableCost: ${cost.throttleStatus?.currentlyAvailable}`,
     );
 
     if (typeof cost.requestedQueryCost === "number") {
@@ -87,7 +88,7 @@ export class GraphqlLimiter {
   /** Estimate how many points we need pre-flight */
   private estimateRequestedCost(
     opName: string,
-    expectedCostHint?: number
+    expectedCostHint?: number,
   ): number {
     if (typeof expectedCostHint === "number") return expectedCostHint;
     const cached = this.opRequestedCostCache.get(opName);
@@ -110,6 +111,7 @@ export class GraphqlLimiter {
       const headroom = Math.max(MIN_RESERVE, 3 * this.restoreRate);
       const target = requested + headroom;
 
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         // bring local bucket up-to-date
         this.refillByElapsed();
@@ -119,12 +121,12 @@ export class GraphqlLimiter {
         // wait exactly enough to reach target
         const deficit = target - this.available;
         const waitMs = Math.ceil(
-          (deficit / Math.max(this.restoreRate, 1)) * 1000
+          (deficit / Math.max(this.restoreRate, 1)) * 1000,
         );
         const boundedSleep = Math.min(waitMs, MAX_SLEEP_MS);
 
         console.log(
-          `[ThrottleMonitoring] Initiating sleep for ${boundedSleep}ms`
+          `[ThrottleMonitoring] Initiating sleep for ${boundedSleep}ms`,
         );
         await this.sleep(boundedSleep);
       }
@@ -138,7 +140,7 @@ export class GraphqlLimiter {
   async run<T>(
     opName: string,
     runRaw: () => Promise<Response>,
-    { expectedCost }: { expectedCost?: number } = {}
+    { expectedCost }: { expectedCost?: number } = {},
   ): Promise<{ data: T; body: any; response: Response }> {
     const requested = this.estimateRequestedCost(opName, expectedCost);
     await this.preflightAndReserve(requested);
@@ -151,6 +153,7 @@ export class GraphqlLimiter {
       try {
         const thrownBody = err?.body ?? err?.response?.body;
         this.updateFromExtensions(opName, thrownBody?.extensions);
+        // eslint-disable-next-line no-empty
       } catch {}
       throw err; // no retry
     }
@@ -159,6 +162,7 @@ export class GraphqlLimiter {
     let body: any = null;
     try {
       body = await resp.clone().json();
+      // eslint-disable-next-line no-empty
     } catch {}
 
     // Sync our local bucket view from the server truth

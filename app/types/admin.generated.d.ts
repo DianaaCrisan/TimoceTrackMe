@@ -48,9 +48,41 @@ export type OrdersDashboardQuery = { orders: { edges: Array<(
       & { node: Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt'> }
     )>, pageInfo: Pick<AdminTypes.PageInfo, 'hasNextPage' | 'hasPreviousPage' | 'startCursor' | 'endCursor'> } };
 
+export type GetOrdersPrintLabelsInputQueryVariables = AdminTypes.Exact<{
+  ids: Array<AdminTypes.Scalars['ID']['input']> | AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type GetOrdersPrintLabelsInputQuery = { nodes: Array<AdminTypes.Maybe<(
+    Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt' | 'email' | 'phone' | 'confirmationNumber'>
+    & { billingAddress?: AdminTypes.Maybe<Pick<AdminTypes.MailingAddress, 'firstName' | 'lastName' | 'phone'>>, shippingLines: { edges: Array<{ node: (
+          Pick<AdminTypes.ShippingLine, 'title'>
+          & { taxLines: Array<Pick<AdminTypes.TaxLine, 'title' | 'ratePercentage'>> }
+        ) }> }, fulfillmentOrders: { edges: Array<{ node: (
+          Pick<AdminTypes.FulfillmentOrder, 'id' | 'status'>
+          & { deliveryMethod?: AdminTypes.Maybe<Pick<AdminTypes.DeliveryMethod, 'methodType'>>, lineItems: { edges: Array<{ node: (
+                Pick<AdminTypes.FulfillmentOrderLineItem, 'id' | 'remainingQuantity'>
+                & { lineItem: (
+                  Pick<AdminTypes.LineItem, 'id' | 'name' | 'sku'>
+                  & { variant?: AdminTypes.Maybe<Pick<AdminTypes.ProductVariant, 'id' | 'displayName'>> }
+                ) }
+              ) }> } }
+        ) }> }, fulfillments: Array<(
+      Pick<AdminTypes.Fulfillment, 'id' | 'name' | 'displayStatus'>
+      & { trackingInfo: Array<Pick<AdminTypes.FulfillmentTrackingInfo, 'number' | 'company' | 'url'>>, fulfillmentLineItems: { edges: Array<{ node: (
+            Pick<AdminTypes.FulfillmentLineItem, 'quantity'>
+            & { lineItem: (
+              Pick<AdminTypes.LineItem, 'id' | 'name' | 'sku'>
+              & { variant?: AdminTypes.Maybe<Pick<AdminTypes.ProductVariant, 'id' | 'displayName'>> }
+            ) }
+          ) }> } }
+    )> }
+  )>> };
+
 interface GeneratedQueryTypes {
-  "#graphql\n  query GetOrdersTrackingInputData($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        email\n        phone\n        createdAt\n        shippingAddress {\n          address1\n          address2\n          city\n          province\n          country\n          zip\n          formatted\n          name\n          phone\n        }\n        fulfillmentOrders(first: 20) {\n          edges {\n            node {\n              id\n              status\n              deliveryMethod {\n                methodType\n              }\n              lineItems(first: 50) {\n                edges {\n                  node {\n                    id\n                    remainingQuantity\n                    lineItem {\n                      id\n                      name\n                      variant {\n                        id\n                        inventoryItem{\n                          measurement {\n                            weight {\n                              value \n                            }\n                          }\n                        }\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersTrackingInputDataQuery, variables: GetOrdersTrackingInputDataQueryVariables},
+  "#graphql\n  query GetOrdersTrackingInputData($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        email\n        phone\n        createdAt\n        shippingAddress {\n          address1\n          address2\n          city\n          province\n          country\n          zip\n          formatted\n          name\n          phone\n        }\n        fulfillmentOrders(first: 50) {\n          edges {\n            node {\n              id\n              status\n              deliveryMethod {\n                methodType\n              }\n              lineItems(first: 250) {\n                edges {\n                  node {\n                    id\n                    remainingQuantity\n                    lineItem {\n                      id\n                      name\n                      variant {\n                        id\n                        inventoryItem{\n                          measurement {\n                            weight {\n                              value \n                            }\n                          }\n                        }\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersTrackingInputDataQuery, variables: GetOrdersTrackingInputDataQueryVariables},
   "#graphql\n  query OrdersDashboard($first: Int, $last: Int, $after: String, $before: String) {\n    orders(\n      first: $first\n      last: $last\n      after: $after\n      before: $before\n      sortKey: CREATED_AT\n      reverse: true\n    ) {\n        edges {\n          cursor\n          node {\n            id\n            name\n            createdAt\n          }\n        }\n        pageInfo {\n          hasNextPage\n          hasPreviousPage\n          startCursor\n          endCursor\n        }\n      }\n    }\n": {return: OrdersDashboardQuery, variables: OrdersDashboardQueryVariables},
+  "#graphql\n  query GetOrdersPrintLabelsInput($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        createdAt\n        email\n        phone\n        confirmationNumber\n        billingAddress {\n          firstName\n          lastName\n          phone\n        }\n        shippingLines(first: 10) {\n          edges {\n            node {\n              title\n              taxLines {\n                title\n                ratePercentage\n              }\n            }\n          }\n        }\n\n        fulfillmentOrders(first: 50) {\n          edges {\n            node {\n              id\n              status\n              deliveryMethod {\n                methodType\n              }\n              lineItems(first: 100) {\n                edges {\n                  node {\n                    id\n                    remainingQuantity\n                    lineItem {\n                      id\n                      name\n                      sku\n                      variant {\n                        id\n                        displayName\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n\n        fulfillments(first: 50) {\n          id\n          name\n          displayStatus\n          trackingInfo {\n            number\n            company\n            url\n          }\n          fulfillmentLineItems(first: 100) {\n            edges {\n              node {\n                quantity\n                lineItem {\n                  id\n                  name\n                  sku\n                  variant {\n                    id\n                    displayName\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersPrintLabelsInputQuery, variables: GetOrdersPrintLabelsInputQueryVariables},
 }
 
 interface GeneratedMutationTypes {
