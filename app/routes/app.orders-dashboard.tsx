@@ -7,6 +7,7 @@ import { OrdersDashboardPage } from "app/frontend/orders-dashboard/components/Or
 import { addTrackingNumbers } from "app/backend/add-tracking/addTrackingNumbers.server";
 import { MAX_SELECTED_ORDERS } from "app/commons/constants";
 import { AddTrackingNumbersResult } from "app/backend/add-tracking/addTrackingNumbers.types";
+import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 
 type OrdersDashboardActionData = {
   ok: boolean;
@@ -44,7 +45,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({
   request,
 }: ActionFunctionArgs): Promise<OrdersDashboardActionData> => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -64,7 +65,8 @@ export const action = async ({
   }
 
   if (intent === "add-tracking") {
-    const result = await addTrackingNumbers(admin, {
+    const shop = ShopifyUtils.getShopAdminUrl(session.shop);
+    const result = await addTrackingNumbers(admin, shop, {
       orderIds: selectedOrderIds,
     });
 

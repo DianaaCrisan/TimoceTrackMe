@@ -21,6 +21,7 @@ import { ShopifyUtils } from "../graphql/utils/ShopifyUtils";
 
 export async function addTrackingNumbers(
   admin: AdminApiContextWithoutRest,
+  shopUrl: string,
   request: AddTrackingNumbersRequest,
 ): Promise<AddTrackingNumbersResult> {
   const successfulOrders: AddTrackingNumbersSuccessfulOrder[] = [];
@@ -40,6 +41,7 @@ export async function addTrackingNumbers(
       scheduleWithProgress(pool, progress, orderId, async () => {
         await processOneOrder({
           admin,
+          shopUrl,
           orderId,
           order: ordersById.get(orderId),
           successfulOrders,
@@ -58,12 +60,14 @@ export async function addTrackingNumbers(
 
 async function processOneOrder({
   admin,
+  shopUrl,
   orderId,
   order,
   successfulOrders,
   failedOrders,
 }: {
   admin: AdminApiContextWithoutRest;
+  shopUrl: string;
   orderId: string;
   order?: TrackingInputOrder;
   successfulOrders: AddTrackingNumbersSuccessfulOrder[];
@@ -116,7 +120,7 @@ async function processOneOrder({
           formatted: order.shippingAddress?.formatted.join(", ") ?? "",
         });
 
-        await addTrackingNumberToFulfillment(admin, {
+        await addTrackingNumberToFulfillment(admin, shopUrl, {
           fulfillmentOrderId: fulfillmentOrder.id,
           fulfillmentOrderLineItems: fulfillmentOrder.lineItems
             .filter((lineItem) => lineItem.remainingQuantity > 0)
