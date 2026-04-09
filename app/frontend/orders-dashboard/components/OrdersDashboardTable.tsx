@@ -1,7 +1,7 @@
 import { DateUtils } from "app/frontend/core/utils/DateUtils";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable.scss";
 
-export type OrdersDashboardTableRow = {
+type OrdersDashboardTableRow = {
   id: string;
   name: string;
   createdAt: string;

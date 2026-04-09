@@ -16,6 +16,8 @@ import type {
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { ADD_TRACKING_GRAPHQL_POOL_WORKERS } from "../graphql/throttle-handling/constants";
 import { createOptimusTrackingNumber } from "../optimus/createOptimusTrackingNumber";
+import { isEligibleForFulfillment } from "../graphql/utils/fulfillment-order-utils";
+import { ShopifyUtils } from "../graphql/utils/ShopifyUtils";
 
 export async function addTrackingNumbers(
   admin: AdminApiContextWithoutRest,
@@ -128,7 +130,7 @@ async function processOneOrder({
         createdTrackingNumbers.push(awbResponse.trackingNumber);
       } catch (fulfillmentError) {
         fulfillmentErrors.push(
-          `Fulfillment ${fulfillmentOrder.id}: ${
+          `Fulfillment ${ShopifyUtils.extractShopifyId(fulfillmentOrder.id)}: ${
             fulfillmentError instanceof Error
               ? fulfillmentError.message
               : String(fulfillmentError)
@@ -183,7 +185,7 @@ function getEligibleShippingFulfillmentOrders(
       return false;
     }
 
-    if (fulfillmentOrder.status !== "OPEN") {
+    if (!isEligibleForFulfillment(fulfillmentOrder.status)) {
       return false;
     }
 
@@ -201,8 +203,8 @@ function getTotalWeightForFulfillmentOrder(
       return sum;
     }
 
-    const weight = lineItem.weight ?? "";
-    if (!weight || weight <= 0) {
+    const weight = Number(lineItem.weight);
+    if (!Number.isFinite(weight) || weight <= 0) {
       throw new Error(`Missing or invalid weight for item "${lineItem.name}".`);
     }
 

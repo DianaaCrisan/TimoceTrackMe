@@ -5,6 +5,15 @@ import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/O
 import "app/frontend/orders-dashboard/components/OrdersDashboardPage.scss";
 import { PageInfo } from "app/types/admin.types";
 import { AddTrackingNumbersResult } from "app/backend/add-tracking/addTrackingNumbers.types";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { OrdersActionResultPanel } from "./OrdersActionResultPanel";
+import { MAX_SELECTED_ORDERS } from "app/commons/constants";
+
+type PrintLabelsUiResult = {
+  ok: boolean;
+  hasDownloadableFile: boolean;
+  errors: string[];
+};
 
 type OrdersDashboardPageProps = {
   orders: {
@@ -13,25 +22,28 @@ type OrdersDashboardPageProps = {
     createdAt: string;
   }[];
   pageInfo: PageInfo;
-  fetcher: FetcherWithComponents<{
+  addTrackingFetcher: FetcherWithComponents<{
     ok: boolean;
     data: AddTrackingNumbersResult;
   }>;
 };
 
-const MAX_SELECTED_ORDERS = 10;
-
 export function OrdersDashboardPage({
   orders,
   pageInfo,
-  fetcher,
+  addTrackingFetcher,
 }: OrdersDashboardPageProps) {
-  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const shopify = useAppBridge();
 
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const selectedCount = selectedOrderIds.length;
-  const isSubmitting =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST";
+
+  const [printLabelsResult, setPrintLabelsResult] =
+    useState<PrintLabelsUiResult | null>(null);
+
+  const isAddTrackingSubmitting =
+    ["loading", "submitting"].includes(addTrackingFetcher.state) &&
+    addTrackingFetcher.formMethod === "POST";
 
   const allVisibleSelected =
     orders.length > 0 &&
@@ -85,13 +97,80 @@ export function OrdersDashboardPage({
     return `${selectedCount} selected`;
   }, [selectedCount]);
 
-  const responseContent = useMemo(() => {
-    if (!fetcher.data) {
-      return null;
-    }
+  async function handleDownloadLabels() {
+    try {
+      const token = await shopify.idToken();
 
-    return JSON.stringify(fetcher.data.data, null, 2);
-  }, [fetcher.data]);
+      const formData = new FormData();
+      selectedOrderIds.forEach((orderId) => {
+        formData.append("selectedOrderIds", orderId);
+      });
+
+      const response = await fetch(
+        "/app/orders-dashboard/print-labels-download",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      const contentType = response.headers.get("Content-Type") ?? "";
+
+      if (!response.ok) {
+        if (contentType.includes("application/json")) {
+          const errorData = await response.json();
+
+          setPrintLabelsResult({
+            ok: false,
+            hasDownloadableFile: false,
+            errors: errorData.errors ?? [],
+          });
+
+          return;
+        }
+
+        const errorText = await response.text();
+
+        setPrintLabelsResult({
+          ok: false,
+          hasDownloadableFile: false,
+          errors: [errorText || "Failed to download labels."],
+        });
+
+        return;
+      }
+
+      const blob = await response.blob();
+
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const fileNameMatch = disposition.match(/filename="([^"]+)"/);
+      const fileName = fileNameMatch?.[1] ?? "labels-download";
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setPrintLabelsResult({
+        ok: true,
+        hasDownloadableFile: true,
+        errors: [],
+      });
+    } catch (error) {
+      setPrintLabelsResult({
+        ok: false,
+        hasDownloadableFile: false,
+        errors: [error instanceof Error ? error.message : String(error)],
+      });
+    }
+  }
 
   return (
     <div className="orders-dashboard-page">
@@ -115,32 +194,52 @@ export function OrdersDashboardPage({
               {selectionSummary}
             </div>
 
-            <fetcher.Form method="post">
-              {selectedOrderIds.map((orderId) => (
-                <input
-                  key={orderId}
-                  type="hidden"
-                  name="selectedOrderIds"
-                  value={orderId}
-                />
-              ))}
+            <div className="orders-dashboard-page__bulk-actions">
+              <addTrackingFetcher.Form method="post">
+                <input type="hidden" name="intent" value="add-tracking" />
+
+                {selectedOrderIds.map((orderId) => (
+                  <input
+                    key={orderId}
+                    type="hidden"
+                    name="selectedOrderIds"
+                    value={orderId}
+                  />
+                ))}
+
+                <button
+                  type="submit"
+                  className="orders-dashboard-page__bulk-action-button"
+                  disabled={isAddTrackingSubmitting}
+                >
+                  <span
+                    className="orders-dashboard-page__bulk-action-icon"
+                    aria-hidden="true"
+                  >
+                    🚚
+                  </span>
+                  {isAddTrackingSubmitting
+                    ? "Adding tracking numbers..."
+                    : "Add tracking numbers"}
+                </button>
+              </addTrackingFetcher.Form>
 
               <button
-                type="submit"
+                type="button"
                 className="orders-dashboard-page__bulk-action-button"
-                disabled={isSubmitting}
+                disabled={isAddTrackingSubmitting}
+                onClick={handleDownloadLabels}
               >
                 <span
                   className="orders-dashboard-page__bulk-action-icon"
                   aria-hidden="true"
                 >
-                  🚚
+                  🖨️
                 </span>
-                {isSubmitting
-                  ? "Adding tracking numbers..."
-                  : "Add tracking numbers"}
+                {"Download labels"}
+                {/* TODO: loading/ disabled state? */}
               </button>
-            </fetcher.Form>
+            </div>
           </div>
         ) : null}
 
@@ -161,12 +260,28 @@ export function OrdersDashboardPage({
         />
       </div>
 
-      {responseContent ? (
-        <div className="orders-dashboard-page__response">
-          <pre className="orders-dashboard-page__response-pre">
-            <code>{responseContent}</code>
-          </pre>
-        </div>
+      {addTrackingFetcher.data ? (
+        <OrdersActionResultPanel
+          title="Add tracking numbers result"
+          successMessage={
+            addTrackingFetcher.data.data.successfulOrders.length > 0
+              ? `Tracking numbers added for ${addTrackingFetcher.data.data.successfulOrders.length} order(s).`
+              : undefined
+          }
+          failedOrders={addTrackingFetcher.data.data.failedOrders}
+        />
+      ) : null}
+
+      {printLabelsResult ? (
+        <OrdersActionResultPanel
+          title="Print labels result"
+          successMessage={
+            printLabelsResult.ok && printLabelsResult.hasDownloadableFile
+              ? "Labels downloaded successfully."
+              : undefined
+          }
+          genericErrors={printLabelsResult.errors}
+        />
       ) : null}
     </div>
   );

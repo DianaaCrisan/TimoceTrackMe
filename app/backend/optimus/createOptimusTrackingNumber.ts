@@ -45,7 +45,6 @@ type NewAWBRequest = {
 };
 
 type NewAWBResponse = {
-  labelId: string;
   trackingNumber: string;
 };
 
@@ -144,7 +143,6 @@ export async function createOptimusTrackingNumber(
   }
 
   return {
-    labelId: optimusResponse.id.toString(),
     trackingNumber: optimusResponse.pcl[0].toString(),
   };
 }
