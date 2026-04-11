@@ -10,7 +10,6 @@ export class GroupedUnitsUtils {
    * Grouping rules:
    * - Units are grouped if their line items, after aggregation, have:
    *   - the same variant IDs
-   *   - the same country of origin per variant
    *   - the same total quantity per variant
    *
    * Ordering rules (high level):
@@ -157,7 +156,7 @@ export class GroupedUnitsUtils {
 
   /**
    * Build the grouping key from
-   * VARIANT IDs + country of origin + quantities.
+   * VARIANT IDs + quantities.
    */
   static buildKey(items: LineItem[]): string {
     return items
