@@ -1,10 +1,12 @@
-import type { FetchResponseBody } from "@shopify/admin-api-client";
 import type {
   FulfillmentCreateWithTrackingMutation,
   FulfillmentCreateWithTrackingMutationVariables,
 } from "app/types/admin.generated";
 import { FULFILLMENT_CREATE_WITH_TRACKING_MUTATION } from "./addTrackingNumbers.operations.server";
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
+import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
+
+const INITIAL_EXPECTED_COST = 80;
 
 type AddTrackingNumberToFulfillmentInput = {
   fulfillmentOrderId: string;
@@ -17,6 +19,7 @@ type AddTrackingNumberToFulfillmentInput = {
 
 export async function addTrackingNumberToFulfillment(
   admin: AdminApiContextWithoutRest,
+  shopUrl: string,
   input: AddTrackingNumberToFulfillmentInput,
 ): Promise<void> {
   const variables: FulfillmentCreateWithTrackingMutationVariables = {
@@ -41,15 +44,16 @@ export async function addTrackingNumberToFulfillment(
     },
   };
 
-  const response = await admin.graphql(
+  const data = await runGraphQL<FulfillmentCreateWithTrackingMutation>(
+    admin,
+    shopUrl,
+    "FulfillmentCreateWithTracking",
     FULFILLMENT_CREATE_WITH_TRACKING_MUTATION,
-    { variables },
+    variables,
+    INITIAL_EXPECTED_COST,
   );
 
-  const responseJson: FetchResponseBody<FulfillmentCreateWithTrackingMutation> =
-    await response.json();
-
-  const payload = responseJson.data?.fulfillmentCreate;
+  const payload = data.fulfillmentCreate;
 
   if (!payload) {
     throw new Error("Shopify fulfillmentCreate returned no payload.");

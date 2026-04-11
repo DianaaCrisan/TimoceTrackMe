@@ -2,7 +2,7 @@ import { createPool } from "app/backend/graphql/throttle-handling/helpers/create
 import { createProgressLogger } from "app/backend/graphql/throttle-handling/helpers/createProgressLogger";
 import { scheduleWithProgress } from "app/backend/graphql/throttle-handling/helpers/scheduleWithProgress";
 import {
-  getOrdersTrackingInputData,
+  getOrdersTrackingInputDataInBatches,
   type TrackingInputFulfillmentOrder,
   type TrackingInputOrder,
 } from "./getOrdersTrackingInputData.server";
@@ -15,18 +15,22 @@ import type {
 } from "./addTrackingNumbers.types";
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { ADD_TRACKING_GRAPHQL_POOL_WORKERS } from "../graphql/throttle-handling/constants";
-import { createOptimusTrackingNumber } from "../optimus/createOptimusTrackingNumber";
+import { createOptimusTrackingNumber } from "../optimus/createOptimusTrackingNumber.server";
 import { isEligibleForFulfillment } from "../graphql/utils/fulfillment-order-utils";
 import { ShopifyUtils } from "../graphql/utils/ShopifyUtils";
 
 export async function addTrackingNumbers(
   admin: AdminApiContextWithoutRest,
+  shopUrl: string,
   request: AddTrackingNumbersRequest,
 ): Promise<AddTrackingNumbersResult> {
   const successfulOrders: AddTrackingNumbersSuccessfulOrder[] = [];
   const failedOrders: AddTrackingNumbersFailedOrder[] = [];
 
-  const orders = await getOrdersTrackingInputData(admin, request.orderIds);
+  const orders = await getOrdersTrackingInputDataInBatches(
+    admin,
+    request.orderIds,
+  );
   const ordersById = new Map(orders.map((order) => [order.id, order]));
 
   const pool = createPool(ADD_TRACKING_GRAPHQL_POOL_WORKERS);
@@ -40,6 +44,7 @@ export async function addTrackingNumbers(
       scheduleWithProgress(pool, progress, orderId, async () => {
         await processOneOrder({
           admin,
+          shopUrl,
           orderId,
           order: ordersById.get(orderId),
           successfulOrders,
@@ -58,12 +63,14 @@ export async function addTrackingNumbers(
 
 async function processOneOrder({
   admin,
+  shopUrl,
   orderId,
   order,
   successfulOrders,
   failedOrders,
 }: {
   admin: AdminApiContextWithoutRest;
+  shopUrl: string;
   orderId: string;
   order?: TrackingInputOrder;
   successfulOrders: AddTrackingNumbersSuccessfulOrder[];
@@ -116,7 +123,7 @@ async function processOneOrder({
           formatted: order.shippingAddress?.formatted.join(", ") ?? "",
         });
 
-        await addTrackingNumberToFulfillment(admin, {
+        await addTrackingNumberToFulfillment(admin, shopUrl, {
           fulfillmentOrderId: fulfillmentOrder.id,
           fulfillmentOrderLineItems: fulfillmentOrder.lineItems
             .filter((lineItem) => lineItem.remainingQuantity > 0)

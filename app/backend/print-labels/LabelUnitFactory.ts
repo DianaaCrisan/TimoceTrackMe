@@ -1,4 +1,4 @@
-import { getOptimusLabelPDF } from "../optimus/getOptimusLabelPDF";
+import { getOptimusLabelPDF } from "../optimus/getOptimusLabelPDF.server";
 import type { PrintLabelsOrder } from "./getOrdersPrintLabelsInputData.server";
 import { LabelUnitDetails } from "./models/LabelUnitDetails";
 import { LabelUnitKind } from "./models/LabelUnitKind";

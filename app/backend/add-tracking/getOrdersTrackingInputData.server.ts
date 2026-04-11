@@ -5,8 +5,9 @@ import type {
 } from "app/types/admin.generated";
 import { GET_ORDERS_TRACKING_INPUT_DATA_QUERY } from "./addTrackingNumbers.operations.server";
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
+import { chunk, SHOPIFY_READ_BATCH_SIZE } from "../graphql/utils/batch-utils";
 
-export type TrackingInputShippingAddress = {
+type TrackingInputShippingAddress = {
   address1?: string | null;
   address2?: string | null;
   city?: string | null;
@@ -18,7 +19,7 @@ export type TrackingInputShippingAddress = {
   phone?: string | null;
 };
 
-export type TrackingInputLineItem = {
+type TrackingInputLineItem = {
   fulfillmentOrderLineItemId: string;
   orderLineItemId: string;
   name: string;
@@ -44,11 +45,14 @@ export type TrackingInputOrder = {
   fulfillmentOrders: TrackingInputFulfillmentOrder[];
 };
 
-export async function getOrdersTrackingInputData(
+async function getOrdersTrackingInputDataBatch(
   admin: AdminApiContextWithoutRest,
   orderIds: string[],
 ): Promise<TrackingInputOrder[]> {
-  // TODO: allow maximum number of ids per batch
+  if (orderIds.length === 0) {
+    return [];
+  }
+
   const variables: GetOrdersTrackingInputDataQueryVariables = {
     ids: orderIds,
   };
@@ -105,4 +109,17 @@ export async function getOrdersTrackingInputData(
       },
     ];
   });
+}
+
+export async function getOrdersTrackingInputDataInBatches(
+  admin: AdminApiContextWithoutRest,
+  orderIds: string[],
+): Promise<TrackingInputOrder[]> {
+  const batches = chunk(orderIds, SHOPIFY_READ_BATCH_SIZE);
+
+  const results = await Promise.all(
+    batches.map((batch) => getOrdersTrackingInputDataBatch(admin, batch)),
+  );
+
+  return results.flat();
 }
