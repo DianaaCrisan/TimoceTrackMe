@@ -1,19 +1,7 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import { SolveZipService } from "app/backend/zip-solver/SolveZipService";
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
-import { getOrdersDashboardData } from "app/backend/orders/orders-dashboard.server";
-
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
-
-  const url = new URL(request.url);
-
-  return getOrdersDashboardData(admin, {
-    after: url.searchParams.get("after"),
-    before: url.searchParams.get("before"),
-  });
-};
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);

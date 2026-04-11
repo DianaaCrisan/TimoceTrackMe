@@ -1,31 +1,16 @@
 import { useMemo, useState } from "react";
-import type { FetcherWithComponents } from "react-router";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
 import "app/frontend/orders-dashboard/components/OrdersDashboardPage.scss";
 import { PageInfo } from "app/types/admin.types";
-import { AddTrackingNumbersResult } from "app/backend/add-tracking/addTrackingNumbers.types";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { OrdersActionResultPanel } from "./OrdersActionResultPanel";
 import { MAX_SELECTED_ORDERS } from "app/commons/constants";
 
-type PrintLabelsUiResult = {
+type PrintLabelsResult = {
   ok: boolean;
   hasDownloadableFile: boolean;
   errors: string[];
-};
-
-type OrdersDashboardPageProps = {
-  orders: {
-    id: string;
-    name: string;
-    createdAt: string;
-  }[];
-  pageInfo: PageInfo;
-  addTrackingFetcher: FetcherWithComponents<{
-    ok: boolean;
-    data: AddTrackingNumbersResult;
-  }>;
 };
 
 type SolveZipCodesResult = {
@@ -41,10 +26,31 @@ type SolveZipCodesResult = {
   }[];
 };
 
+type AddTrackingResult = {
+  ok: boolean;
+  successfulOrders: {
+    id: string;
+    name: string;
+  }[];
+  failedOrders: {
+    id: string;
+    name: string;
+    errors: string[];
+  }[];
+};
+
+type OrdersDashboardPageProps = {
+  orders: {
+    id: string;
+    name: string;
+    createdAt: string;
+  }[];
+  pageInfo: PageInfo;
+};
+
 export function OrdersDashboardPage({
   orders,
   pageInfo,
-  addTrackingFetcher,
 }: OrdersDashboardPageProps) {
   const shopify = useAppBridge();
 
@@ -52,19 +58,19 @@ export function OrdersDashboardPage({
   const selectedCount = selectedOrderIds.length;
 
   const [printLabelsResult, setPrintLabelsResult] =
-    useState<PrintLabelsUiResult | null>(null);
+    useState<PrintLabelsResult | null>(null);
   const [isDownloadingLabels, setIsDownloadingLabels] = useState(false);
 
   const [solveZipCodesResult, setSolveZipCodesResult] =
     useState<SolveZipCodesResult | null>(null);
   const [isSolvingZipCodes, setIsSolvingZipCodes] = useState(false);
 
-  const isAddTrackingSubmitting =
-    ["loading", "submitting"].includes(addTrackingFetcher.state) &&
-    addTrackingFetcher.formMethod === "POST";
+  const [addTrackingResult, setAddTrackingResult] =
+    useState<AddTrackingResult | null>(null);
+  const [isAddingTracking, setIsAddingTracking] = useState(false);
 
   const isAnyBulkActionRunning =
-    isAddTrackingSubmitting || isDownloadingLabels || isSolvingZipCodes;
+    isAddingTracking || isDownloadingLabels || isSolvingZipCodes;
 
   const allVisibleSelected =
     orders.length > 0 &&
@@ -117,6 +123,82 @@ export function OrdersDashboardPage({
     if (selectedCount === 0) return null;
     return `${selectedCount} selected`;
   }, [selectedCount]);
+
+  async function handleAddTracking() {
+    setIsAddingTracking(true);
+
+    try {
+      const token = await shopify.idToken();
+
+      const formData = new FormData();
+      selectedOrderIds.forEach((orderId) => {
+        formData.append("selectedOrderIds", orderId);
+      });
+
+      const response = await fetch("/app/orders-dashboard/add-tracking", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const contentType = response.headers.get("Content-Type") ?? "";
+
+      if (!response.ok) {
+        if (contentType.includes("application/json")) {
+          const errorData = await response.json();
+
+          setAddTrackingResult({
+            ok: false,
+            successfulOrders: [],
+            failedOrders: errorData.failedOrders ?? [
+              {
+                id: "",
+                name: "-",
+                errors: errorData.errors ?? ["Failed to add tracking numbers."],
+              },
+            ],
+          });
+
+          return;
+        }
+
+        const errorText = await response.text();
+
+        setAddTrackingResult({
+          ok: false,
+          successfulOrders: [],
+          failedOrders: [
+            {
+              id: "",
+              name: "-",
+              errors: [errorText || "Failed to add tracking numbers."],
+            },
+          ],
+        });
+
+        return;
+      }
+
+      const result: AddTrackingResult = await response.json();
+      setAddTrackingResult(result);
+    } catch (error) {
+      setAddTrackingResult({
+        ok: false,
+        successfulOrders: [],
+        failedOrders: [
+          {
+            id: "",
+            name: "-",
+            errors: [error instanceof Error ? error.message : String(error)],
+          },
+        ],
+      });
+    } finally {
+      setIsAddingTracking(false);
+    }
+  }
 
   async function handleDownloadLabels() {
     setIsDownloadingLabels(true);
@@ -310,34 +392,22 @@ export function OrdersDashboardPage({
                 {isSolvingZipCodes ? "Solving ZIP codes..." : "Solve ZIP codes"}
               </button>
 
-              <addTrackingFetcher.Form method="post">
-                <input type="hidden" name="intent" value="add-tracking" />
-
-                {selectedOrderIds.map((orderId) => (
-                  <input
-                    key={orderId}
-                    type="hidden"
-                    name="selectedOrderIds"
-                    value={orderId}
-                  />
-                ))}
-
-                <button
-                  type="submit"
-                  className="orders-dashboard-page__bulk-action-button"
-                  disabled={isAddTrackingSubmitting}
+              <button
+                type="button"
+                className="orders-dashboard-page__bulk-action-button"
+                disabled={isAnyBulkActionRunning}
+                onClick={handleAddTracking}
+              >
+                <span
+                  className="orders-dashboard-page__bulk-action-icon"
+                  aria-hidden="true"
                 >
-                  <span
-                    className="orders-dashboard-page__bulk-action-icon"
-                    aria-hidden="true"
-                  >
-                    🚚
-                  </span>
-                  {isAddTrackingSubmitting
-                    ? "Adding tracking numbers..."
-                    : "Add tracking numbers"}
-                </button>
-              </addTrackingFetcher.Form>
+                  🚚
+                </span>
+                {isAddingTracking
+                  ? "Adding tracking numbers..."
+                  : "Add tracking numbers"}
+              </button>
 
               <button
                 type="button"
@@ -376,15 +446,15 @@ export function OrdersDashboardPage({
         />
       </div>
 
-      {addTrackingFetcher.data ? (
+      {addTrackingResult ? (
         <OrdersActionResultPanel
           title="Add tracking numbers result"
           successMessage={
-            addTrackingFetcher.data.data.successfulOrders.length > 0
-              ? `Tracking numbers added for ${addTrackingFetcher.data.data.successfulOrders.length} order(s).`
+            addTrackingResult.successfulOrders.length > 0
+              ? `Tracking numbers added for ${addTrackingResult.successfulOrders.length} order(s).`
               : undefined
           }
-          failedOrders={addTrackingFetcher.data.data.failedOrders}
+          failedOrders={addTrackingResult.failedOrders}
         />
       ) : null}
 
