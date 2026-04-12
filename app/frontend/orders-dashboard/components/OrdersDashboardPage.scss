@@ -1,3 +1,5 @@
+$font-color: rgb(48, 48, 48);
+
 .orders-dashboard-page {
   width: 100%;
   max-width: none;
@@ -26,16 +28,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 12px 0 12px;
+  padding: 8px;
   background: var(--p-color-bg-surface, #ffffff);
+  color: $font-color;
+  font-size: 12px;
 }
 
 .orders-dashboard-page__tab {
   appearance: none;
   border: none;
   background: transparent;
-  border-radius: 10px;
-  padding: 8px 12px;
+  border-radius: 8px;
+  padding: 6px 12px;
   font: inherit;
   color: inherit;
 }

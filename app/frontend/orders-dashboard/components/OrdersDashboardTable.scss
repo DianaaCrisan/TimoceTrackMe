@@ -1,37 +1,45 @@
+$font-color: rgb(48, 48, 48);
+
 .orders-dashboard-table {
   width: 100%;
   border-collapse: collapse;
   background: var(--p-color-bg-surface, white);
+
   font-family: inherit;
+  color: $font-color;
+  font-size: 12px;
+  line-height: 16px;
 }
 
 .orders-dashboard-table__head {
   background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  color: rgb(97, 97, 97);
 }
 
 .orders-dashboard-table__checkbox-header-cell,
 .orders-dashboard-table__checkbox-cell {
-  width: 44px;
-  padding: 12px 8px 12px 16px;
+  width: 36px;
   text-align: center;
   border-bottom: 1px solid #e1e3e5;
+
+  input {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .orders-dashboard-table__header-cell {
-  padding: 12px 16px;
+  padding: 10px 0;
   text-align: left;
   border-bottom: 1px solid #e1e3e5;
-  font-weight: 600;
   white-space: nowrap;
-  font-size: 14px;
 }
 
 .orders-dashboard-table__body-cell {
-  padding: 12px 16px;
+  padding: 10px 0;
   text-align: left;
   border-bottom: 1px solid #e1e3e5;
   vertical-align: top;
-  font-size: 14px;
 }
 
 .orders-dashboard-table__empty-cell {
@@ -40,10 +48,29 @@
 }
 
 .orders-dashboard-table__row--selected {
-  background: #f5faff;
+  background: var(--p-color-bg-surface-secondary, #eeeeee);
+}
+
+.orders-dashboard-table__row:hover {
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
 }
 
 .orders-dashboard-table__row:last-child .orders-dashboard-table__checkbox-cell,
 .orders-dashboard-table__row:last-child .orders-dashboard-table__body-cell {
   border-bottom: none;
+}
+
+.orders-dashboard-table__order-link {
+  color: $font-color;
+  font-weight: 600; // bold but not too heavy
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: $font-color; // prevent purple visited links
+  }
 }

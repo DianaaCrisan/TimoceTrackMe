@@ -1,3 +1,4 @@
+import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { DateUtils } from "app/frontend/core/utils/DateUtils";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable.scss";
 
@@ -9,6 +10,7 @@ type OrdersDashboardTableRow = {
 
 type OrdersDashboardTableProps = {
   orders: OrdersDashboardTableRow[];
+  shopAdminUrl: string;
   selectedOrderIds: string[];
   canSelectMore: boolean;
   allVisibleSelected: boolean;
@@ -18,6 +20,7 @@ type OrdersDashboardTableProps = {
 
 export function OrdersDashboardTable({
   orders,
+  shopAdminUrl,
   selectedOrderIds,
   canSelectMore,
   allVisibleSelected,
@@ -37,7 +40,7 @@ export function OrdersDashboardTable({
             />
           </th>
           <th className="orders-dashboard-table__header-cell">Order</th>
-          <th className="orders-dashboard-table__header-cell">Created at</th>
+          <th className="orders-dashboard-table__header-cell">Date</th>
         </tr>
       </thead>
 
@@ -57,7 +60,7 @@ export function OrdersDashboardTable({
               <tr
                 key={order.id}
                 className={`orders-dashboard-table__row${
-                  isSelected ? "orders-dashboard-table__row--selected" : ""
+                  isSelected ? "--selected" : ""
                 }`}
               >
                 <td className="orders-dashboard-table__checkbox-cell">
@@ -71,7 +74,14 @@ export function OrdersDashboardTable({
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
-                  {order.name}
+                  <a
+                    href={ShopifyUtils.getOrderAdminUrl(order.id, shopAdminUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="orders-dashboard-table__order-link"
+                  >
+                    {order.name}
+                  </a>
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">

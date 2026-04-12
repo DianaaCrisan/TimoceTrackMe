@@ -6,6 +6,9 @@ import { PageInfo } from "app/types/admin.types";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { OrdersActionResultPanel } from "./OrdersActionResultPanel";
 import { MAX_SELECTED_ORDERS } from "app/commons/constants";
+import deliveryIcon from "app/frontend/core/icons/DeliveryIcon.svg";
+import locationIcon from "app/frontend/core/icons/LocationIcon.svg";
+import printIcon from "app/frontend/core/icons/PrintIcon.svg";
 
 type PrintLabelsResult = {
   ok: boolean;
@@ -46,11 +49,13 @@ type OrdersDashboardPageProps = {
     createdAt: string;
   }[];
   pageInfo: PageInfo;
+  shopAdminUrl: string;
 };
 
 export function OrdersDashboardPage({
   orders,
   pageInfo,
+  shopAdminUrl,
 }: OrdersDashboardPageProps) {
   const shopify = useAppBridge();
 
@@ -387,7 +392,12 @@ export function OrdersDashboardPage({
                   className="orders-dashboard-page__bulk-action-icon"
                   aria-hidden="true"
                 >
-                  📮
+                  <img
+                    src={locationIcon}
+                    alt="Location"
+                    width={20}
+                    height={20}
+                  />
                 </span>
                 {isSolvingZipCodes ? "Solving ZIP codes..." : "Solve ZIP codes"}
               </button>
@@ -402,7 +412,12 @@ export function OrdersDashboardPage({
                   className="orders-dashboard-page__bulk-action-icon"
                   aria-hidden="true"
                 >
-                  🚚
+                  <img
+                    src={deliveryIcon}
+                    alt="Delivery"
+                    width={20}
+                    height={20}
+                  />
                 </span>
                 {isAddingTracking
                   ? "Adding tracking numbers..."
@@ -419,7 +434,7 @@ export function OrdersDashboardPage({
                   className="orders-dashboard-page__bulk-action-icon"
                   aria-hidden="true"
                 >
-                  🖨️
+                  <img src={printIcon} alt="Print" width={20} height={20} />
                 </span>
                 {isDownloadingLabels
                   ? "Downloading labels..."
@@ -431,6 +446,7 @@ export function OrdersDashboardPage({
 
         <OrdersDashboardTable
           orders={orders}
+          shopAdminUrl={shopAdminUrl}
           selectedOrderIds={selectedOrderIds}
           canSelectMore={canSelectMore}
           allVisibleSelected={allVisibleSelected}

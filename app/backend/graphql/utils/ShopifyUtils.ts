@@ -18,4 +18,9 @@ export class ShopifyUtils {
     const match = gid.match(/gid:\/\/shopify\/\w+\/(\d+)/);
     return match ? match[1] : null;
   }
+
+  static getOrderAdminUrl(orderGid: string, shopAdminURL: string): string {
+    const orderId = orderGid.split("/").pop() || "";
+    return `${shopAdminURL}/orders/${orderId}`;
+  }
 }
