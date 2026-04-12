@@ -11,6 +11,7 @@ type OrdersActionResultPanelProps = {
   successMessage?: string;
   failedOrders?: FailedOrder[];
   genericErrors?: string[];
+  onClose: () => void;
 };
 
 export function OrdersActionResultPanel({
@@ -18,6 +19,7 @@ export function OrdersActionResultPanel({
   successMessage,
   failedOrders = [],
   genericErrors = [],
+  onClose,
 }: OrdersActionResultPanelProps) {
   const hasFailures = failedOrders.length > 0 || genericErrors.length > 0;
 
@@ -25,6 +27,15 @@ export function OrdersActionResultPanel({
     <div className="orders-action-result-panel">
       <div className="orders-action-result-panel__header">
         <h3 className="orders-action-result-panel__title">{title}</h3>
+
+        <button
+          type="button"
+          className="orders-action-result-panel__close-button"
+          onClick={onClose}
+          aria-label={`Close ${title}`}
+        >
+          ×
+        </button>
       </div>
 
       <div className="orders-action-result-panel__body">

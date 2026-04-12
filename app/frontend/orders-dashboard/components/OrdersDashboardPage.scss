@@ -24,14 +24,36 @@ $font-color: rgb(48, 48, 48);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
+.orders-dashboard-page__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  padding: 8px 12px;
+  background: var(--p-color-bg-surface, #ffffff);
+  border-bottom: 1px solid #e1e3e5;
+
+  color: $font-color;
+  font-size: 12px;
+}
+
 .orders-dashboard-page__tabs {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px;
-  background: var(--p-color-bg-surface, #ffffff);
-  color: $font-color;
-  font-size: 12px;
+}
+
+.orders-dashboard-page__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
 }
 
 .orders-dashboard-page__tab {
@@ -39,9 +61,10 @@ $font-color: rgb(48, 48, 48);
   border: none;
   background: transparent;
   border-radius: 8px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   font: inherit;
   color: inherit;
+  cursor: pointer;
 }
 
 .orders-dashboard-page__tab--active {
@@ -49,25 +72,15 @@ $font-color: rgb(48, 48, 48);
   font-weight: 600;
 }
 
-.orders-dashboard-page__bulk-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e1e3e5;
-  background: #f9fafb;
-}
-
 .orders-dashboard-page__bulk-bar-text {
-  font-size: 14px;
-  font-weight: 600;
+  white-space: nowrap;
 }
 
 .orders-dashboard-page__bulk-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .orders-dashboard-page__bulk-action-button {
@@ -77,15 +90,31 @@ $font-color: rgb(48, 48, 48);
   border: 1px solid #c9cccf;
   border-radius: 10px;
   background: white;
-  padding: 8px 12px;
+  padding: 4px 12px;
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 .orders-dashboard-page__bulk-action-icon {
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orders-dashboard-page__table-scroll {
+  max-height: 85vh;
+  overflow: auto;
+
+  &.--with-response {
+    max-height: 60vh;
+  }
 }
 
 .orders-dashboard-page__pagination {

@@ -77,11 +77,21 @@ export function OrdersDashboardPage({
   const isAnyBulkActionRunning =
     isAddingTracking || isDownloadingLabels || isSolvingZipCodes;
 
+  const hasVisibleResponse =
+    printLabelsResult !== null ||
+    solveZipCodesResult !== null ||
+    addTrackingResult !== null;
+
   const allVisibleSelected =
     orders.length > 0 &&
     orders.every((order) => selectedOrderIds.includes(order.id));
 
   const canSelectMore = selectedCount < MAX_SELECTED_ORDERS;
+
+  const selectionSummary = useMemo(() => {
+    if (selectedCount === 0) return null;
+    return `${selectedCount} selected`;
+  }, [selectedCount]);
 
   const handleToggleOrder = (orderId: string) => {
     setSelectedOrderIds((currentSelectedIds) => {
@@ -123,11 +133,6 @@ export function OrdersDashboardPage({
       ];
     });
   };
-
-  const selectionSummary = useMemo(() => {
-    if (selectedCount === 0) return null;
-    return `${selectedCount} selected`;
-  }, [selectedCount]);
 
   async function handleAddTracking() {
     setIsAddingTracking(true);
@@ -362,97 +367,99 @@ export function OrdersDashboardPage({
   return (
     <div className="orders-dashboard-page">
       <div className="orders-dashboard-page__surface">
-        <div className="orders-dashboard-page__tabs">
-          <button
-            type="button"
-            className="orders-dashboard-page__tab orders-dashboard-page__tab--active"
-          >
-            All
-          </button>
+        <div className="orders-dashboard-page__toolbar">
+          <div className="orders-dashboard-page__tabs">
+            <button
+              type="button"
+              className="orders-dashboard-page__tab orders-dashboard-page__tab--active"
+            >
+              All
+            </button>
 
-          <button type="button" className="orders-dashboard-page__tab">
-            Pending fulfillment
-          </button>
+            <button type="button" className="orders-dashboard-page__tab">
+              Pending fulfillment
+            </button>
+          </div>
+
+          <div className="orders-dashboard-page__toolbar-right">
+            {selectedCount > 0 ? (
+              <>
+                <div className="orders-dashboard-page__bulk-bar-text">
+                  {selectionSummary}
+                </div>
+
+                <div className="orders-dashboard-page__bulk-actions">
+                  <button
+                    type="button"
+                    className="orders-dashboard-page__bulk-action-button"
+                    disabled={isAnyBulkActionRunning}
+                    onClick={handleSolveZipCodes}
+                  >
+                    <span
+                      className="orders-dashboard-page__bulk-action-icon"
+                      aria-hidden="true"
+                    >
+                      <img src={locationIcon} alt="" width={20} height={20} />
+                    </span>
+                    {isSolvingZipCodes
+                      ? "Solving ZIP codes..."
+                      : "Solve ZIP codes"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="orders-dashboard-page__bulk-action-button"
+                    disabled={isAnyBulkActionRunning}
+                    onClick={handleAddTracking}
+                  >
+                    <span
+                      className="orders-dashboard-page__bulk-action-icon"
+                      aria-hidden="true"
+                    >
+                      <img src={deliveryIcon} alt="" width={20} height={20} />
+                    </span>
+                    {isAddingTracking
+                      ? "Adding tracking numbers..."
+                      : "Add tracking numbers"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="orders-dashboard-page__bulk-action-button"
+                    disabled={isAnyBulkActionRunning}
+                    onClick={handleDownloadLabels}
+                  >
+                    <span
+                      className="orders-dashboard-page__bulk-action-icon"
+                      aria-hidden="true"
+                    >
+                      <img src={printIcon} alt="" width={20} height={20} />
+                    </span>
+                    {isDownloadingLabels
+                      ? "Downloading labels..."
+                      : "Download labels"}
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
 
-        {selectedCount > 0 ? (
-          <div className="orders-dashboard-page__bulk-bar">
-            <div className="orders-dashboard-page__bulk-bar-text">
-              {selectionSummary}
-            </div>
-
-            <div className="orders-dashboard-page__bulk-actions">
-              <button
-                type="button"
-                className="orders-dashboard-page__bulk-action-button"
-                disabled={isAnyBulkActionRunning}
-                onClick={handleSolveZipCodes}
-              >
-                <span
-                  className="orders-dashboard-page__bulk-action-icon"
-                  aria-hidden="true"
-                >
-                  <img
-                    src={locationIcon}
-                    alt="Location"
-                    width={20}
-                    height={20}
-                  />
-                </span>
-                {isSolvingZipCodes ? "Solving ZIP codes..." : "Solve ZIP codes"}
-              </button>
-
-              <button
-                type="button"
-                className="orders-dashboard-page__bulk-action-button"
-                disabled={isAnyBulkActionRunning}
-                onClick={handleAddTracking}
-              >
-                <span
-                  className="orders-dashboard-page__bulk-action-icon"
-                  aria-hidden="true"
-                >
-                  <img
-                    src={deliveryIcon}
-                    alt="Delivery"
-                    width={20}
-                    height={20}
-                  />
-                </span>
-                {isAddingTracking
-                  ? "Adding tracking numbers..."
-                  : "Add tracking numbers"}
-              </button>
-
-              <button
-                type="button"
-                className="orders-dashboard-page__bulk-action-button"
-                disabled={isAnyBulkActionRunning}
-                onClick={handleDownloadLabels}
-              >
-                <span
-                  className="orders-dashboard-page__bulk-action-icon"
-                  aria-hidden="true"
-                >
-                  <img src={printIcon} alt="Print" width={20} height={20} />
-                </span>
-                {isDownloadingLabels
-                  ? "Downloading labels..."
-                  : "Download labels"}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        <OrdersDashboardTable
-          orders={orders}
-          shopAdminUrl={shopAdminUrl}
-          selectedOrderIds={selectedOrderIds}
-          canSelectMore={canSelectMore}
-          allVisibleSelected={allVisibleSelected}
-          onToggleOrder={handleToggleOrder}
-          onToggleAllVisible={handleToggleAllVisible}
-        />
+        <div
+          className={`orders-dashboard-page__table-scroll${
+            hasVisibleResponse ? " --with-response" : ""
+          }`}
+        >
+          <OrdersDashboardTable
+            orders={orders}
+            shopAdminUrl={shopAdminUrl}
+            selectedOrderIds={selectedOrderIds}
+            canSelectMore={canSelectMore}
+            allVisibleSelected={allVisibleSelected}
+            onToggleOrder={handleToggleOrder}
+            onToggleAllVisible={handleToggleAllVisible}
+          />
+        </div>
       </div>
 
       <div className="orders-dashboard-page__pagination">
@@ -471,6 +478,7 @@ export function OrdersDashboardPage({
               : undefined
           }
           failedOrders={addTrackingResult.failedOrders}
+          onClose={() => setAddTrackingResult(null)}
         />
       ) : null}
 
@@ -483,6 +491,7 @@ export function OrdersDashboardPage({
               : undefined
           }
           genericErrors={printLabelsResult.errors}
+          onClose={() => setPrintLabelsResult(null)}
         />
       ) : null}
 
@@ -495,6 +504,7 @@ export function OrdersDashboardPage({
               : undefined
           }
           failedOrders={solveZipCodesResult.failedOrders}
+          onClose={() => setSolveZipCodesResult(null)}
         />
       ) : null}
     </div>

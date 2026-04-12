@@ -7,6 +7,10 @@
 }
 
 .orders-action-result-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 12px 16px;
   border-bottom: 1px solid #e1e3e5;
   background: #f6f6f7;
@@ -79,4 +83,21 @@
 
 .orders-action-result-panel__empty {
   color: #6d7175;
+}
+
+.orders-action-result-panel__close-button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 4px;
+  border-radius: 6px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6d7175;
+
+  &:hover {
+    background: #e9eaeb;
+    color: #303030;
+  }
 }
