@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
 import "app/frontend/orders-dashboard/components/OrdersDashboardPage.scss";
@@ -9,6 +9,8 @@ import { MAX_SELECTED_ORDERS } from "app/commons/constants";
 import deliveryIcon from "app/frontend/core/icons/DeliveryIcon.svg";
 import locationIcon from "app/frontend/core/icons/LocationIcon.svg";
 import printIcon from "app/frontend/core/icons/PrintIcon.svg";
+import { OrdersDashboardFilter } from "app/backend/orders/orders-dashboard.server";
+import { Link, useLocation } from "react-router";
 
 type PrintLabelsResult = {
   ok: boolean;
@@ -50,12 +52,14 @@ type OrdersDashboardPageProps = {
   }[];
   pageInfo: PageInfo;
   shopAdminUrl: string;
+  activeFilter: OrdersDashboardFilter;
 };
 
 export function OrdersDashboardPage({
   orders,
   pageInfo,
   shopAdminUrl,
+  activeFilter,
 }: OrdersDashboardPageProps) {
   const shopify = useAppBridge();
 
@@ -92,6 +96,13 @@ export function OrdersDashboardPage({
     if (selectedCount === 0) return null;
     return `${selectedCount} selected`;
   }, [selectedCount]);
+
+  // reset scroll position when going to the next page
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
+  const location = useLocation();
+  useEffect(() => {
+    tableScrollRef.current?.scrollTo({ top: 0 });
+  }, [location.search]);
 
   const handleToggleOrder = (orderId: string) => {
     setSelectedOrderIds((currentSelectedIds) => {
@@ -369,16 +380,23 @@ export function OrdersDashboardPage({
       <div className="orders-dashboard-page__surface">
         <div className="orders-dashboard-page__toolbar">
           <div className="orders-dashboard-page__tabs">
-            <button
-              type="button"
-              className="orders-dashboard-page__tab orders-dashboard-page__tab--active"
+            <Link
+              to="/app/orders-dashboard"
+              className={`orders-dashboard-page__tab${
+                activeFilter === "all" ? " --active" : ""
+              }`}
             >
               All
-            </button>
+            </Link>
 
-            <button type="button" className="orders-dashboard-page__tab">
+            <Link
+              to="/app/orders-dashboard?filter=pending_fulfillment"
+              className={`orders-dashboard-page__tab${
+                activeFilter === "pending_fulfillment" ? " --active" : ""
+              }`}
+            >
               Pending fulfillment
-            </button>
+            </Link>
           </div>
 
           <div className="orders-dashboard-page__toolbar-right">
@@ -446,6 +464,7 @@ export function OrdersDashboardPage({
         </div>
 
         <div
+          ref={tableScrollRef}
           className={`orders-dashboard-page__table-scroll${
             hasVisibleResponse ? " --with-response" : ""
           }`}
@@ -466,6 +485,11 @@ export function OrdersDashboardPage({
         <CursorPagination
           basePath="/app/orders-dashboard"
           pageInfo={pageInfo}
+          queryParams={
+            activeFilter === "pending_fulfillment"
+              ? { filter: "pending_fulfillment" }
+              : {}
+          }
         />
       </div>
 

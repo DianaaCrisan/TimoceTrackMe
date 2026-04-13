@@ -8,6 +8,8 @@ import { FetchResponseBody } from "@shopify/admin-api-client";
 
 const ORDER_PAGE_SIZE = 50;
 
+export type OrdersDashboardFilter = "all" | "pending_fulfillment";
+
 type OrdersDashboardOrderRow = {
   id: string;
   name: string;
@@ -22,40 +24,53 @@ type OrdersDashboardData = {
 type OrdersDashboardPaginationInput = {
   after: string | null;
   before: string | null;
+  filter: OrdersDashboardFilter;
 };
 
 const ORDERS_DASHBOARD_QUERY = `#graphql
-  query OrdersDashboard($first: Int, $last: Int, $after: String, $before: String) {
+  query OrdersDashboard(
+    $first: Int
+    $last: Int
+    $after: String
+    $before: String
+    $query: String
+  ) {
     orders(
       first: $first
       last: $last
       after: $after
       before: $before
+      query: $query
       sortKey: CREATED_AT
       reverse: true
     ) {
-        edges {
-          cursor
-          node {
-            id
-            name
-            createdAt
-          }
-        }
-        pageInfo {
-          hasNextPage
-          hasPreviousPage
-          startCursor
-          endCursor
+      edges {
+        cursor
+        node {
+          id
+          name
+          createdAt
         }
       }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
     }
+  }
 `;
 
 export async function getOrdersDashboardData(
   admin: AdminApiContextWithoutRest,
   pagination: OrdersDashboardPaginationInput,
 ): Promise<OrdersDashboardData> {
+  const searchQuery =
+    pagination.filter === "pending_fulfillment"
+      ? "fulfillment_status:unfulfilled"
+      : null;
+
   const variables: OrdersDashboardQueryVariables =
     pagination.before != null
       ? {
@@ -63,12 +78,14 @@ export async function getOrdersDashboardData(
           before: pagination.before,
           first: null,
           after: null,
+          query: searchQuery,
         }
       : {
           first: ORDER_PAGE_SIZE,
           after: pagination.after,
           last: null,
           before: null,
+          query: searchQuery,
         };
 
   const response = await admin.graphql(ORDERS_DASHBOARD_QUERY, { variables });
