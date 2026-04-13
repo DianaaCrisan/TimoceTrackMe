@@ -1,0 +1,45 @@
+.app-home {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 480px;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "San Francisco",
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    sans-serif;
+}
+
+.app-home__title {
+  font-size: 18px;
+  font-weight: 550;
+  color: #303030;
+}
+
+.app-home__intro {
+  font-size: 14px;
+  color: #303030;
+}
+
+.app-home__features {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-home__feature {
+  font-size: 14px;
+  color: #616161;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-home__cta {
+  margin-top: 8px;
+}

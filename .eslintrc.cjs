@@ -50,6 +50,14 @@ module.exports = {
       },
       rules: {
         "react/no-unknown-property": ["error", { ignore: ["variant"] }],
+        "@typescript-eslint/no-unused-vars": [
+          "error",
+          {
+            argsIgnorePattern: "^_",
+            varsIgnorePattern: "^_",
+            caughtErrorsIgnorePattern: "^_",
+          },
+        ],
       },
     },
 
@@ -91,6 +99,6 @@ module.exports = {
     },
   ],
   globals: {
-    shopify: "readonly"
+    shopify: "readonly",
   },
 };
