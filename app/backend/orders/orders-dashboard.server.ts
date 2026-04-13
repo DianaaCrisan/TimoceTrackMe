@@ -45,6 +45,7 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           name
           createdAt
           displayFinancialStatus
+          displayFulfillmentStatus
           
           customer {
             displayName
@@ -128,6 +129,7 @@ export async function getOrdersDashboardData(
         },
       },
       displayFinancialStatus: edge.node.displayFinancialStatus,
+      displayFulfillmentStatus: edge.node.displayFulfillmentStatus,
     })),
     pageInfo: {
       hasNextPage: ordersConnection.pageInfo.hasNextPage,

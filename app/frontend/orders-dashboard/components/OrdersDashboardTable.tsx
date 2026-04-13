@@ -2,6 +2,7 @@ import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { Badge } from "app/frontend/core/components/Badge";
 import { DateUtils } from "app/frontend/core/utils/DateUtils";
 import { formatFinancialStatusWithTone } from "app/frontend/core/utils/financialStatus";
+import { formatFulfillmentStatusWithTone } from "app/frontend/core/utils/fulfillmentStatus";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable.scss";
 import { OrdersDashboardQuery } from "app/types/admin.generated";
 
@@ -42,6 +43,9 @@ export function OrdersDashboardTable({
           <th className="orders-dashboard-table__header-cell">Total</th>
           <th className="orders-dashboard-table__header-cell">
             Payment status
+          </th>
+          <th className="orders-dashboard-table__header-cell">
+            Fulfillment status
           </th>
         </tr>
       </thead>
@@ -102,6 +106,15 @@ export function OrdersDashboardTable({
                   {(() => {
                     const { label, tone } = formatFinancialStatusWithTone(
                       order.displayFinancialStatus,
+                    );
+                    return <Badge tone={tone}>{label}</Badge>;
+                  })()}
+                </td>
+
+                <td className="orders-dashboard-table__body-cell">
+                  {(() => {
+                    const { label, tone } = formatFulfillmentStatusWithTone(
+                      order.displayFulfillmentStatus,
                     );
                     return <Badge tone={tone}>{label}</Badge>;
                   })()}

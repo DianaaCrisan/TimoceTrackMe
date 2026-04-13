@@ -40,7 +40,10 @@ export function financialStatusToTone(status?: string | null): BadgeTone {
   }
 }
 
-export function formatFinancialStatusWithTone(status?: string | null) {
+export function formatFinancialStatusWithTone(status?: string | null): {
+  label: string;
+  tone: BadgeTone;
+} {
   return {
     label: formatFinancialStatus(status),
     tone: financialStatusToTone(status),
