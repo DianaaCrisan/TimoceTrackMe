@@ -44,6 +44,7 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           id
           name
           createdAt
+          displayFinancialStatus
           
           customer {
             displayName
@@ -126,6 +127,7 @@ export async function getOrdersDashboardData(
           currencyCode: edge.node.netPaymentSet.presentmentMoney.currencyCode,
         },
       },
+      displayFinancialStatus: edge.node.displayFinancialStatus,
     })),
     pageInfo: {
       hasNextPage: ordersConnection.pageInfo.hasNextPage,

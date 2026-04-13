@@ -1,0 +1,50 @@
+.custom-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 4px 10px;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 14px;
+
+  white-space: nowrap;
+}
+
+/* Neutral (default) */
+.custom-badge--neutral {
+  background: #f1f1f1;
+  color: #797979;
+}
+
+/* Info (blue) */
+.custom-badge--info {
+  background: #e0eef9;
+  color: #3e7491;
+}
+
+/* Success (green) */
+.custom-badge--success {
+  background: #d0f8e4;
+  color: #375b45;
+}
+
+/* Warning (orange) */
+.custom-badge--warning {
+  background: #f9d9b1;
+  color: #60532f;
+}
+
+/* Critical (red) */
+.custom-badge--critical {
+  background: #f8dbd9;
+  color: #a4493b;
+}
+
+/* Attention (yellow) */
+.custom-badge--attention {
+  background: #f8ecab;
+  color: #575032;
+}
