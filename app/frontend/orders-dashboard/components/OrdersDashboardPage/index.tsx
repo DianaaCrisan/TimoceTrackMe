@@ -142,6 +142,10 @@ export function OrdersDashboardPage({
     });
   };
 
+  const handleDeselectAll = () => {
+    setSelectedOrderIds([]);
+  };
+
   async function handleAddTracking() {
     setIsAddingTracking(true);
 
@@ -402,6 +406,15 @@ export function OrdersDashboardPage({
                 <div className="orders-dashboard-page__bulk-bar-text">
                   {selectionSummary}
                 </div>
+
+                <button
+                  type="button"
+                  className="orders-dashboard-page__deselect-button"
+                  disabled={isAnyBulkActionRunning}
+                  onClick={handleDeselectAll}
+                >
+                  Deselect all
+                </button>
 
                 <div className="orders-dashboard-page__bulk-actions">
                   <button

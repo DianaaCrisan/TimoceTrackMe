@@ -24,6 +24,9 @@
 
 .orders-action-result-panel__body {
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .orders-action-result-panel__success {

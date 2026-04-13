@@ -80,6 +80,28 @@ $font-color: rgb(48, 48, 48);
   white-space: nowrap;
 }
 
+.orders-dashboard-page__deselect-button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  color: #005bd3;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(0, 91, 211, 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 .orders-dashboard-page__bulk-actions {
   display: flex;
   align-items: center;

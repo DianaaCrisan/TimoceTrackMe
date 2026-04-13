@@ -90,13 +90,6 @@ async function processOneOrder({
       getEligibleShippingFulfillmentOrders(order);
 
     if (shippingFulfillmentOrders.length === 0) {
-      failedOrders.push({
-        id: order.id,
-        name: order.name,
-        errors: [
-          "No shippable fulfillment order with remaining items was found.",
-        ],
-      });
       return;
     }
 
