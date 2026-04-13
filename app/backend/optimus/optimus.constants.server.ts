@@ -6,3 +6,4 @@ export const OPTIMUS_API_URL = process.env.OPTIMUS_API_URL;
 export const OPTIMUS_USERNAME = process.env.OPTIMUS_USERNAME;
 export const OPTIMUS_API_KEY = process.env.OPTIMUS_API_KEY;
 export const OPTIMUS_TRACKING_URL = process.env.OPTIMUS_TRACKING_URL;
+export const GLS_TRACKING_URL = process.env.GLS_TRACKING_URL;

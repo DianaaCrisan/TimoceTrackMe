@@ -34,7 +34,7 @@ export const GET_ORDERS_PRINT_LABELS_INPUT_QUERY = `#graphql
               deliveryMethod {
                 methodType
               }
-              lineItems(first: 100) {
+              lineItems(first: 250) {
                 edges {
                   node {
                     id
@@ -64,7 +64,7 @@ export const GET_ORDERS_PRINT_LABELS_INPUT_QUERY = `#graphql
             company
             url
           }
-          fulfillmentLineItems(first: 100) {
+          fulfillmentLineItems(first: 250) {
             edges {
               node {
                 quantity
