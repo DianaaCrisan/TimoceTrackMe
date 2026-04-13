@@ -12,7 +12,7 @@ export type ShopifyOrderShippingInfo = Extract<
   { __typename: "Order" }
 >;
 
-export async function getOrdersShippingInfoBatch(
+async function getOrdersShippingInfoBatch(
   admin: AdminApiContextWithoutRest,
   orderIds: string[],
 ): Promise<ShopifyOrderShippingInfo[]> {
