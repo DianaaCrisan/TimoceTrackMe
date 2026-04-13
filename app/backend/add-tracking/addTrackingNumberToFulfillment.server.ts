@@ -22,13 +22,18 @@ export async function addTrackingNumberToFulfillment(
   shopUrl: string,
   input: AddTrackingNumberToFulfillmentInput,
 ): Promise<void> {
+  const isGLS = input.trackingNumber.startsWith("6");
+  const url = isGLS
+    ? process.env.GLS_TRACKING_URL + input.trackingNumber
+    : process.env.OPTIMUS_TRACKING_URL + input.trackingNumber;
+
   const variables: FulfillmentCreateWithTrackingMutationVariables = {
     fulfillment: {
       notifyCustomer: true,
       trackingInfo: {
         company: "Optimus",
         number: input.trackingNumber,
-        url: process.env.OPTIMUS_TRACKING_URL + input.trackingNumber, // TODO: distinguish between optimus and gls
+        url,
       },
       lineItemsByFulfillmentOrder: [
         {
