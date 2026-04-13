@@ -52,6 +52,16 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
             zip
           }
           
+          fulfillmentOrders(first: 1) {
+            edges {
+              node {
+                deliveryMethod {
+                  methodType
+                }
+              }
+            }
+          }
+          
           customer {
             displayName
           }
@@ -131,6 +141,7 @@ export async function getOrdersDashboardData(
       shippingAddress: {
         zip: edge.node.shippingAddress?.zip,
       },
+      fulfillmentOrders: edge.node.fulfillmentOrders,
       customer: {
         displayName: edge.node.customer?.displayName ?? "",
       },

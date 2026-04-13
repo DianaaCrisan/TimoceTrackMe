@@ -1,6 +1,10 @@
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { Badge } from "app/frontend/core/components/Badge";
 import { DateUtils } from "app/frontend/core/utils/DateUtils";
+import {
+  DeliveryMethodTypeDTO,
+  formatDeliveryMethodType,
+} from "app/frontend/core/utils/deliveryMethod";
 import { formatFinancialStatusWithTone } from "app/frontend/core/utils/financialStatus";
 import { formatFulfillmentStatusWithTone } from "app/frontend/core/utils/fulfillmentStatus";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable.scss";
@@ -48,6 +52,9 @@ export function OrdersDashboardTable({
             Fulfillment status
           </th>
           <th className="orders-dashboard-table__header-cell">Items</th>
+          <th className="orders-dashboard-table__header-cell">
+            Delivery method
+          </th>
           <th className="orders-dashboard-table__header-cell">ZIP code</th>
         </tr>
       </thead>
@@ -127,7 +134,28 @@ export function OrdersDashboardTable({
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
-                  {order.shippingAddress?.zip}
+                  {formatDeliveryMethodType(
+                    order.fulfillmentOrders.edges[0]?.node?.deliveryMethod
+                      ?.methodType,
+                  )}
+                </td>
+
+                <td className="orders-dashboard-table__body-cell">
+                  {(() => {
+                    const methodType =
+                      order.fulfillmentOrders?.edges[0]?.node?.deliveryMethod
+                        ?.methodType;
+                    const isShipping =
+                      methodType === DeliveryMethodTypeDTO.SHIPPING.toString();
+
+                    const zip = order.shippingAddress?.zip;
+                    const isMissingZip = isShipping && !zip;
+
+                    if (isMissingZip) {
+                      return <Badge tone="critical">Missing</Badge>;
+                    }
+                    return zip ?? "-";
+                  })()}
                 </td>
               </tr>
             );
