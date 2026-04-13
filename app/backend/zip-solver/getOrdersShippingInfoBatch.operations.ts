@@ -1,3 +1,4 @@
+// TODO: add pagination
 export const GET_ORDERS_SHIPPING_INFO_BATCH_QUERY = `#graphql
   query GetOrdersShippingInfoBatch($orderIds: [ID!]!) {
     nodes(ids: $orderIds) {
