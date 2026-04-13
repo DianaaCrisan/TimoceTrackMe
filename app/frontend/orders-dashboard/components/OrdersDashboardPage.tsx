@@ -11,6 +11,7 @@ import locationIcon from "app/frontend/core/icons/LocationIcon.svg";
 import printIcon from "app/frontend/core/icons/PrintIcon.svg";
 import { OrdersDashboardFilter } from "app/backend/orders/orders-dashboard.server";
 import { Link, useLocation } from "react-router";
+import { OrdersDashboardQuery } from "app/types/admin.generated";
 
 type PrintLabelsResult = {
   ok: boolean;
@@ -45,11 +46,7 @@ type AddTrackingResult = {
 };
 
 type OrdersDashboardPageProps = {
-  orders: {
-    id: string;
-    name: string;
-    createdAt: string;
-  }[];
+  orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
   pageInfo: PageInfo;
   shopAdminUrl: string;
   activeFilter: OrdersDashboardFilter;

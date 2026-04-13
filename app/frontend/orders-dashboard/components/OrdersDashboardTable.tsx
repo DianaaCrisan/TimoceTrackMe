@@ -1,15 +1,10 @@
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { DateUtils } from "app/frontend/core/utils/DateUtils";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable.scss";
-
-type OrdersDashboardTableRow = {
-  id: string;
-  name: string;
-  createdAt: string;
-};
+import { OrdersDashboardQuery } from "app/types/admin.generated";
 
 type OrdersDashboardTableProps = {
-  orders: OrdersDashboardTableRow[];
+  orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
   shopAdminUrl: string;
   selectedOrderIds: string[];
   canSelectMore: boolean;
@@ -41,6 +36,7 @@ export function OrdersDashboardTable({
           </th>
           <th className="orders-dashboard-table__header-cell">Order</th>
           <th className="orders-dashboard-table__header-cell">Date</th>
+          <th className="orders-dashboard-table__header-cell">Customer</th>
         </tr>
       </thead>
 
@@ -86,6 +82,10 @@ export function OrdersDashboardTable({
 
                 <td className="orders-dashboard-table__body-cell">
                   {DateUtils.formatDate(order.createdAt)}
+                </td>
+
+                <td className="orders-dashboard-table__body-cell">
+                  {order.customer?.displayName ?? ""}
                 </td>
               </tr>
             );

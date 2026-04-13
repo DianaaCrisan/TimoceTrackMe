@@ -10,14 +10,8 @@ const ORDER_PAGE_SIZE = 50;
 
 export type OrdersDashboardFilter = "all" | "pending_fulfillment";
 
-type OrdersDashboardOrderRow = {
-  id: string;
-  name: string;
-  createdAt: string;
-};
-
 type OrdersDashboardData = {
-  orders: OrdersDashboardOrderRow[];
+  orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
   pageInfo: PageInfo;
 };
 
@@ -50,6 +44,10 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           id
           name
           createdAt
+          
+          customer {
+            displayName
+          }
         }
       }
       pageInfo {
@@ -112,6 +110,9 @@ export async function getOrdersDashboardData(
       id: edge.node.id,
       name: edge.node.name,
       createdAt: edge.node.createdAt,
+      customer: {
+        displayName: edge.node.customer?.displayName ?? "",
+      },
     })),
     pageInfo: {
       hasNextPage: ordersConnection.pageInfo.hasNextPage,
