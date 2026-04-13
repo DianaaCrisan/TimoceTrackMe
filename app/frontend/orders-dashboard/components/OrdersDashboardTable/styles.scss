@@ -1,0 +1,95 @@
+$font-color: rgb(48, 48, 48);
+
+.orders-dashboard-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--p-color-bg-surface, white);
+
+  font-family: inherit;
+  color: $font-color;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.orders-dashboard-table__head {
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+}
+
+.orders-dashboard-table__checkbox-header-cell,
+.orders-dashboard-table__header-cell {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+}
+
+.orders-dashboard-table__checkbox-header-cell,
+.orders-dashboard-table__checkbox-cell {
+  width: 36px;
+  text-align: center;
+  border-bottom: 1px solid #e1e3e5;
+
+  input {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.orders-dashboard-table__header-cell {
+  padding: 10px 4px;
+  text-align: left;
+  border-bottom: 1px solid #e1e3e5;
+  white-space: nowrap;
+  color: rgb(97, 97, 97);
+  font-weight: 550;
+}
+
+.orders-dashboard-table__body-cell {
+  padding: 6px 4px;
+  text-align: left;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.orders-dashboard-table__empty-cell {
+  padding: 16px;
+  text-align: left;
+}
+
+.orders-dashboard-table__row {
+  &.--selected {
+    background: var(--p-color-bg-surface-secondary, #eeeeee);
+  }
+
+  &.--cancelled {
+    opacity: 0.6;
+    .orders-dashboard-table__body-cell {
+      text-decoration: line-through;
+    }
+  }
+}
+
+.orders-dashboard-table__row:hover {
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+}
+
+.orders-dashboard-table__row:last-child .orders-dashboard-table__checkbox-cell,
+.orders-dashboard-table__row:last-child .orders-dashboard-table__body-cell {
+  border-bottom: none;
+}
+
+.orders-dashboard-table__order-link {
+  color: $font-color;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: $font-color;
+  }
+}
