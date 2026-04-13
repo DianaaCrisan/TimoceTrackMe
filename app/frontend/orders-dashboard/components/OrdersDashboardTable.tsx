@@ -37,6 +37,7 @@ export function OrdersDashboardTable({
           <th className="orders-dashboard-table__header-cell">Order</th>
           <th className="orders-dashboard-table__header-cell">Date</th>
           <th className="orders-dashboard-table__header-cell">Customer</th>
+          <th className="orders-dashboard-table__header-cell">Total</th>
         </tr>
       </thead>
 
@@ -86,6 +87,10 @@ export function OrdersDashboardTable({
 
                 <td className="orders-dashboard-table__body-cell">
                   {order.customer?.displayName ?? ""}
+                </td>
+
+                <td className="orders-dashboard-table__body-cell">
+                  {`${order.netPaymentSet.presentmentMoney.currencyCode} ${order.netPaymentSet.presentmentMoney.amount}`}
                 </td>
               </tr>
             );

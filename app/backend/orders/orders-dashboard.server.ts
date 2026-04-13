@@ -48,6 +48,13 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           customer {
             displayName
           }
+          
+          netPaymentSet {
+            presentmentMoney {
+              amount
+              currencyCode
+            }
+          }
         }
       }
       pageInfo {
@@ -112,6 +119,12 @@ export async function getOrdersDashboardData(
       createdAt: edge.node.createdAt,
       customer: {
         displayName: edge.node.customer?.displayName ?? "",
+      },
+      netPaymentSet: {
+        presentmentMoney: {
+          amount: edge.node.netPaymentSet.presentmentMoney.amount,
+          currencyCode: edge.node.netPaymentSet.presentmentMoney.currencyCode,
+        },
       },
     })),
     pageInfo: {
