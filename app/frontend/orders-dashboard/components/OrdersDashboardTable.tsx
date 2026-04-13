@@ -48,6 +48,7 @@ export function OrdersDashboardTable({
             Fulfillment status
           </th>
           <th className="orders-dashboard-table__header-cell">Items</th>
+          <th className="orders-dashboard-table__header-cell">ZIP code</th>
         </tr>
       </thead>
 
@@ -123,6 +124,10 @@ export function OrdersDashboardTable({
 
                 <td className="orders-dashboard-table__body-cell">
                   {`${order.currentSubtotalLineItemsQuantity} ${order.currentSubtotalLineItemsQuantity > 1 ? "items" : "item"}`}
+                </td>
+
+                <td className="orders-dashboard-table__body-cell">
+                  {order.shippingAddress?.zip}
                 </td>
               </tr>
             );
