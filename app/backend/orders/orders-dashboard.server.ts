@@ -47,7 +47,8 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           displayFinancialStatus
           displayFulfillmentStatus
           currentSubtotalLineItemsQuantity
-          
+          cancelledAt
+
           shippingAddress {
             zip
           }
@@ -138,6 +139,7 @@ export async function getOrdersDashboardData(
       displayFulfillmentStatus: edge.node.displayFulfillmentStatus,
       currentSubtotalLineItemsQuantity:
         edge.node.currentSubtotalLineItemsQuantity,
+      cancelledAt: edge.node.cancelledAt,
       shippingAddress: {
         zip: edge.node.shippingAddress?.zip,
       },

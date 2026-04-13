@@ -74,9 +74,10 @@ export function OrdersDashboardTable({
             return (
               <tr
                 key={order.id}
-                className={`orders-dashboard-table__row${
-                  isSelected ? "--selected" : ""
-                }`}
+                className={`orders-dashboard-table__row
+                  ${isSelected ? " --selected" : ""}
+                  ${order.cancelledAt ? " --cancelled" : ""}
+                `}
               >
                 <td className="orders-dashboard-table__checkbox-cell">
                   <input

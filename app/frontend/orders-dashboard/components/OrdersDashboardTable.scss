@@ -56,8 +56,17 @@ $font-color: rgb(48, 48, 48);
   text-align: left;
 }
 
-.orders-dashboard-table__row--selected {
-  background: var(--p-color-bg-surface-secondary, #eeeeee);
+.orders-dashboard-table__row {
+  &.--selected {
+    background: var(--p-color-bg-surface-secondary, #eeeeee);
+  }
+
+  &.--cancelled {
+    opacity: 0.6;
+    .orders-dashboard-table__body-cell {
+      text-decoration: line-through;
+    }
+  }
 }
 
 .orders-dashboard-table__row:hover {
