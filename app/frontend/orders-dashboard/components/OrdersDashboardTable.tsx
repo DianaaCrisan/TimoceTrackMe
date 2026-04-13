@@ -47,6 +47,7 @@ export function OrdersDashboardTable({
           <th className="orders-dashboard-table__header-cell">
             Fulfillment status
           </th>
+          <th className="orders-dashboard-table__header-cell">Items</th>
         </tr>
       </thead>
 
@@ -118,6 +119,10 @@ export function OrdersDashboardTable({
                     );
                     return <Badge tone={tone}>{label}</Badge>;
                   })()}
+                </td>
+
+                <td className="orders-dashboard-table__body-cell">
+                  {`${order.currentSubtotalLineItemsQuantity} ${order.currentSubtotalLineItemsQuantity > 1 ? "items" : "item"}`}
                 </td>
               </tr>
             );

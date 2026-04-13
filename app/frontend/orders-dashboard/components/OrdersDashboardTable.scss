@@ -14,7 +14,6 @@ $font-color: rgb(48, 48, 48);
 
 .orders-dashboard-table__head {
   background: var(--p-color-bg-surface-secondary, #f6f6f7);
-  color: rgb(97, 97, 97);
 }
 
 .orders-dashboard-table__checkbox-header-cell,
@@ -42,6 +41,8 @@ $font-color: rgb(48, 48, 48);
   text-align: left;
   border-bottom: 1px solid #e1e3e5;
   white-space: nowrap;
+  color: rgb(97, 97, 97);
+  font-weight: 550;
 }
 
 .orders-dashboard-table__body-cell {

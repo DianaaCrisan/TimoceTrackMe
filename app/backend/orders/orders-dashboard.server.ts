@@ -46,6 +46,7 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           createdAt
           displayFinancialStatus
           displayFulfillmentStatus
+          currentSubtotalLineItemsQuantity
           
           customer {
             displayName
@@ -119,6 +120,10 @@ export async function getOrdersDashboardData(
       id: edge.node.id,
       name: edge.node.name,
       createdAt: edge.node.createdAt,
+      displayFinancialStatus: edge.node.displayFinancialStatus,
+      displayFulfillmentStatus: edge.node.displayFulfillmentStatus,
+      currentSubtotalLineItemsQuantity:
+        edge.node.currentSubtotalLineItemsQuantity,
       customer: {
         displayName: edge.node.customer?.displayName ?? "",
       },
@@ -128,8 +133,6 @@ export async function getOrdersDashboardData(
           currencyCode: edge.node.netPaymentSet.presentmentMoney.currencyCode,
         },
       },
-      displayFinancialStatus: edge.node.displayFinancialStatus,
-      displayFulfillmentStatus: edge.node.displayFulfillmentStatus,
     })),
     pageInfo: {
       hasNextPage: ordersConnection.pageInfo.hasNextPage,
