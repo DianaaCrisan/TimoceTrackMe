@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
-import "app/frontend/orders-dashboard/components/OrdersDashboardPage.scss";
+import "app/frontend/orders-dashboard/components/OrdersDashboardPage/styles.scss";
 import { PageInfo } from "app/types/admin.types";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { OrdersActionResultPanel } from "./OrdersActionResultPanel";
+import { OrdersActionResultPanel } from "../OrdersActionResultPanel";
 import { MAX_SELECTED_ORDERS } from "app/commons/constants";
 import deliveryIcon from "app/frontend/core/icons/DeliveryIcon.svg";
 import locationIcon from "app/frontend/core/icons/LocationIcon.svg";

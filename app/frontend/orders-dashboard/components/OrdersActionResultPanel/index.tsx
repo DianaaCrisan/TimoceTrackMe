@@ -1,4 +1,4 @@
-import "app/frontend/orders-dashboard/components/OrdersActionResultPanel.scss";
+import "app/frontend/orders-dashboard/components/OrdersActionResultPanel/styles.scss";
 
 type FailedOrder = {
   id: string;

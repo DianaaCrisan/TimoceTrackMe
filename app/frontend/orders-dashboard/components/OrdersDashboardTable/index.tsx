@@ -7,7 +7,7 @@ import {
 } from "app/frontend/core/utils/deliveryMethod";
 import { formatFinancialStatusWithTone } from "app/frontend/core/utils/financialStatus";
 import { formatFulfillmentStatusWithTone } from "app/frontend/core/utils/fulfillmentStatus";
-import "app/frontend/orders-dashboard/components/OrdersDashboardTable.scss";
+import "app/frontend/orders-dashboard/components/OrdersDashboardTable/styles.scss";
 import { OrdersDashboardQuery } from "app/types/admin.generated";
 
 type OrdersDashboardTableProps = {
