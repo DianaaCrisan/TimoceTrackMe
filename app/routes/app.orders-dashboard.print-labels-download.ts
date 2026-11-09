@@ -34,8 +34,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
+  const timeZone = formData.get("timeZone");
+
   const result = await buildPrintLabelsArtifact(admin, session.shop, {
     orderIds: selectedOrderIds,
+    timeZone: typeof timeZone === "string" ? timeZone : null,
   });
 
   const fileBuffer =

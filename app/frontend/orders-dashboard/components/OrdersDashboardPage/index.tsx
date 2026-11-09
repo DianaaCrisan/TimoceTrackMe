@@ -10,7 +10,7 @@ import deliveryIcon from "app/frontend/core/icons/DeliveryIcon.svg";
 import locationIcon from "app/frontend/core/icons/LocationIcon.svg";
 import printIcon from "app/frontend/core/icons/PrintIcon.svg";
 import { OrdersDashboardFilter } from "app/backend/orders/orders-dashboard.server";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useRevalidator } from "react-router";
 import { OrdersDashboardQuery } from "app/types/admin.generated";
 
 type PrintLabelsResult = {
@@ -59,6 +59,10 @@ export function OrdersDashboardPage({
   activeFilter,
 }: OrdersDashboardPageProps) {
   const shopify = useAppBridge();
+  // re-runs the route loader in place so the table reflects changes made by
+  // bulk actions, without remounting (result panels in local state survive)
+  const revalidator = useRevalidator();
+  const isRefreshingOrders = revalidator.state === "loading";
 
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const selectedCount = selectedOrderIds.length;
@@ -76,7 +80,10 @@ export function OrdersDashboardPage({
   const [isAddingTracking, setIsAddingTracking] = useState(false);
 
   const isAnyBulkActionRunning =
-    isAddingTracking || isDownloadingLabels || isSolvingZipCodes;
+    isAddingTracking ||
+    isDownloadingLabels ||
+    isSolvingZipCodes ||
+    isRefreshingOrders;
 
   const hasVisibleResponse =
     printLabelsResult !== null ||
@@ -146,6 +153,27 @@ export function OrdersDashboardPage({
     setSelectedOrderIds([]);
   };
 
+  // drop orders the action fully succeeded for, so they don't linger as
+  // invisible selections once the refreshed list no longer shows them;
+  // failed orders stay selected so the action can be retried
+  const deselectSucceededOrders = (result: {
+    successfulOrders: { id: string }[];
+    failedOrders: { id: string }[];
+  }) => {
+    const failedIds = new Set(result.failedOrders.map((order) => order.id));
+    const succeededIds = new Set(
+      result.successfulOrders
+        .map((order) => order.id)
+        .filter((id) => !failedIds.has(id)),
+    );
+
+    if (succeededIds.size === 0) return;
+
+    setSelectedOrderIds((currentSelectedIds) =>
+      currentSelectedIds.filter((id) => !succeededIds.has(id)),
+    );
+  };
+
   async function handleAddTracking() {
     setIsAddingTracking(true);
 
@@ -205,6 +233,7 @@ export function OrdersDashboardPage({
 
       const result: AddTrackingResult = await response.json();
       setAddTrackingResult(result);
+      deselectSucceededOrders(result);
     } catch (error) {
       setAddTrackingResult({
         ok: false,
@@ -219,6 +248,8 @@ export function OrdersDashboardPage({
       });
     } finally {
       setIsAddingTracking(false);
+      // partial successes are possible even when some orders fail, so always refresh
+      revalidator.revalidate();
     }
   }
 
@@ -231,6 +262,11 @@ export function OrdersDashboardPage({
       selectedOrderIds.forEach((orderId) => {
         formData.append("selectedOrderIds", orderId);
       });
+      // lets the server stamp the file name with the user's local date/time
+      formData.append(
+        "timeZone",
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
 
       const response = await fetch(
         "/app/orders-dashboard/print-labels-download",
@@ -359,6 +395,7 @@ export function OrdersDashboardPage({
 
       const result: SolveZipCodesResult = await response.json();
       setSolveZipCodesResult(result);
+      deselectSucceededOrders(result);
     } catch (error) {
       setSolveZipCodesResult({
         ok: false,
@@ -373,6 +410,7 @@ export function OrdersDashboardPage({
       });
     } finally {
       setIsSolvingZipCodes(false);
+      revalidator.revalidate();
     }
   }
 
