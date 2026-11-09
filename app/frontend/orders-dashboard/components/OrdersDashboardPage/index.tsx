@@ -262,6 +262,11 @@ export function OrdersDashboardPage({
       selectedOrderIds.forEach((orderId) => {
         formData.append("selectedOrderIds", orderId);
       });
+      // lets the server stamp the file name with the user's local date/time
+      formData.append(
+        "timeZone",
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
 
       const response = await fetch(
         "/app/orders-dashboard/print-labels-download",
