@@ -4,9 +4,12 @@ import { GroupedPdfComposer } from "./GroupedPdfComposer";
 import { LabelUnitFactory } from "./LabelUnitFactory";
 import { LabelUnitKind } from "./models/LabelUnitKind";
 import JSZip from "jszip";
+import { formatLabelsFileTimestamp } from "./utils/formatLabelsFileTimestamp";
 
 type PrintLabelsRequest = {
   orderIds: string[];
+  /** IANA time zone of the user, used to stamp the file names in local time */
+  timeZone?: string | null;
 };
 
 type BuildPrintLabelsArtifactResult = {
@@ -72,11 +75,15 @@ export async function buildPrintLabelsArtifact(
     };
   }
 
+  const timestamp = formatLabelsFileTimestamp(new Date(), request.timeZone);
+  const shippingFileName = `shipping-labels_${timestamp}.pdf`;
+  const pickupFileName = `pickup-labels_${timestamp}.pdf`;
+
   if (deliveryPdf && !pickupPdf) {
     return {
       ok: errors.length === 0,
       deliveryPdf,
-      fileName: "labels-shipping.pdf",
+      fileName: shippingFileName,
       contentType: "application/pdf",
       errors,
     };
@@ -86,15 +93,15 @@ export async function buildPrintLabelsArtifact(
     return {
       ok: errors.length === 0,
       pickupPdf,
-      fileName: "labels-pickup.pdf",
+      fileName: pickupFileName,
       contentType: "application/pdf",
       errors,
     };
   }
 
   const zip = new JSZip();
-  zip.file("labels-shipping.pdf", deliveryPdf!);
-  zip.file("labels-pickup.pdf", pickupPdf!);
+  zip.file(shippingFileName, deliveryPdf!);
+  zip.file(pickupFileName, pickupPdf!);
 
   const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
@@ -103,7 +110,7 @@ export async function buildPrintLabelsArtifact(
     deliveryPdf,
     pickupPdf,
     zipBuffer,
-    fileName: "labels.zip",
+    fileName: `labels_${timestamp}.zip`,
     contentType: "application/zip",
     errors,
   };
