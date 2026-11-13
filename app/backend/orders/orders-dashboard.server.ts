@@ -5,10 +5,10 @@ import type {
 } from "../../types/admin.generated";
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { FetchResponseBody } from "@shopify/admin-api-client";
+import type { OrdersDashboardFilter } from "app/commons/orders/OrdersDashboardFilter";
+import { buildOrdersSearchQuery } from "./buildOrdersSearchQuery";
 
 const ORDER_PAGE_SIZE = 50;
-
-export type OrdersDashboardFilter = "all" | "pending_fulfillment";
 
 type OrdersDashboardData = {
   orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
@@ -89,10 +89,7 @@ export async function getOrdersDashboardData(
   admin: AdminApiContextWithoutRest,
   pagination: OrdersDashboardPaginationInput,
 ): Promise<OrdersDashboardData> {
-  const searchQuery =
-    pagination.filter === "pending_fulfillment"
-      ? "fulfillment_status:unfulfilled"
-      : null;
+  const searchQuery = buildOrdersSearchQuery(pagination.filter);
 
   const variables: OrdersDashboardQueryVariables =
     pagination.before != null

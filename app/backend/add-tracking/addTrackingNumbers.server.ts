@@ -18,20 +18,53 @@ import { ADD_TRACKING_GRAPHQL_POOL_WORKERS } from "../graphql/throttle-handling/
 import { createOptimusTrackingNumber } from "../optimus/createOptimusTrackingNumber.server";
 import { isEligibleForFulfillment } from "../graphql/utils/fulfillment-order-utils";
 import { ShopifyUtils } from "../graphql/utils/ShopifyUtils";
+import { isOptimusInvalidZipError } from "../optimus/isOptimusInvalidZipError";
+import { ZipRecovery } from "./ZipRecovery.server";
 
+type AddTrackingDeps = {
+  getOrders: typeof getOrdersTrackingInputDataInBatches;
+  createAwb: typeof createOptimusTrackingNumber;
+  addTrackingToFulfillment: typeof addTrackingNumberToFulfillment;
+  createZipRecovery: (
+    admin: AdminApiContextWithoutRest,
+    shopUrl: string,
+  ) => ZipRecovery;
+};
+
+const defaultDeps: AddTrackingDeps = {
+  getOrders: getOrdersTrackingInputDataInBatches,
+  createAwb: createOptimusTrackingNumber,
+  addTrackingToFulfillment: addTrackingNumberToFulfillment,
+  createZipRecovery: (admin, shopUrl) => new ZipRecovery(admin, shopUrl),
+};
+
+/**
+ * Creates an Optimus AWB for every shipping fulfillment order that still has
+ * items to ship, and fulfills it in Shopify with that tracking number.
+ *
+ * ZIP codes are solved automatically (see `ZipRecovery`):
+ * - orders without a ZIP are solved in one batch before any AWB is created
+ * - when Optimus rejects a ZIP, the order is solved once more and the AWB
+ *   retried once. Optimus keeps the rejected AWB; it is never fulfilled.
+ */
 export async function addTrackingNumbers(
   admin: AdminApiContextWithoutRest,
   shopUrl: string,
   request: AddTrackingNumbersRequest,
+  deps: AddTrackingDeps = defaultDeps,
 ): Promise<AddTrackingNumbersResult> {
   const successfulOrders: AddTrackingNumbersSuccessfulOrder[] = [];
   const failedOrders: AddTrackingNumbersFailedOrder[] = [];
 
-  const orders = await getOrdersTrackingInputDataInBatches(
-    admin,
-    request.orderIds,
-  );
+  const orders = await deps.getOrders(admin, request.orderIds);
   const ordersById = new Map(orders.map((order) => [order.id, order]));
+
+  const zipRecovery = deps.createZipRecovery(admin, shopUrl);
+  await zipRecovery.fillMissingZips(
+    orders.filter(
+      (order) => getEligibleShippingFulfillmentOrders(order).length > 0,
+    ),
+  );
 
   const pool = createPool(ADD_TRACKING_GRAPHQL_POOL_WORKERS);
   const progress = createProgressLogger(
@@ -47,6 +80,8 @@ export async function addTrackingNumbers(
           shopUrl,
           orderId,
           order: ordersById.get(orderId),
+          zipRecovery,
+          deps,
           successfulOrders,
           failedOrders,
         });
@@ -66,6 +101,8 @@ async function processOneOrder({
   shopUrl,
   orderId,
   order,
+  zipRecovery,
+  deps,
   successfulOrders,
   failedOrders,
 }: {
@@ -73,6 +110,8 @@ async function processOneOrder({
   shopUrl: string;
   orderId: string;
   order?: TrackingInputOrder;
+  zipRecovery: ZipRecovery;
+  deps: AddTrackingDeps;
   successfulOrders: AddTrackingNumbersSuccessfulOrder[];
   failedOrders: AddTrackingNumbersFailedOrder[];
 }) {
@@ -93,30 +132,34 @@ async function processOneOrder({
       return;
     }
 
+    if (!order.shippingAddress?.zip) {
+      const reason = zipRecovery.getMissingZipReason(order.id);
+      failedOrders.push({
+        id: order.id,
+        name: order.name,
+        errors: [
+          reason
+            ? `Missing shipping ZIP code, and it could not be solved automatically: ${reason}.`
+            : "Missing shipping ZIP code.",
+        ],
+      });
+      return;
+    }
+
     const createdTrackingNumbers: string[] = [];
     const fulfillmentErrors: string[] = [];
 
     for (const fulfillmentOrder of shippingFulfillmentOrders) {
       try {
         const totalWeight = getTotalWeightForFulfillmentOrder(fulfillmentOrder);
+        const awbResponse = await createAwbWithZipRetry(
+          order,
+          totalWeight,
+          zipRecovery,
+          deps,
+        );
 
-        const awbResponse = await createOptimusTrackingNumber({
-          orderName: order.name,
-          email: order.email ?? undefined,
-          name: order.shippingAddress?.name ?? order.name,
-          phoneNumber: order.shippingAddress?.phone ?? order.phone ?? "",
-          createdAt: order.createdAt,
-          address: buildFullAddress(order),
-          province: order.shippingAddress?.province ?? "",
-          city: order.shippingAddress?.city ?? "",
-          country: order.shippingAddress?.country ?? "",
-          zip: order.shippingAddress?.zip ?? "",
-          invoiceDetails: `Comanda ${order.name}`,
-          weight: totalWeight.toString(),
-          formatted: order.shippingAddress?.formatted.join(", ") ?? "",
-        });
-
-        await addTrackingNumberToFulfillment(admin, shopUrl, {
+        await deps.addTrackingToFulfillment(admin, shopUrl, {
           fulfillmentOrderId: fulfillmentOrder.id,
           fulfillmentOrderLineItems: fulfillmentOrder.lineItems
             .filter((lineItem) => lineItem.remainingQuantity > 0)
@@ -139,11 +182,14 @@ async function processOneOrder({
       }
     }
 
+    const zipChange = zipRecovery.getChange(order.id);
+
     if (createdTrackingNumbers.length > 0 && fulfillmentErrors.length === 0) {
       successfulOrders.push({
         id: order.id,
         name: order.name,
         trackingNumbers: createdTrackingNumbers,
+        zipChange,
       });
       return;
     }
@@ -153,9 +199,10 @@ async function processOneOrder({
         id: order.id,
         name: order.name,
         errors: [
-          "Some fulfillment orders succeeded and some failed.",
+          `Some fulfillment orders succeeded (${createdTrackingNumbers.join(", ")}) and some failed.`,
           ...fulfillmentErrors,
         ],
+        zipChange,
       });
       return;
     }
@@ -167,6 +214,7 @@ async function processOneOrder({
         fulfillmentErrors.length > 0
           ? fulfillmentErrors
           : ["No tracking numbers were created for this order."],
+      zipChange,
     });
   } catch (error) {
     failedOrders.push({
@@ -175,6 +223,56 @@ async function processOneOrder({
       errors: [error instanceof Error ? error.message : String(error)],
     });
   }
+}
+
+/**
+ * Creates the AWB; if Optimus rejects the ZIP, solves it and retries once.
+ * The order is patched in place, so its later fulfillment orders use the new
+ * ZIP from the start.
+ */
+async function createAwbWithZipRetry(
+  order: TrackingInputOrder,
+  totalWeight: number,
+  zipRecovery: ZipRecovery,
+  deps: AddTrackingDeps,
+): Promise<{ trackingNumber: string }> {
+  try {
+    return await deps.createAwb(buildAwbRequest(order, totalWeight));
+  } catch (error) {
+    if (!isOptimusInvalidZipError(error)) throw error;
+
+    const rejectedZip = order.shippingAddress?.zip ?? "";
+    const decision = await zipRecovery.retryAfterRejection(order);
+    if (!decision.shouldRetry) {
+      throw new Error(
+        `Optimus rejected ZIP ${rejectedZip}, and it could not be solved automatically: ${decision.reason}. ${errorMessage(error)}`,
+      );
+    }
+
+    return deps.createAwb(buildAwbRequest(order, totalWeight));
+  }
+}
+
+function buildAwbRequest(order: TrackingInputOrder, totalWeight: number) {
+  return {
+    orderName: order.name,
+    email: order.email ?? undefined,
+    name: order.shippingAddress?.name ?? order.name,
+    phoneNumber: order.shippingAddress?.phone ?? order.phone ?? "",
+    createdAt: order.createdAt,
+    address: buildFullAddress(order),
+    province: order.shippingAddress?.province ?? "",
+    city: order.shippingAddress?.city ?? "",
+    country: order.shippingAddress?.country ?? "",
+    zip: order.shippingAddress?.zip ?? "",
+    invoiceDetails: `Comanda ${order.name}`,
+    weight: totalWeight.toString(),
+    formatted: order.shippingAddress?.formatted.join(", ") ?? "",
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function getEligibleShippingFulfillmentOrders(
