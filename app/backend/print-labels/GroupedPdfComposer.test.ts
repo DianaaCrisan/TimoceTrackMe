@@ -6,7 +6,7 @@ import { GroupedPdfComposer } from "./GroupedPdfComposer";
 import { LineItem } from "./models/LineItem";
 
 describe("GroupedPdfComposer", () => {
-  it("prints one totals page, one summary per identical items group, one order-names page per group, then all labels in that group", async () => {
+  it("prints one totals page, then per identical items group one header page (items and order numbers) followed by its labels", async () => {
     const u1: LabelUnitDetails = {
       kind: LabelUnitKind.DELIVERY,
       orderId: "gid://shopify/Order/1",
@@ -52,23 +52,17 @@ describe("GroupedPdfComposer", () => {
       .mockImplementation(async (bytes: Buffer, _doc: PDFDocument) => {
         const s = bytes.toString();
         if (s === "TOT") events.push("TOTALS");
-        else if (s.startsWith("S")) events.push("SUMMARY");
+        else if (s.startsWith("H")) events.push("HEADER");
         else events.push(s);
       });
 
-    const generateSummaryLabelPDF = vi.fn().mockResolvedValue(Buffer.from("S"));
-    const generateTotalsLabelPDF = vi
-      .fn()
-      .mockResolvedValue(Buffer.from("TOT"));
-    const appendTextPagesToPDF = vi.fn().mockResolvedValue(undefined);
-    const appendOrderNamePagesToPDF = vi.fn().mockResolvedValue(undefined);
+    const generateGroupHeaderPDF = vi.fn().mockResolvedValue(Buffer.from("H"));
+    const generateTotalsPDF = vi.fn().mockResolvedValue(Buffer.from("TOT"));
 
     const composer = new GroupedPdfComposer({
       appendPDFToDocument,
-      generateSummaryLabelPDF,
-      generateTotalsLabelPDF,
-      appendTextPagesToPDF,
-      appendOrderNamePagesToPDF,
+      generateGroupHeaderPDF,
+      generateTotalsPDF,
       createDoc: async () => PDFDocument.create(),
     });
 
@@ -88,44 +82,38 @@ describe("GroupedPdfComposer", () => {
         orderId: "gid://shopify/Order/1",
         unitId: "gid://shopify/Fulfillment/1",
         displayName: "#1203-F1",
+        kind: LabelUnitKind.DELIVERY,
       },
       {
         orderId: "gid://shopify/Order/2",
         unitId: "pickup:gid://shopify/Order/2",
         displayName: "Pickup",
+        kind: LabelUnitKind.PICKUP,
       },
       {
         orderId: "gid://shopify/Order/3",
         unitId: "gid://shopify/Fulfillment/3",
         displayName: "#1204-F1",
+        kind: LabelUnitKind.DELIVERY,
       },
     ]);
 
-    expect(events).toEqual([
-      "TOTALS",
-      "SUMMARY",
-      "LA1",
-      "LA2",
-      "SUMMARY",
-      "LB1",
-    ]);
+    expect(events).toEqual(["TOTALS", "HEADER", "LA1", "LA2", "HEADER", "LB1"]);
 
-    expect(generateTotalsLabelPDF).toHaveBeenCalledTimes(1);
-
-    expect(generateSummaryLabelPDF).toHaveBeenCalledTimes(2);
-    const counts = generateSummaryLabelPDF.mock.calls
-      .map(([, labelCount]) => labelCount)
-      .sort((a, b) => a - b);
-    expect(counts).toEqual([1, 2]);
-
-    expect(appendOrderNamePagesToPDF).toHaveBeenCalledTimes(2);
-    const orderNameCalls = appendOrderNamePagesToPDF.mock.calls.map(
-      ([, orderNames]) => orderNames,
+    expect(generateTotalsPDF).toHaveBeenCalledTimes(1);
+    expect(generateTotalsPDF).toHaveBeenCalledWith(
+      { delivery: 2, pickup: 1, total: 3 },
+      expect.arrayContaining(["#1", "#2", "#3"]),
     );
-    expect(orderNameCalls).toEqual(
+
+    expect(generateGroupHeaderPDF).toHaveBeenCalledTimes(2);
+    const headerCalls = generateGroupHeaderPDF.mock.calls.map(
+      ([, labelCount, orderNames]) => ({ labelCount, orderNames }),
+    );
+    expect(headerCalls).toEqual(
       expect.arrayContaining([
-        expect.arrayContaining(["#1", "#2"]),
-        expect.arrayContaining(["#3"]),
+        { labelCount: 2, orderNames: expect.arrayContaining(["#1", "#2"]) },
+        { labelCount: 1, orderNames: ["#3"] },
       ]),
     );
   });
@@ -141,14 +129,12 @@ describe("GroupedPdfComposer", () => {
       errors: ["some error"],
     };
 
-    const generateTotalsLabelPDF = vi.fn();
+    const generateTotalsPDF = vi.fn();
 
     const composer = new GroupedPdfComposer({
       appendPDFToDocument: vi.fn(),
-      generateSummaryLabelPDF: vi.fn(),
-      generateTotalsLabelPDF,
-      appendTextPagesToPDF: vi.fn(),
-      appendOrderNamePagesToPDF: vi.fn(),
+      generateGroupHeaderPDF: vi.fn(),
+      generateTotalsPDF,
       createDoc: async () => PDFDocument.create(),
     });
 
@@ -156,13 +142,13 @@ describe("GroupedPdfComposer", () => {
       composer.compose([badUnit], new Map([["gid://shopify/Order/3", "#3"]])),
     ).resolves.toMatchObject({
       appended: [],
-      errors: ["some error"],
+      errors: [{ orderIds: ["gid://shopify/Order/3"], message: "some error" }],
     });
 
-    expect(generateTotalsLabelPDF).toHaveBeenCalledTimes(0);
+    expect(generateTotalsPDF).toHaveBeenCalledTimes(0);
   });
 
-  it("prints two separate summaries for the same variant with different quantities, each followed by order names and its label", async () => {
+  it("prints two separate header pages for the same variant with different quantities, each followed by its label", async () => {
     const variantId = "gid://shopify/ProductVariant/KEITT";
 
     const uQty4: LabelUnitDetails = {
@@ -193,25 +179,20 @@ describe("GroupedPdfComposer", () => {
         events.push(bytes.toString());
       });
 
-    const generateSummaryLabelPDF = vi
+    const generateGroupHeaderPDF = vi
       .fn()
-      .mockImplementation(async (items: LineItem[], _count: number) => {
+      .mockImplementation(async (items: LineItem[]) => {
         const qty = items.reduce((acc, it) => acc + (it.quantity ?? 0), 0);
         return Buffer.from(`SUMMARY:${qty}`);
       });
 
-    const generateTotalsLabelPDF = vi
-      .fn()
-      .mockResolvedValue(Buffer.from("TOT"));
-    const appendOrderNamePagesToPDF = vi.fn().mockResolvedValue(undefined);
+    const generateTotalsPDF = vi.fn().mockResolvedValue(Buffer.from("TOT"));
 
     const composer = new GroupedPdfComposer({
       appendPDFToDocument,
-      generateSummaryLabelPDF,
-      generateTotalsLabelPDF,
+      generateGroupHeaderPDF,
+      generateTotalsPDF,
       createDoc: async () => PDFDocument.create(),
-      appendTextPagesToPDF: vi.fn(),
-      appendOrderNamePagesToPDF,
     });
 
     const { pdfData, errors } = await composer.compose(
@@ -222,8 +203,8 @@ describe("GroupedPdfComposer", () => {
     expect(pdfData).toBeInstanceOf(Buffer);
     expect(errors).toEqual([]);
 
-    expect(generateSummaryLabelPDF).toHaveBeenCalledTimes(2);
-    const seenQtys = generateSummaryLabelPDF.mock.calls
+    expect(generateGroupHeaderPDF).toHaveBeenCalledTimes(2);
+    const seenQtys = generateGroupHeaderPDF.mock.calls
       .map(([items]) =>
         (items as LineItem[]).reduce((a, b) => a + b.quantity, 0),
       )
@@ -235,17 +216,58 @@ describe("GroupedPdfComposer", () => {
     const patternB = "TOT|SUMMARY:1|L1|SUMMARY:4|L4";
     expect([patternA, patternB]).toContain(joined);
 
-    expect(generateTotalsLabelPDF).toHaveBeenCalledTimes(1);
-    expect(appendOrderNamePagesToPDF).toHaveBeenCalledTimes(2);
-    expect(appendOrderNamePagesToPDF).toHaveBeenNthCalledWith(
+    expect(generateTotalsPDF).toHaveBeenCalledTimes(1);
+    expect(generateGroupHeaderPDF).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
+      1,
       ["#999"],
     );
-    expect(appendOrderNamePagesToPDF).toHaveBeenNthCalledWith(
+    expect(generateGroupHeaderPDF).toHaveBeenNthCalledWith(
       2,
       expect.anything(),
+      1,
       ["#999"],
     );
+  });
+
+  it("ties an error to the orders it affects", async () => {
+    const unit = (orderId: string, unitId: string): LabelUnitDetails => ({
+      kind: LabelUnitKind.DELIVERY,
+      orderId,
+      unitId,
+      displayName: unitId,
+      labelPDF: Buffer.from(unitId),
+      lineItems: [new LineItem("vA", 1, "Antricot", "A1")],
+      errors: [],
+    });
+
+    const composer = new GroupedPdfComposer({
+      appendPDFToDocument: vi.fn().mockImplementation(async (bytes: Buffer) => {
+        if (bytes.toString() === "F2") throw new Error("corrupt PDF");
+      }),
+      generateGroupHeaderPDF: vi.fn().mockRejectedValue(new Error("font")),
+      createDoc: async () => PDFDocument.create(),
+    });
+
+    const { errors, appended } = await composer.compose(
+      [
+        unit("gid://shopify/Order/1", "F1"),
+        unit("gid://shopify/Order/2", "F2"),
+      ],
+      new Map(),
+    );
+
+    expect(appended.map((u) => u.unitId)).toEqual(["F1"]);
+    expect(errors).toEqual([
+      {
+        orderIds: ["gid://shopify/Order/1", "gid://shopify/Order/2"],
+        message: "Items page failed to render: Error: font",
+      },
+      {
+        orderIds: ["gid://shopify/Order/2"],
+        message: "Label F2 could not be added to the PDF: Error: corrupt PDF",
+      },
+    ]);
   });
 });

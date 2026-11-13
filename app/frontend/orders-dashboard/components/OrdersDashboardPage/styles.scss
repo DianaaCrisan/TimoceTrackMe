@@ -80,7 +80,7 @@ $font-color: rgb(48, 48, 48);
   white-space: nowrap;
 }
 
-.orders-dashboard-page__deselect-button {
+.orders-dashboard-page__link-button {
   appearance: none;
   border: none;
   background: transparent;
@@ -135,32 +135,52 @@ $font-color: rgb(48, 48, 48);
 }
 
 .orders-dashboard-page__table-scroll {
-  max-height: 85vh;
+  max-height: 75vh;
   overflow: auto;
-
-  &.--with-response {
-    max-height: 60vh;
-  }
 }
 
 .orders-dashboard-page__pagination {
   margin-top: 12px;
 }
 
-.orders-dashboard-page__response {
-  margin-top: 16px;
-  border: 1px solid #d9d9d9;
-  border-radius: 12px;
-  background: #ffffff;
-  overflow: hidden;
+.orders-dashboard-page__bulk-bar-hint {
+  white-space: nowrap;
+  color: #6d7175;
 }
 
-.orders-dashboard-page__response-pre {
-  margin: 0;
-  padding: 16px;
-  white-space: pre-wrap;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+.orders-dashboard-page__notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
   font-size: 13px;
+  color: $font-color;
+
+  &.--success {
+    background: #cdfee1;
+    border: 1px solid #0c5132;
+  }
+
+  &.--critical {
+    background: #fed3d1;
+    border: 1px solid #8e0b21;
+  }
+}
+
+.orders-dashboard-page__notice-close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
+
+.orders-dashboard-page__recent-jobs {
+  margin-top: 16px;
 }

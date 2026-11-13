@@ -1,55 +1,69 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
 import "app/frontend/orders-dashboard/components/OrdersDashboardPage/styles.scss";
 import { PageInfo } from "app/types/admin.types";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { OrdersActionResultPanel } from "../OrdersActionResultPanel";
-import { MAX_SELECTED_ORDERS } from "app/commons/constants";
+import { MAX_ORDERS_PER_JOB } from "app/commons/constants";
 import deliveryIcon from "app/frontend/core/icons/DeliveryIcon.svg";
 import locationIcon from "app/frontend/core/icons/LocationIcon.svg";
 import printIcon from "app/frontend/core/icons/PrintIcon.svg";
-import { OrdersDashboardFilter } from "app/backend/orders/orders-dashboard.server";
 import { Link, useLocation, useRevalidator } from "react-router";
 import { OrdersDashboardQuery } from "app/types/admin.generated";
+import {
+  formatOrdersDashboardFilter,
+  type OrdersDashboardFilter,
+} from "app/commons/orders/OrdersDashboardFilter";
+import {
+  appendOrderSelection,
+  type OrderSelection,
+} from "app/commons/orders/OrderSelection";
+import type { StartJobResponse } from "app/commons/jobs/StartJobResponse";
+import type { RecentJobsSnapshot } from "app/commons/jobs/RecentJobView";
+import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
 
-type PrintLabelsResult = {
-  ok: boolean;
-  hasDownloadableFile: boolean;
-  errors: string[];
+type BulkJobAction = {
+  key: "solve-zip" | "add-tracking" | "print-labels";
+  endpoint: string;
+  title: string;
+  icon: string;
+  sendsTimeZone: boolean;
 };
 
-type SolveZipCodesResult = {
-  ok: boolean;
-  successfulOrders: {
-    id: string;
-    name: string;
-  }[];
-  failedOrders: {
-    id: string;
-    name: string;
-    errors: string[];
-  }[];
-};
+const BULK_JOB_ACTIONS: BulkJobAction[] = [
+  {
+    key: "solve-zip",
+    endpoint: "/app/orders-dashboard/solve-zip-codes",
+    title: "Solve ZIP codes",
+    icon: locationIcon,
+    sendsTimeZone: false,
+  },
+  {
+    key: "add-tracking",
+    endpoint: "/app/orders-dashboard/add-tracking",
+    title: "Add tracking numbers",
+    icon: deliveryIcon,
+    sendsTimeZone: false,
+  },
+  {
+    key: "print-labels",
+    endpoint: "/app/orders-dashboard/print-labels",
+    title: "Print labels",
+    icon: printIcon,
+    // lets the server stamp the file names with the user's local date/time
+    sendsTimeZone: true,
+  },
+];
 
-type AddTrackingResult = {
-  ok: boolean;
-  successfulOrders: {
-    id: string;
-    name: string;
-  }[];
-  failedOrders: {
-    id: string;
-    name: string;
-    errors: string[];
-  }[];
-};
+type Notice = { tone: "success" | "critical"; message: string };
 
 type OrdersDashboardPageProps = {
   orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
   pageInfo: PageInfo;
   shopAdminUrl: string;
   activeFilter: OrdersDashboardFilter;
+  ordersCount: { count: number; isAtLeast: boolean } | null;
+  recentJobs: RecentJobsSnapshot;
 };
 
 export function OrdersDashboardPage({
@@ -57,50 +71,58 @@ export function OrdersDashboardPage({
   pageInfo,
   shopAdminUrl,
   activeFilter,
+  ordersCount,
+  recentJobs,
 }: OrdersDashboardPageProps) {
   const shopify = useAppBridge();
-  // re-runs the route loader in place so the table reflects changes made by
-  // bulk actions, without remounting: result panels and the selection survive,
-  // so the user can chain actions (solve ZIP -> add tracking -> download labels)
+  // re-runs the route loader in place, without remounting, so the selection
+  // survives and the user can chain jobs (solve ZIP -> add tracking -> labels)
   const revalidator = useRevalidator();
   const isRefreshingOrders = revalidator.state === "loading";
 
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
-  const selectedCount = selectedOrderIds.length;
+  // "Select all N orders in this tab": the server resolves the IDs
+  const [isFilterSelected, setIsFilterSelected] = useState(false);
+  const [startingActionKey, setStartingActionKey] = useState<
+    BulkJobAction["key"] | null
+  >(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [jobsRefreshSignal, setJobsRefreshSignal] = useState(0);
 
-  const [printLabelsResult, setPrintLabelsResult] =
-    useState<PrintLabelsResult | null>(null);
-  const [isDownloadingLabels, setIsDownloadingLabels] = useState(false);
+  // the filter selection means "every order in this tab", so it cannot follow
+  // the user to another tab
+  useEffect(() => {
+    setIsFilterSelected(false);
+  }, [activeFilter]);
 
-  const [solveZipCodesResult, setSolveZipCodesResult] =
-    useState<SolveZipCodesResult | null>(null);
-  const [isSolvingZipCodes, setIsSolvingZipCodes] = useState(false);
+  const visibleOrderIds = orders.map((order) => order.id);
+  const filterOrderCount = ordersCount?.count ?? 0;
+  const isFilterTooLarge =
+    !ordersCount ||
+    ordersCount.isAtLeast ||
+    ordersCount.count > MAX_ORDERS_PER_JOB;
 
-  const [addTrackingResult, setAddTrackingResult] =
-    useState<AddTrackingResult | null>(null);
-  const [isAddingTracking, setIsAddingTracking] = useState(false);
-
-  const isAnyBulkActionRunning =
-    isAddingTracking ||
-    isDownloadingLabels ||
-    isSolvingZipCodes ||
-    isRefreshingOrders;
-
-  const hasVisibleResponse =
-    printLabelsResult !== null ||
-    solveZipCodesResult !== null ||
-    addTrackingResult !== null;
-
+  const selectedCount = isFilterSelected
+    ? filterOrderCount
+    : selectedOrderIds.length;
   const allVisibleSelected =
-    orders.length > 0 &&
-    orders.every((order) => selectedOrderIds.includes(order.id));
+    isFilterSelected ||
+    (orders.length > 0 &&
+      orders.every((order) => selectedOrderIds.includes(order.id)));
+  const canSelectMore =
+    isFilterSelected || selectedOrderIds.length < MAX_ORDERS_PER_JOB;
+  const hasMoreOrdersThanVisible = filterOrderCount > orders.length;
+  // the whole tab fits on this page and exactly its orders are ticked, so the
+  // selection is the tab even though it was made by hand
+  const isWholeTabSelected =
+    isFilterSelected ||
+    (allVisibleSelected &&
+      ordersCount !== null &&
+      !ordersCount.isAtLeast &&
+      !hasMoreOrdersThanVisible &&
+      selectedOrderIds.length === orders.length);
 
-  const canSelectMore = selectedCount < MAX_SELECTED_ORDERS;
-
-  const selectionSummary = useMemo(() => {
-    if (selectedCount === 0) return null;
-    return `${selectedCount} selected`;
-  }, [selectedCount]);
+  const isAnyActionBlocked = startingActionKey !== null || isRefreshingOrders;
 
   // reset scroll position when going to the next page
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
@@ -110,14 +132,19 @@ export function OrdersDashboardPage({
   }, [location.search]);
 
   const handleToggleOrder = (orderId: string) => {
-    setSelectedOrderIds((currentSelectedIds) => {
-      const isAlreadySelected = currentSelectedIds.includes(orderId);
+    if (isFilterSelected) {
+      // unticking one order leaves "all in this tab"; keep the rest of the page
+      setIsFilterSelected(false);
+      setSelectedOrderIds(visibleOrderIds.filter((id) => id !== orderId));
+      return;
+    }
 
-      if (isAlreadySelected) {
+    setSelectedOrderIds((currentSelectedIds) => {
+      if (currentSelectedIds.includes(orderId)) {
         return currentSelectedIds.filter((id) => id !== orderId);
       }
 
-      if (currentSelectedIds.length >= MAX_SELECTED_ORDERS) {
+      if (currentSelectedIds.length >= MAX_ORDERS_PER_JOB) {
         return currentSelectedIds;
       }
 
@@ -126,9 +153,13 @@ export function OrdersDashboardPage({
   };
 
   const handleToggleAllVisible = () => {
-    setSelectedOrderIds((currentSelectedIds) => {
-      const visibleOrderIds = orders.map((order) => order.id);
+    if (isFilterSelected) {
+      setIsFilterSelected(false);
+      setSelectedOrderIds([]);
+      return;
+    }
 
+    setSelectedOrderIds((currentSelectedIds) => {
       if (allVisibleSelected) {
         return currentSelectedIds.filter((id) => !visibleOrderIds.includes(id));
       }
@@ -136,264 +167,90 @@ export function OrdersDashboardPage({
       const unselectedVisibleIds = visibleOrderIds.filter(
         (id) => !currentSelectedIds.includes(id),
       );
-
-      const remainingSlots = MAX_SELECTED_ORDERS - currentSelectedIds.length;
-
-      if (remainingSlots <= 0) {
-        return currentSelectedIds;
-      }
+      const remainingSlots = MAX_ORDERS_PER_JOB - currentSelectedIds.length;
 
       return [
         ...currentSelectedIds,
-        ...unselectedVisibleIds.slice(0, remainingSlots),
+        ...unselectedVisibleIds.slice(0, Math.max(0, remainingSlots)),
       ];
     });
   };
 
-  const handleDeselectAll = () => {
+  const handleSelectAllInFilter = () => {
+    setIsFilterSelected(true);
     setSelectedOrderIds([]);
   };
 
-  async function handleAddTracking() {
-    setIsAddingTracking(true);
+  const handleDeselectAll = () => {
+    setIsFilterSelected(false);
+    setSelectedOrderIds([]);
+  };
+
+  async function handleStartJob(action: BulkJobAction) {
+    setStartingActionKey(action.key);
+    setNotice(null);
+
+    const selection: OrderSelection = isFilterSelected
+      ? { mode: "filter", filter: activeFilter }
+      : { mode: "ids", orderIds: selectedOrderIds };
 
     try {
-      const token = await shopify.idToken();
-
       const formData = new FormData();
-      selectedOrderIds.forEach((orderId) => {
-        formData.append("selectedOrderIds", orderId);
-      });
+      appendOrderSelection(formData, selection);
+      if (action.sendsTimeZone) {
+        formData.append(
+          "timeZone",
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        );
+      }
 
-      const response = await fetch("/app/orders-dashboard/add-tracking", {
+      const token = await shopify.idToken();
+      const response = await fetch(action.endpoint, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
-      const contentType = response.headers.get("Content-Type") ?? "";
+      const result = await readStartJobResponse(response);
 
-      if (!response.ok) {
-        if (contentType.includes("application/json")) {
-          const errorData = await response.json();
-
-          setAddTrackingResult({
-            ok: false,
-            successfulOrders: [],
-            failedOrders: errorData.failedOrders ?? [
-              {
-                id: "",
-                name: "-",
-                errors: errorData.errors ?? ["Failed to add tracking numbers."],
-              },
-            ],
-          });
-
-          return;
-        }
-
-        const errorText = await response.text();
-
-        setAddTrackingResult({
-          ok: false,
-          successfulOrders: [],
-          failedOrders: [
-            {
-              id: "",
-              name: "-",
-              errors: [errorText || "Failed to add tracking numbers."],
-            },
-          ],
+      if (result.ok) {
+        setNotice({
+          tone: "success",
+          message: `${action.title} started for ${result.orderCount} order${result.orderCount === 1 ? "" : "s"}. The result will appear under Recent jobs below.`,
         });
-
-        return;
+        setJobsRefreshSignal((signal) => signal + 1);
+      } else {
+        setNotice({
+          tone: "critical",
+          message: `${action.title}: ${result.error}`,
+        });
       }
-
-      const result: AddTrackingResult = await response.json();
-      setAddTrackingResult(result);
     } catch (error) {
-      setAddTrackingResult({
-        ok: false,
-        successfulOrders: [],
-        failedOrders: [
-          {
-            id: "",
-            name: "-",
-            errors: [error instanceof Error ? error.message : String(error)],
-          },
-        ],
+      setNotice({
+        tone: "critical",
+        message: `${action.title}: ${error instanceof Error ? error.message : String(error)}`,
       });
     } finally {
-      setIsAddingTracking(false);
-      // partial successes are possible even when some orders fail, so always refresh
-      revalidator.revalidate();
-    }
-  }
-
-  async function handleDownloadLabels() {
-    setIsDownloadingLabels(true);
-    try {
-      const token = await shopify.idToken();
-
-      const formData = new FormData();
-      selectedOrderIds.forEach((orderId) => {
-        formData.append("selectedOrderIds", orderId);
-      });
-      // lets the server stamp the file name with the user's local date/time
-      formData.append(
-        "timeZone",
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
-      );
-
-      const response = await fetch(
-        "/app/orders-dashboard/print-labels-download",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        },
-      );
-
-      const contentType = response.headers.get("Content-Type") ?? "";
-
-      if (!response.ok) {
-        if (contentType.includes("application/json")) {
-          const errorData = await response.json();
-
-          setPrintLabelsResult({
-            ok: false,
-            hasDownloadableFile: false,
-            errors: errorData.errors ?? [],
-          });
-
-          return;
-        }
-
-        const errorText = await response.text();
-
-        setPrintLabelsResult({
-          ok: false,
-          hasDownloadableFile: false,
-          errors: [errorText || "Failed to download labels."],
-        });
-
-        return;
-      }
-
-      const blob = await response.blob();
-
-      const disposition = response.headers.get("Content-Disposition") ?? "";
-      const fileNameMatch = disposition.match(/filename="([^"]+)"/);
-      const fileName = fileNameMatch?.[1] ?? "labels-download";
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
-      setPrintLabelsResult({
-        ok: true,
-        hasDownloadableFile: true,
-        errors: [],
-      });
-    } catch (error) {
-      setPrintLabelsResult({
-        ok: false,
-        hasDownloadableFile: false,
-        errors: [error instanceof Error ? error.message : String(error)],
-      });
-    } finally {
-      setIsDownloadingLabels(false);
-    }
-  }
-
-  async function handleSolveZipCodes() {
-    setIsSolvingZipCodes(true);
-
-    try {
-      const token = await shopify.idToken();
-
-      const formData = new FormData();
-      selectedOrderIds.forEach((orderId) => {
-        formData.append("selectedOrderIds", orderId);
-      });
-
-      const response = await fetch("/app/orders-dashboard/solve-zip-codes", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const contentType = response.headers.get("Content-Type") ?? "";
-
-      if (!response.ok) {
-        if (contentType.includes("application/json")) {
-          const errorData = await response.json();
-
-          setSolveZipCodesResult({
-            ok: false,
-            successfulOrders: [],
-            failedOrders: errorData.failedOrders ?? [
-              {
-                id: "",
-                name: "-",
-                errors: errorData.errors ?? ["Failed to solve ZIP codes."],
-              },
-            ],
-          });
-
-          return;
-        }
-
-        const errorText = await response.text();
-
-        setSolveZipCodesResult({
-          ok: false,
-          successfulOrders: [],
-          failedOrders: [
-            {
-              id: "",
-              name: "-",
-              errors: [errorText || "Failed to solve ZIP codes."],
-            },
-          ],
-        });
-
-        return;
-      }
-
-      const result: SolveZipCodesResult = await response.json();
-      setSolveZipCodesResult(result);
-    } catch (error) {
-      setSolveZipCodesResult({
-        ok: false,
-        successfulOrders: [],
-        failedOrders: [
-          {
-            id: "",
-            name: "-",
-            errors: [error instanceof Error ? error.message : String(error)],
-          },
-        ],
-      });
-    } finally {
-      setIsSolvingZipCodes(false);
-      revalidator.revalidate();
+      setStartingActionKey(null);
     }
   }
 
   return (
     <div className="orders-dashboard-page">
+      {notice ? (
+        <div className={`orders-dashboard-page__notice --${notice.tone}`}>
+          <span>{notice.message}</span>
+          <button
+            type="button"
+            className="orders-dashboard-page__notice-close"
+            onClick={() => setNotice(null)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
+
       <div className="orders-dashboard-page__surface">
         <div className="orders-dashboard-page__toolbar">
           <div className="orders-dashboard-page__tabs">
@@ -420,69 +277,63 @@ export function OrdersDashboardPage({
             {selectedCount > 0 ? (
               <>
                 <div className="orders-dashboard-page__bulk-bar-text">
-                  {selectionSummary}
+                  {isWholeTabSelected
+                    ? `All ${selectedCount} orders in "${formatOrdersDashboardFilter(activeFilter)}" selected`
+                    : `${selectedCount} selected`}
                 </div>
+
+                {allVisibleSelected &&
+                !isFilterSelected &&
+                hasMoreOrdersThanVisible ? (
+                  isFilterTooLarge ? (
+                    <div className="orders-dashboard-page__bulk-bar-hint">
+                      {ordersCount?.isAtLeast
+                        ? `${filterOrderCount}+`
+                        : filterOrderCount}{" "}
+                      orders in this tab, more than one job takes (
+                      {MAX_ORDERS_PER_JOB})
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="orders-dashboard-page__link-button"
+                      disabled={isAnyActionBlocked}
+                      onClick={handleSelectAllInFilter}
+                    >
+                      Select all {filterOrderCount} orders in this tab
+                    </button>
+                  )
+                ) : null}
 
                 <button
                   type="button"
-                  className="orders-dashboard-page__deselect-button"
-                  disabled={isAnyBulkActionRunning}
+                  className="orders-dashboard-page__link-button"
+                  disabled={isAnyActionBlocked}
                   onClick={handleDeselectAll}
                 >
                   Deselect all
                 </button>
 
                 <div className="orders-dashboard-page__bulk-actions">
-                  <button
-                    type="button"
-                    className="orders-dashboard-page__bulk-action-button"
-                    disabled={isAnyBulkActionRunning}
-                    onClick={handleSolveZipCodes}
-                  >
-                    <span
-                      className="orders-dashboard-page__bulk-action-icon"
-                      aria-hidden="true"
+                  {BULK_JOB_ACTIONS.map((action) => (
+                    <button
+                      key={action.key}
+                      type="button"
+                      className="orders-dashboard-page__bulk-action-button"
+                      disabled={isAnyActionBlocked}
+                      onClick={() => handleStartJob(action)}
                     >
-                      <img src={locationIcon} alt="" width={20} height={20} />
-                    </span>
-                    {isSolvingZipCodes
-                      ? "Solving ZIP codes..."
-                      : "Solve ZIP codes"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="orders-dashboard-page__bulk-action-button"
-                    disabled={isAnyBulkActionRunning}
-                    onClick={handleAddTracking}
-                  >
-                    <span
-                      className="orders-dashboard-page__bulk-action-icon"
-                      aria-hidden="true"
-                    >
-                      <img src={deliveryIcon} alt="" width={20} height={20} />
-                    </span>
-                    {isAddingTracking
-                      ? "Adding tracking numbers..."
-                      : "Add tracking numbers"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="orders-dashboard-page__bulk-action-button"
-                    disabled={isAnyBulkActionRunning}
-                    onClick={handleDownloadLabels}
-                  >
-                    <span
-                      className="orders-dashboard-page__bulk-action-icon"
-                      aria-hidden="true"
-                    >
-                      <img src={printIcon} alt="" width={20} height={20} />
-                    </span>
-                    {isDownloadingLabels
-                      ? "Downloading labels..."
-                      : "Download labels"}
-                  </button>
+                      <span
+                        className="orders-dashboard-page__bulk-action-icon"
+                        aria-hidden="true"
+                      >
+                        <img src={action.icon} alt="" width={20} height={20} />
+                      </span>
+                      {startingActionKey === action.key
+                        ? "Starting..."
+                        : action.title}
+                    </button>
+                  ))}
                 </div>
               </>
             ) : null}
@@ -491,14 +342,14 @@ export function OrdersDashboardPage({
 
         <div
           ref={tableScrollRef}
-          className={`orders-dashboard-page__table-scroll${
-            hasVisibleResponse ? " --with-response" : ""
-          }`}
+          className="orders-dashboard-page__table-scroll"
         >
           <OrdersDashboardTable
             orders={orders}
             shopAdminUrl={shopAdminUrl}
-            selectedOrderIds={selectedOrderIds}
+            selectedOrderIds={
+              isFilterSelected ? visibleOrderIds : selectedOrderIds
+            }
             canSelectMore={canSelectMore}
             allVisibleSelected={allVisibleSelected}
             onToggleOrder={handleToggleOrder}
@@ -519,44 +370,31 @@ export function OrdersDashboardPage({
         />
       </div>
 
-      {addTrackingResult ? (
-        <OrdersActionResultPanel
-          title="Add tracking numbers result"
-          successMessage={
-            addTrackingResult.successfulOrders.length > 0
-              ? `Tracking numbers added for ${addTrackingResult.successfulOrders.length} order(s).`
-              : undefined
-          }
-          failedOrders={addTrackingResult.failedOrders}
-          onClose={() => setAddTrackingResult(null)}
+      <div className="orders-dashboard-page__recent-jobs">
+        <RecentJobsSection
+          initialSnapshot={recentJobs}
+          refreshSignal={jobsRefreshSignal}
+          // a finished job may have changed ZIPs and fulfillments in the table
+          onJobFinished={() => revalidator.revalidate()}
         />
-      ) : null}
-
-      {printLabelsResult ? (
-        <OrdersActionResultPanel
-          title="Print labels result"
-          successMessage={
-            printLabelsResult.ok && printLabelsResult.hasDownloadableFile
-              ? "Labels downloaded successfully."
-              : undefined
-          }
-          genericErrors={printLabelsResult.errors}
-          onClose={() => setPrintLabelsResult(null)}
-        />
-      ) : null}
-
-      {solveZipCodesResult ? (
-        <OrdersActionResultPanel
-          title="Solve ZIP codes result"
-          successMessage={
-            solveZipCodesResult.successfulOrders.length > 0
-              ? `ZIP codes solved for ${solveZipCodesResult.successfulOrders.length} order(s).`
-              : undefined
-          }
-          failedOrders={solveZipCodesResult.failedOrders}
-          onClose={() => setSolveZipCodesResult(null)}
-        />
-      ) : null}
+      </div>
     </div>
   );
+}
+
+/** The server always answers JSON, but a proxy or crash page might not. */
+async function readStartJobResponse(
+  response: Response,
+): Promise<StartJobResponse> {
+  const contentType = response.headers.get("Content-Type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as StartJobResponse;
+  }
+
+  const text = await response.text();
+  return {
+    ok: false,
+    error: text || `The server answered with HTTP ${response.status}.`,
+  };
 }
