@@ -48,11 +48,14 @@ the S3 console. There is no email.
 - Every job produces an Excel report, one row per order (failed first): succeeded, failed, or skipped with the reason. Print labels zips the PDFs, the report and `errors.txt`.
 - Print labels fetches orders in batches of 50 (it was one query for all of them).
 
-### Phase 3: Add tracking: automatic ZIP solving
+### Phase 3: Add tracking: automatic ZIP solving (done)
 
-- Before calling Optimus, solve all missing zips in one zip-solver call.
-- On an Optimus "delivery zip code" rejection: re-solve that order's zip (overwriting it), update Shopify, retry once. Each order is solved at most once per run. As in Tropical, the rejected AWB stays orphaned in Optimus.
-- Report: add the old zip → new zip when solved automatically.
+- `ZipRecovery` solves ZIPs during one add-tracking run, at most once per order:
+  - before any Optimus call, every order without a ZIP is solved in one zip-solver call; an order that stays without a ZIP fails without calling Optimus
+  - when Optimus rejects a ZIP ("delivery zip code"), that order is re-solved (overwriting its ZIP in Shopify) and the AWB retried once. No retry if the solver suggests the same ZIP or cannot solve it.
+- The solved ZIP is used for the order's later fulfillment orders too.
+- As in Tropical, Optimus keeps the rejected AWB; it is never fulfilled.
+- Report: "ZIP solved automatically: old → new (confidence)" in the Details column.
 
 ### Phase 4: Print labels: speed, layout, printed marker
 

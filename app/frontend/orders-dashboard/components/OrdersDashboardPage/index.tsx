@@ -112,6 +112,15 @@ export function OrdersDashboardPage({
   const canSelectMore =
     isFilterSelected || selectedOrderIds.length < MAX_ORDERS_PER_JOB;
   const hasMoreOrdersThanVisible = filterOrderCount > orders.length;
+  // the whole tab fits on this page and exactly its orders are ticked, so the
+  // selection is the tab even though it was made by hand
+  const isWholeTabSelected =
+    isFilterSelected ||
+    (allVisibleSelected &&
+      ordersCount !== null &&
+      !ordersCount.isAtLeast &&
+      !hasMoreOrdersThanVisible &&
+      selectedOrderIds.length === orders.length);
 
   const isAnyActionBlocked = startingActionKey !== null || isRefreshingOrders;
 
@@ -268,8 +277,8 @@ export function OrdersDashboardPage({
             {selectedCount > 0 ? (
               <>
                 <div className="orders-dashboard-page__bulk-bar-text">
-                  {isFilterSelected
-                    ? `All ${filterOrderCount} orders in "${formatOrdersDashboardFilter(activeFilter)}" selected`
+                  {isWholeTabSelected
+                    ? `All ${selectedCount} orders in "${formatOrdersDashboardFilter(activeFilter)}" selected`
                     : `${selectedCount} selected`}
                 </div>
 

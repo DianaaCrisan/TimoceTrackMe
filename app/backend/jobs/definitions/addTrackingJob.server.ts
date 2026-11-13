@@ -6,6 +6,7 @@ import {
   summarizeOrderResults,
   type OrderResultRow,
 } from "../../reports/OrderResultRow";
+import type { ZipChange } from "../../add-tracking/ZipRecovery.server";
 import type { JobArtifact } from "../startBackgroundJob.server";
 import type { OrdersJobContext } from "./OrdersJobContext";
 
@@ -28,7 +29,10 @@ export async function buildAddTrackingArtifact(
       orderId: order.id,
       orderName: order.name,
       status: "succeeded",
-      details: `AWB ${order.trackingNumbers.join(", ")}`,
+      details: joinDetails(
+        `AWB ${order.trackingNumbers.join(", ")}`,
+        describeZipChange(order.zipChange),
+      ),
     });
   }
 
@@ -37,6 +41,7 @@ export async function buildAddTrackingArtifact(
       orderId: order.id,
       orderName: order.name,
       status: "failed",
+      details: describeZipChange(order.zipChange),
       errors: order.errors,
     });
   }
@@ -63,4 +68,16 @@ export async function buildAddTrackingArtifact(
     hasErrors: countOrderResults(rows).failed > 0,
     summary: summarizeOrderResults(rows),
   };
+}
+
+export function describeZipChange(
+  zipChange: ZipChange | undefined,
+): string | undefined {
+  if (!zipChange) return undefined;
+
+  return `ZIP solved automatically: ${zipChange.previousZip ?? "(missing)"} → ${zipChange.newZip} (${zipChange.confidence} confidence)`;
+}
+
+function joinDetails(...parts: (string | undefined)[]): string {
+  return parts.filter(Boolean).join("\n");
 }
