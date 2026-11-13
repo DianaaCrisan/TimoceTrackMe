@@ -25,7 +25,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     credentials: getOptimusTestCredentialsForDisplay(),
     s3Setup: getS3SetupStatus(),
-    recentJobs: getRecentJobsSnapshot(),
+    recentJobs: await getRecentJobsSnapshot(),
   };
 };
 

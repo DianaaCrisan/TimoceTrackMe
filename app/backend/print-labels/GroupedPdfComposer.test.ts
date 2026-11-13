@@ -57,14 +57,12 @@ describe("GroupedPdfComposer", () => {
       });
 
     const generateGroupHeaderPDF = vi.fn().mockResolvedValue(Buffer.from("H"));
-    const generateTotalsLabelPDF = vi
-      .fn()
-      .mockResolvedValue(Buffer.from("TOT"));
+    const generateTotalsPDF = vi.fn().mockResolvedValue(Buffer.from("TOT"));
 
     const composer = new GroupedPdfComposer({
       appendPDFToDocument,
       generateGroupHeaderPDF,
-      generateTotalsLabelPDF,
+      generateTotalsPDF,
       createDoc: async () => PDFDocument.create(),
     });
 
@@ -102,7 +100,11 @@ describe("GroupedPdfComposer", () => {
 
     expect(events).toEqual(["TOTALS", "HEADER", "LA1", "LA2", "HEADER", "LB1"]);
 
-    expect(generateTotalsLabelPDF).toHaveBeenCalledTimes(1);
+    expect(generateTotalsPDF).toHaveBeenCalledTimes(1);
+    expect(generateTotalsPDF).toHaveBeenCalledWith(
+      { delivery: 2, pickup: 1, total: 3 },
+      expect.arrayContaining(["#1", "#2", "#3"]),
+    );
 
     expect(generateGroupHeaderPDF).toHaveBeenCalledTimes(2);
     const headerCalls = generateGroupHeaderPDF.mock.calls.map(
@@ -127,12 +129,12 @@ describe("GroupedPdfComposer", () => {
       errors: ["some error"],
     };
 
-    const generateTotalsLabelPDF = vi.fn();
+    const generateTotalsPDF = vi.fn();
 
     const composer = new GroupedPdfComposer({
       appendPDFToDocument: vi.fn(),
       generateGroupHeaderPDF: vi.fn(),
-      generateTotalsLabelPDF,
+      generateTotalsPDF,
       createDoc: async () => PDFDocument.create(),
     });
 
@@ -143,7 +145,7 @@ describe("GroupedPdfComposer", () => {
       errors: [{ orderIds: ["gid://shopify/Order/3"], message: "some error" }],
     });
 
-    expect(generateTotalsLabelPDF).toHaveBeenCalledTimes(0);
+    expect(generateTotalsPDF).toHaveBeenCalledTimes(0);
   });
 
   it("prints two separate header pages for the same variant with different quantities, each followed by its label", async () => {
@@ -184,14 +186,12 @@ describe("GroupedPdfComposer", () => {
         return Buffer.from(`SUMMARY:${qty}`);
       });
 
-    const generateTotalsLabelPDF = vi
-      .fn()
-      .mockResolvedValue(Buffer.from("TOT"));
+    const generateTotalsPDF = vi.fn().mockResolvedValue(Buffer.from("TOT"));
 
     const composer = new GroupedPdfComposer({
       appendPDFToDocument,
       generateGroupHeaderPDF,
-      generateTotalsLabelPDF,
+      generateTotalsPDF,
       createDoc: async () => PDFDocument.create(),
     });
 
@@ -216,7 +216,7 @@ describe("GroupedPdfComposer", () => {
     const patternB = "TOT|SUMMARY:1|L1|SUMMARY:4|L4";
     expect([patternA, patternB]).toContain(joined);
 
-    expect(generateTotalsLabelPDF).toHaveBeenCalledTimes(1);
+    expect(generateTotalsPDF).toHaveBeenCalledTimes(1);
     expect(generateGroupHeaderPDF).toHaveBeenNthCalledWith(
       1,
       expect.anything(),

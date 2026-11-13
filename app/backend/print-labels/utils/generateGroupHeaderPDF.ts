@@ -1,13 +1,11 @@
-import path from "path";
-import fs from "fs/promises";
-import * as fontkit from "fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { LineItem } from "../models/LineItem";
+import {
+  embedLabelFonts,
+  LABEL_PAGE_HEIGHT as PAGE_HEIGHT,
+  LABEL_PAGE_WIDTH as PAGE_WIDTH,
+} from "./labelFonts";
 
-const mmToPt = (mm: number) => mm * 2.83465;
-
-const PAGE_WIDTH = mmToPt(150);
-const PAGE_HEIGHT = mmToPt(100);
 const LEFT_X = 20;
 const RIGHT_PADDING = 20;
 const BOTTOM_MARGIN = 16;
@@ -60,17 +58,10 @@ export async function generateGroupHeaderPDF(
   });
 
   const doc = await PDFDocument.create();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  doc.registerFontkit(fontkit as any);
-  const fontBytes = await loadFontBytes();
-  const font = await doc.embedFont(fontBytes.regular);
-  const boldFont = await doc.embedFont(fontBytes.bold);
+  const fonts = await embedLabelFonts(doc);
 
   for (const pageLayout of pages) {
-    drawPage(doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]), pageLayout, {
-      font,
-      boldFont,
-    });
+    drawPage(doc.addPage([PAGE_WIDTH, PAGE_HEIGHT]), pageLayout, fonts);
   }
 
   return doc.save();
@@ -201,7 +192,12 @@ function drawPage(
     });
   }
 
-  for (const row of layout.itemRows) {
+  // the orders divider replaces the thin line under the last item
+  const lastSeparatedRow = layout.ordersHeader?.hasDivider
+    ? layout.itemRows.length - 1
+    : layout.itemRows.length;
+
+  layout.itemRows.forEach((row, index) => {
     const prefix = row.sku?.trim() ? `${row.sku.trim()} ` : "";
     const name = ellipsize(row.name, MAX_ITEM_NAME_CHARS);
 
@@ -240,14 +236,16 @@ function drawPage(
       color: black,
     });
 
-    page.drawRectangle({
-      x: LEFT_X,
-      y: row.y - ITEM_LINE_GAP / 2 - 0.375,
-      width: lineWidth,
-      height: 0.75,
-      color: black,
-    });
-  }
+    if (index < lastSeparatedRow) {
+      page.drawRectangle({
+        x: LEFT_X,
+        y: row.y - ITEM_LINE_GAP / 2 - 0.375,
+        width: lineWidth,
+        height: 0.75,
+        color: black,
+      });
+    }
+  });
 
   if (layout.ordersHeader) {
     if (layout.ordersHeader.hasDivider) {
@@ -284,20 +282,4 @@ function drawPage(
 
 function ellipsize(text: string, maxChars: number): string {
   return text.length > maxChars ? `${text.slice(0, maxChars - 3)}...` : text;
-}
-
-let cachedFontBytes: { regular: Uint8Array; bold: Uint8Array } | null = null;
-
-async function loadFontBytes(): Promise<{
-  regular: Uint8Array;
-  bold: Uint8Array;
-}> {
-  if (!cachedFontBytes) {
-    const [regular, bold] = await Promise.all([
-      fs.readFile(path.resolve("app/backend/core/fonts/Roboto-Regular.ttf")),
-      fs.readFile(path.resolve("app/backend/core/fonts/Roboto-Bold.ttf")),
-    ]);
-    cachedFontBytes = { regular, bold };
-  }
-  return cachedFontBytes;
 }

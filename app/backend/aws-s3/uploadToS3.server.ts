@@ -1,4 +1,9 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { readRequiredEnv } from "../core/utils/readRequiredEnv";
 import type { AllowedContentType } from "./models/AllowedContentType";
 
@@ -41,4 +46,35 @@ export async function uploadToS3(args: {
       ContentType: args.contentType,
     }),
   );
+}
+
+/**
+ * A link that downloads the object without an AWS sign-in, until it expires.
+ *
+ * Signing is local (no request to S3), so a fresh link per page load is
+ * cheap. `Content-Disposition` makes the browser save the file under
+ * `fileName` instead of the key's last segment.
+ */
+export async function getDownloadUrl(args: {
+  key: string;
+  fileName: string;
+  expiresInSeconds: number;
+}): Promise<string> {
+  const { s3, bucket } = getS3();
+
+  return getSignedUrl(
+    s3,
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: args.key,
+      ResponseContentDisposition: contentDisposition(args.fileName),
+    }),
+    { expiresIn: args.expiresInSeconds },
+  );
+}
+
+/** RFC 5987: an ASCII fallback plus the UTF-8 form. */
+function contentDisposition(fileName: string): string {
+  const ascii = fileName.replace(/[^\x20-\x7E]/g, "_").replace(/["\\]/g, "_");
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }

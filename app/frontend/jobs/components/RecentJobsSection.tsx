@@ -80,8 +80,7 @@ export function RecentJobsSection({
       <s-stack direction="block" gap="base">
         <s-stack direction="inline" gap="base" alignItems="center">
           <s-paragraph>
-            Results are stored in S3. Open a file with its link, then download
-            it from the S3 console.
+            Download links work for 1 hour. Press Refresh for new ones.
             {hasRunningJob
               ? " This list updates on its own while a job runs."
               : ""}
@@ -123,11 +122,11 @@ export function RecentJobsSection({
                       {job.error ? (
                         <s-text tone="critical">{job.error}</s-text>
                       ) : null}
-                      {job.s3ConsoleUrl ? (
-                        <s-link href={job.s3ConsoleUrl} target="_blank">
+                      {job.downloadUrl ? (
+                        <s-link href={job.downloadUrl} target="_blank">
                           {job.status === "failed"
-                            ? "Open error file in S3"
-                            : "Open file in S3"}
+                            ? "Download error file"
+                            : `Download ${job.fileName ?? "file"}`}
                         </s-link>
                       ) : null}
                     </s-stack>

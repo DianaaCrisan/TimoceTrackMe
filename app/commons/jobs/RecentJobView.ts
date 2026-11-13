@@ -7,8 +7,9 @@ export type RecentJobView = {
   finishedAt?: string;
   status: "running" | "succeeded" | "failed";
   s3Key?: string;
-  /** Opens the file in the S3 console (needs an AWS sign-in). */
-  s3ConsoleUrl: string | null;
+  fileName?: string;
+  /** Downloads the file without an AWS sign-in; valid for an hour from `generatedAt`. */
+  downloadUrl: string | null;
   hasErrors?: boolean;
   summary?: string;
   error?: string;

@@ -15,20 +15,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const filter = parseOrdersDashboardFilter(url.searchParams.get("filter"));
 
-  const [data, ordersCount] = await Promise.all([
+  const [data, ordersCount, recentJobs] = await Promise.all([
     getOrdersDashboardData(admin, {
       after: url.searchParams.get("after"),
       before: url.searchParams.get("before"),
       filter,
     }),
     getOrdersCount(admin, filter),
+    getRecentJobsSnapshot(),
   ]);
 
   return {
     ...data,
     filter,
     ordersCount,
-    recentJobs: getRecentJobsSnapshot(),
+    recentJobs,
     shopAdminUrl: ShopifyUtils.getShopAdminUrl(session.shop),
   };
 };

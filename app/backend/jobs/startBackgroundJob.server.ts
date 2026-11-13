@@ -121,6 +121,7 @@ async function runJob(
       status: "succeeded",
       finishedAt: deps.now().toISOString(),
       s3Key: key,
+      fileName: artifact.fileName,
       hasErrors: artifact.hasErrors ?? false,
       summary: artifact.summary,
     });
@@ -130,11 +131,12 @@ async function runJob(
     console.error(`AppError[Job:${input.job}] job failed.`, error);
 
     const failedAt = deps.now();
+    const failureFileName = `FAILED_${input.job}.txt`;
     const failureKey = buildJobFileKey({
       job: input.job,
       startedAt,
       id,
-      fileName: `FAILED_${input.job}.txt`,
+      fileName: failureFileName,
     });
 
     let storedFailureKey: string | undefined;
@@ -159,6 +161,7 @@ async function runJob(
       status: "failed",
       finishedAt: failedAt.toISOString(),
       s3Key: storedFailureKey,
+      fileName: storedFailureKey ? failureFileName : undefined,
       error: message,
     });
   }

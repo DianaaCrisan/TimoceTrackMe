@@ -13,6 +13,7 @@ import {
 vi.mock("../aws-s3/uploadToS3.server", () => ({
   uploadToS3: vi.fn(),
   assertS3Configured: vi.fn(),
+  getDownloadUrl: vi.fn(),
 }));
 
 const artifact: JobArtifact = {
@@ -85,6 +86,7 @@ describe("startBackgroundJob", () => {
     expect(deps.registry.list()[0]).toMatchObject({
       status: "succeeded",
       s3Key: key,
+      fileName: "labels.zip",
       summary: "2 labels",
       hasErrors: false,
     });
@@ -121,6 +123,7 @@ describe("startBackgroundJob", () => {
       status: "failed",
       error: "Optimus is down",
       s3Key: failureKey,
+      fileName: "FAILED_print-labels.txt",
     });
   });
 

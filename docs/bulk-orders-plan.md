@@ -12,8 +12,8 @@ the S3 console. There is no email.
 
 | Topic                                        | Decision                                                                                                                                                                                                                                         |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Delivery of results                          | Stored in S3 and downloaded from the S3 console. No email, no instant in-browser download.                                                                                                                                                       |
-| Knowing a job finished                       | A "Recent jobs" list in the app: status, summary, and a link to the file in the S3 console. Kept in memory, so it empties on restart; the files stay in S3.                                                                                      |
+| Delivery of results                          | Stored in S3. The Recent jobs list links each file with a presigned download link (1 hour, re-signed on every refresh), so no AWS sign-in is needed. No email.                                                                                   |
+| Knowing a job finished                       | A "Recent jobs" list in the app: status, summary, and a download link. Kept in memory, so it empties on restart; the files stay in S3.                                                                                                           |
 | Failed jobs                                  | Store a `FAILED_<job>.txt` file with the error and the order IDs next to where the result would have been.                                                                                                                                       |
 | Storage                                      | Bucket `shopify-timoce-s3-bucket` (eu-central-1). Keys: `<APP_NAME>/<job>/<YYYY-MM-DD>/<HH-mm-ss>_<shortId>_<file>`, in the shop's time zone, so the console lists runs in order.                                                                |
 | Cleanup                                      | None (no lifecycle rule). The bucket is only for this intermediate app.                                                                                                                                                                          |
@@ -67,6 +67,11 @@ the S3 console. There is no email.
   - a marking failure is listed on the order's report row; the labels still count as printed
 - Label errors are reported on the order they belong to. `errors.txt` only holds problems that belong to no order.
 - Scope `write_fulfillments` added to `shopify.app.toml`.
+
+### Extras after Phase 4 (done)
+
+- The first page of each labels PDF lists every order in it as ranges under the counts: `#5-7, #9-12, #16` (`formatOrderRanges`, `generateTotalsPDF`). A long list continues on "Comenzi (cont.)" pages.
+- Recent jobs shows download links instead of S3 console links.
 
 ### Phase 5: Tests (done along the way)
 

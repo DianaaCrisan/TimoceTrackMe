@@ -1,8 +1,6 @@
 import { buildAppFolderKey } from "../aws-s3/buildJobFileKey";
-import {
-  s3ConsoleFolderUrl,
-  s3ConsoleObjectUrl,
-} from "../aws-s3/s3ConsoleUrls";
+import { s3ConsoleFolderUrl } from "../aws-s3/s3ConsoleUrls";
+import { getDownloadUrl } from "../aws-s3/uploadToS3.server";
 import { isEnvSet } from "../core/utils/readRequiredEnv";
 import type { RecentJobsSnapshot } from "app/commons/jobs/RecentJobView";
 import type { S3SetupStatus } from "app/commons/jobs/S3SetupStatus";
@@ -40,19 +38,43 @@ export function getS3SetupStatus(): S3SetupStatus {
   };
 }
 
-export function getRecentJobsSnapshot(): RecentJobsSnapshot {
-  const location = readBucketLocation();
+export const DOWNLOAD_LINK_EXPIRES_IN_SECONDS = 60 * 60;
 
-  return {
-    jobs: jobRegistry.list().map((record) => ({
+/**
+ * The jobs list with a fresh download link per file. Links are signed on
+ * every call, so one is never older than the last time the list loaded.
+ */
+export async function getRecentJobsSnapshot(): Promise<RecentJobsSnapshot> {
+  const jobs = await Promise.all(
+    jobRegistry.list().map(async (record) => ({
       ...record,
-      s3ConsoleUrl:
-        location && record.s3Key
-          ? s3ConsoleObjectUrl({ ...location, key: record.s3Key })
-          : null,
+      downloadUrl: await signDownloadUrl(record.s3Key, record.fileName),
     })),
-    generatedAt: Date.now(),
-  };
+  );
+
+  return { jobs, generatedAt: Date.now() };
+}
+
+async function signDownloadUrl(
+  key: string | undefined,
+  fileName: string | undefined,
+): Promise<string | null> {
+  if (!key) return null;
+
+  try {
+    return await getDownloadUrl({
+      key,
+      fileName: fileName ?? key.split("/").pop() ?? "download",
+      expiresInSeconds: DOWNLOAD_LINK_EXPIRES_IN_SECONDS,
+    });
+  } catch (error) {
+    // e.g. AWS variables missing; the list still shows, without links
+    console.error(
+      `AppError[RecentJobs] could not sign a link for ${key}.`,
+      error,
+    );
+    return null;
+  }
 }
 
 /** Runs the whole job path (lock, build, upload, registry) on a tiny text file. */

@@ -2,17 +2,11 @@ import { PDFDocument } from "pdf-lib";
 
 import type { LabelUnitDetails } from "./models/LabelUnitDetails";
 import { appendPDFToDocument } from "./utils/appendPDFToDocument";
-import { renderTwoColumnLabel } from "./utils/renderTwoColumnLabel";
+import { generateTotalsPDF, type LabelCounts } from "./utils/generateTotalsPDF";
 import { LabelUnitKind } from "./models/LabelUnitKind";
 import { generateGroupHeaderPDF } from "./utils/generateGroupHeaderPDF";
 import { GroupedUnitsUtils } from "./GroupedUnitsUtils";
 import type { LabelUnitIdentifier } from "./models/LabelUnitIdentifier";
-
-type LabelCounts = {
-  delivery: number;
-  pickup: number;
-  total: number;
-};
 
 /** A label that made it into the PDF. */
 export type PrintedLabelUnit = LabelUnitIdentifier & { kind: LabelUnitKind };
@@ -26,13 +20,13 @@ export type ComposeError = {
 type Deps = {
   appendPDFToDocument: typeof appendPDFToDocument;
   generateGroupHeaderPDF: typeof generateGroupHeaderPDF;
-  generateTotalsLabelPDF?: typeof generateTotalsLabelPDF;
+  generateTotalsPDF?: typeof generateTotalsPDF;
   createDoc?: () => Promise<PDFDocument>;
 };
 
 /**
  * Builds one labels PDF:
- * 1. a totals page
+ * 1. a totals page: label counts and every order in the PDF, as ranges
  * 2. per group of units with identical items: a header page (items, then the
  *    group's order numbers), followed by the group's labels
  */
@@ -42,7 +36,7 @@ export class GroupedPdfComposer {
     private deps: Deps = {
       appendPDFToDocument,
       generateGroupHeaderPDF,
-      generateTotalsLabelPDF,
+      generateTotalsPDF,
     },
   ) {}
 
@@ -69,9 +63,17 @@ export class GroupedPdfComposer {
 
     // 1 - totals page
     const counts = this.computeCounts(usable);
-    if (counts.total > 0 && this.deps.generateTotalsLabelPDF) {
+    if (counts.total > 0 && this.deps.generateTotalsPDF) {
       try {
-        const totalsBytes = await this.deps.generateTotalsLabelPDF(counts);
+        const usableOrderNames = Array.from(
+          new Set(
+            usable.map((u) => orderNamesById.get(u.orderId) ?? u.orderId),
+          ),
+        );
+        const totalsBytes = await this.deps.generateTotalsPDF(
+          counts,
+          usableOrderNames,
+        );
         await this.deps.appendPDFToDocument(Buffer.from(totalsBytes), merged);
       } catch (e) {
         errors.push({
@@ -139,31 +141,4 @@ export class GroupedPdfComposer {
     }
     return { delivery, pickup, total: delivery + pickup };
   }
-}
-
-async function generateTotalsLabelPDF(
-  counts: LabelCounts,
-): Promise<Uint8Array> {
-  const leftLines = [
-    { prefix: null, name: "Etichete livrare" },
-    { prefix: null, name: "Etichete pickup" },
-    { prefix: null, name: "Nr. total etichete" },
-  ];
-  const rightLines = [
-    String(counts.delivery),
-    String(counts.pickup),
-    String(counts.total),
-  ];
-
-  return renderTwoColumnLabel({
-    title: "Total etichete",
-    leftLines,
-    rightLines,
-    layout: {
-      fontSize: 12,
-      titleFontSize: 14,
-      lineGap: 30,
-      rowSeparators: true,
-    },
-  });
 }

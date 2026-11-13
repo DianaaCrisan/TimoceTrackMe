@@ -6,5 +6,5 @@ import { getRecentJobsSnapshot } from "app/backend/jobs/jobsSetup.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  return getRecentJobsSnapshot();
+  return await getRecentJobsSnapshot();
 };

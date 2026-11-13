@@ -12,6 +12,8 @@ export type JobRecord = {
   status: JobStatus;
   /** The result file, or the FAILED_ file for a failed job. */
   s3Key?: string;
+  /** The name the file downloads under. */
+  fileName?: string;
   /** The result file exists, but some orders in it failed. */
   hasErrors?: boolean;
   /** One line for the jobs list, e.g. "40 succeeded, 2 failed". */
