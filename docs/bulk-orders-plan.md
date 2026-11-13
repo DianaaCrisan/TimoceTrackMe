@@ -57,26 +57,26 @@ the S3 console. There is no email.
 - As in Tropical, Optimus keeps the rejected AWB; it is never fulfilled.
 - Report: "ZIP solved automatically: old → new (confidence)" in the Details column.
 
-### Phase 4: Print labels: speed, layout, printed marker
+### Phase 4: Print labels: speed, layout, printed marker (done)
 
-- Fetch Optimus PDFs with a worker pool (today one order at a time).
-- New combined items + order numbers page (replaces `generateSummaryLabelPDF` + `appendOrderNamePagesToPDF`). The "Total etichete" page stays.
-- Once the PDF is built:
-  - `fulfillmentEventCreate` with status `LABEL_PRINTED` and message "Etichetă printată (TrackMe)" for each printed delivery fulfillment
-  - `tagsAdd` `eticheta-printata` for each printed order (delivery and pickup)
-  - marking failures are listed in the report; they don't fail the job
-- Report: label failures attributed to their order instead of only in `errors.txt`.
-- Needs the `write_fulfillments` scope in `shopify.app.toml`. You then run `shopify app deploy` and re-approve the app on the store.
+- Optimus label PDFs are fetched for 4 orders at a time (it was one at a time).
+- Each group of identical labels starts with one combined page (`generateGroupHeaderPDF`): items on top, then "Comenzi (N)" with the order numbers in 5 columns. Long lists continue on "Comenzi (cont.)" pages. The "Total etichete" page stays. This replaces the separate items page and order-numbers page.
+- Every order with a label in the PDF is marked as printed (`markLabelsPrinted`):
+  - each delivery fulfillment gets a `LABEL_PRINTED` fulfillment event with the message "Etichetă printată (TrackMe)"
+  - each order (delivery and pickup) gets the tag `eticheta-printata`
+  - a marking failure is listed on the order's report row; the labels still count as printed
+- Label errors are reported on the order they belong to. `errors.txt` only holds problems that belong to no order.
+- Scope `write_fulfillments` added to `shopify.app.toml`.
 
-### Phase 5: Tests
+### Phase 5: Tests (done along the way)
 
-Vitest for zip recovery, the combined page layout and its overflow, select-all ID resolution, and printed marking (including partial failures).
+Vitest covers job running and locking, selection resolution, reports, ZIP recovery, the combined page layout and its overflow, and printed marking.
 
 ## Setup you do
 
 1. AWS: an IAM user whose policy allows `s3:PutObject` on `arn:aws:s3:::shopify-timoce-s3-bucket/*`. `s3:GetObject` is not needed by the app.
 2. Set the four `AWS_*` env vars locally and on the host.
-3. After Phase 4: `shopify app deploy`, then re-approve the new scope on the store.
+3. Run `shopify app deploy` so the `write_fulfillments` scope is released, then open the app in the store and approve the new permission.
 4. On the dev store, check whether the `LABEL_PRINTED` event shows on the customer's order status page or sends them a notification.
 
 ## Known limits

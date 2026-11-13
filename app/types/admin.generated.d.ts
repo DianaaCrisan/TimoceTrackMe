@@ -75,6 +75,21 @@ export type OrderIdsForSelectionQueryVariables = AdminTypes.Exact<{
 
 export type OrderIdsForSelectionQuery = { orders: { nodes: Array<Pick<AdminTypes.Order, 'id'>>, pageInfo: Pick<AdminTypes.PageInfo, 'hasNextPage' | 'endCursor'> } };
 
+export type MarkFulfillmentLabelPrintedMutationVariables = AdminTypes.Exact<{
+  fulfillmentEvent: AdminTypes.FulfillmentEventInput;
+}>;
+
+
+export type MarkFulfillmentLabelPrintedMutation = { fulfillmentEventCreate?: AdminTypes.Maybe<{ fulfillmentEvent?: AdminTypes.Maybe<Pick<AdminTypes.FulfillmentEvent, 'id'>>, userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
+
+export type AddPrintedOrderTagMutationVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+  tags: Array<AdminTypes.Scalars['String']['input']> | AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type AddPrintedOrderTagMutation = { tagsAdd?: AdminTypes.Maybe<{ userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
+
 export type GetOrdersPrintLabelsInputQueryVariables = AdminTypes.Exact<{
   ids: Array<AdminTypes.Scalars['ID']['input']> | AdminTypes.Scalars['ID']['input'];
 }>;
@@ -142,6 +157,8 @@ interface GeneratedQueryTypes {
 
 interface GeneratedMutationTypes {
   "#graphql\n  mutation FulfillmentCreateWithTracking($fulfillment: FulfillmentInput!) {\n    fulfillmentCreate(fulfillment: $fulfillment) {\n      fulfillment {\n        id\n        status\n        trackingInfo(first: 10) {\n          company\n          number\n          url\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: FulfillmentCreateWithTrackingMutation, variables: FulfillmentCreateWithTrackingMutationVariables},
+  "#graphql\n  mutation MarkFulfillmentLabelPrinted(\n    $fulfillmentEvent: FulfillmentEventInput!\n  ) {\n    fulfillmentEventCreate(fulfillmentEvent: $fulfillmentEvent) {\n      fulfillmentEvent {\n        id\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: MarkFulfillmentLabelPrintedMutation, variables: MarkFulfillmentLabelPrintedMutationVariables},
+  "#graphql\n  mutation AddPrintedOrderTag($id: ID!, $tags: [String!]!) {\n    tagsAdd(id: $id, tags: $tags) {\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: AddPrintedOrderTagMutation, variables: AddPrintedOrderTagMutationVariables},
   "#graphql\n  mutation AddZipCodeToOrder($input: OrderInput!) {\n    orderUpdate(input: $input) {\n      order {\n        id\n        shippingAddress {\n          address1\n          city\n          provinceCode\n          zip\n          countryCodeV2\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: AddZipCodeToOrderMutation, variables: AddZipCodeToOrderMutationVariables},
 }
 declare module '@shopify/admin-api-client' {

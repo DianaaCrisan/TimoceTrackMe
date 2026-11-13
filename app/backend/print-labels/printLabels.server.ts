@@ -1,11 +1,18 @@
 import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
+import { createPool } from "../graphql/throttle-handling/helpers/createPool";
 import { getOrdersPrintLabelsInputData } from "./getOrdersPrintLabelsInputData.server";
-import { GroupedPdfComposer } from "./GroupedPdfComposer";
+import {
+  GroupedPdfComposer,
+  type ComposeError,
+  type PrintedLabelUnit,
+} from "./GroupedPdfComposer";
 import { LabelUnitFactory } from "./LabelUnitFactory";
 import type { LabelUnitDetails } from "./models/LabelUnitDetails";
-import type { LabelUnitIdentifier } from "./models/LabelUnitIdentifier";
 import { LabelUnitKind } from "./models/LabelUnitKind";
 import { formatLabelsFileTimestamp } from "./utils/formatLabelsFileTimestamp";
+
+/** Orders whose Optimus label PDFs are fetched at the same time. */
+const LABEL_FETCH_POOL_WORKERS = 4;
 
 type PrintLabelsRequest = {
   orderIds: string[];
@@ -22,10 +29,13 @@ export type PrintLabelsResult = {
   /** The shipping and/or pickup labels PDF; empty when no label could be made. */
   files: PrintLabelsFile[];
   /** The labels that made it into a PDF. */
-  printedUnits: LabelUnitIdentifier[];
+  printedUnits: PrintedLabelUnit[];
   /** Orders Shopify returned, by ID, so the caller can name every order. */
   orderNamesById: Map<string, string>;
-  errors: string[];
+  /** Labels that failed, by the order they belong to. */
+  errorsByOrderId: Map<string, string[]>;
+  /** Problems that belong to no single order, e.g. the totals page. */
+  generalErrors: string[];
   timestamp: string;
 };
 
@@ -45,19 +55,27 @@ export async function buildPrintLabels(
 
   const allUnits: LabelUnitDetails[] = [];
   const orderNamesById = new Map<string, string>();
-  const errors: string[] = [];
+  const errors: ComposeError[] = [];
 
-  for (const order of orders) {
-    orderNamesById.set(order.id, order.name);
-    try {
-      const result = await factory.buildForOrder(order);
-      allUnits.push(...result.units);
-    } catch (error) {
-      errors.push(
-        `Order ${order.name}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
+  // Each order fetches its labels from Optimus one by one; a pool of orders
+  // keeps several requests in flight without flooding Optimus.
+  const pool = createPool(LABEL_FETCH_POOL_WORKERS);
+  await Promise.all(
+    orders.map((order) =>
+      pool.schedule(async () => {
+        orderNamesById.set(order.id, order.name);
+        try {
+          const result = await factory.buildForOrder(order);
+          allUnits.push(...result.units);
+        } catch (error) {
+          errors.push({
+            orderIds: [order.id],
+            message: `Order ${order.name}: ${error instanceof Error ? error.message : String(error)}`,
+          });
+        }
+      }),
+    ),
+  );
 
   const deliveryUnits = allUnits.filter(
     (u) => u.kind === LabelUnitKind.DELIVERY,
@@ -99,7 +117,30 @@ export async function buildPrintLabels(
       ...(pickupRes?.appended ?? []),
     ],
     orderNamesById,
-    errors,
+    ...splitErrors(errors),
     timestamp,
   };
+}
+
+function splitErrors(errors: ComposeError[]): {
+  errorsByOrderId: Map<string, string[]>;
+  generalErrors: string[];
+} {
+  const errorsByOrderId = new Map<string, string[]>();
+  const generalErrors: string[] = [];
+
+  for (const error of errors) {
+    if (error.orderIds.length === 0) {
+      generalErrors.push(error.message);
+      continue;
+    }
+    for (const orderId of error.orderIds) {
+      errorsByOrderId.set(orderId, [
+        ...(errorsByOrderId.get(orderId) ?? []),
+        error.message,
+      ]);
+    }
+  }
+
+  return { errorsByOrderId, generalErrors };
 }
