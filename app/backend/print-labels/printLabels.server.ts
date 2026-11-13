@@ -2,8 +2,9 @@ import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWi
 import { getOrdersPrintLabelsInputData } from "./getOrdersPrintLabelsInputData.server";
 import { GroupedPdfComposer } from "./GroupedPdfComposer";
 import { LabelUnitFactory } from "./LabelUnitFactory";
+import type { LabelUnitDetails } from "./models/LabelUnitDetails";
+import type { LabelUnitIdentifier } from "./models/LabelUnitIdentifier";
 import { LabelUnitKind } from "./models/LabelUnitKind";
-import JSZip from "jszip";
 import { formatLabelsFileTimestamp } from "./utils/formatLabelsFileTimestamp";
 
 type PrintLabelsRequest = {
@@ -12,21 +13,27 @@ type PrintLabelsRequest = {
   timeZone?: string | null;
 };
 
-type BuildPrintLabelsArtifactResult = {
-  ok: boolean;
-  deliveryPdf?: Buffer;
-  pickupPdf?: Buffer;
-  zipBuffer?: Buffer;
-  fileName?: string;
-  contentType?: string;
-  errors: string[];
+export type PrintLabelsFile = {
+  fileName: string;
+  buf: Buffer;
 };
 
-export async function buildPrintLabelsArtifact(
+export type PrintLabelsResult = {
+  /** The shipping and/or pickup labels PDF; empty when no label could be made. */
+  files: PrintLabelsFile[];
+  /** The labels that made it into a PDF. */
+  printedUnits: LabelUnitIdentifier[];
+  /** Orders Shopify returned, by ID, so the caller can name every order. */
+  orderNamesById: Map<string, string>;
+  errors: string[];
+  timestamp: string;
+};
+
+export async function buildPrintLabels(
   admin: AdminApiContextWithoutRest,
   shopUrl: string,
   request: PrintLabelsRequest,
-): Promise<BuildPrintLabelsArtifactResult> {
+): Promise<PrintLabelsResult> {
   const orders = await getOrdersPrintLabelsInputData(
     admin,
     shopUrl,
@@ -36,22 +43,26 @@ export async function buildPrintLabelsArtifact(
   const factory = new LabelUnitFactory();
   const composer = new GroupedPdfComposer();
 
-  const allUnits = [];
+  const allUnits: LabelUnitDetails[] = [];
   const orderNamesById = new Map<string, string>();
+  const errors: string[] = [];
 
   for (const order of orders) {
     orderNamesById.set(order.id, order.name);
-    const result = await factory.buildForOrder(order);
-    allUnits.push(...result.units);
+    try {
+      const result = await factory.buildForOrder(order);
+      allUnits.push(...result.units);
+    } catch (error) {
+      errors.push(
+        `Order ${order.name}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   const deliveryUnits = allUnits.filter(
     (u) => u.kind === LabelUnitKind.DELIVERY,
   );
-
   const pickupUnits = allUnits.filter((u) => u.kind === LabelUnitKind.PICKUP);
-
-  const errors: string[] = [];
 
   const [deliveryRes, pickupRes] = await Promise.all([
     deliveryUnits.length
@@ -62,56 +73,33 @@ export async function buildPrintLabelsArtifact(
       : Promise.resolve(null),
   ]);
 
-  const deliveryPdf = deliveryRes?.pdfData;
-  const pickupPdf = pickupRes?.pdfData;
-
   errors.push(...(deliveryRes?.errors ?? []));
   errors.push(...(pickupRes?.errors ?? []));
 
-  if (!deliveryPdf && !pickupPdf) {
-    return {
-      ok: false,
-      errors: errors.length ? errors : ["No labels were generated."],
-    };
-  }
-
   const timestamp = formatLabelsFileTimestamp(new Date(), request.timeZone);
-  const shippingFileName = `shipping-labels_${timestamp}.pdf`;
-  const pickupFileName = `pickup-labels_${timestamp}.pdf`;
+  const files: PrintLabelsFile[] = [];
 
-  if (deliveryPdf && !pickupPdf) {
-    return {
-      ok: errors.length === 0,
-      deliveryPdf,
-      fileName: shippingFileName,
-      contentType: "application/pdf",
-      errors,
-    };
+  if (deliveryRes?.pdfData) {
+    files.push({
+      fileName: `shipping-labels_${timestamp}.pdf`,
+      buf: deliveryRes.pdfData,
+    });
   }
-
-  if (!deliveryPdf && pickupPdf) {
-    return {
-      ok: errors.length === 0,
-      pickupPdf,
-      fileName: pickupFileName,
-      contentType: "application/pdf",
-      errors,
-    };
+  if (pickupRes?.pdfData) {
+    files.push({
+      fileName: `pickup-labels_${timestamp}.pdf`,
+      buf: pickupRes.pdfData,
+    });
   }
-
-  const zip = new JSZip();
-  zip.file(shippingFileName, deliveryPdf!);
-  zip.file(pickupFileName, pickupPdf!);
-
-  const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
   return {
-    ok: errors.length === 0,
-    deliveryPdf,
-    pickupPdf,
-    zipBuffer,
-    fileName: `labels_${timestamp}.zip`,
-    contentType: "application/zip",
+    files,
+    printedUnits: [
+      ...(deliveryRes?.appended ?? []),
+      ...(pickupRes?.appended ?? []),
+    ],
+    orderNamesById,
     errors,
+    timestamp,
   };
 }

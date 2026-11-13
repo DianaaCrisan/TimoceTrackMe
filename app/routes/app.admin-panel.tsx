@@ -8,21 +8,24 @@ import {
   sendOptimusConnectionTest,
 } from "../backend/optimus/optimus-test.server";
 import {
-  getEmailJobSetupStatus,
-  startTestEmailJob,
-} from "../backend/jobs/emailJobSetup.server";
+  getS3SetupStatus,
+  getRecentJobsSnapshot,
+  startTestJob,
+} from "../backend/jobs/jobsSetup.server";
 import { ReadOnlyField } from "app/frontend/core/components/ReadOnlyField";
 import { ResponseViewer } from "app/frontend/core/components/ResponseViewer";
+import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
 
 const OPTIMUS_TEST_INTENT = "optimusTest";
-const EMAIL_JOB_TEST_INTENT = "emailJobTest";
+const S3_TEST_INTENT = "s3Test";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
   return {
     credentials: getOptimusTestCredentialsForDisplay(),
-    emailJobSetup: getEmailJobSetupStatus(),
+    s3Setup: getS3SetupStatus(),
+    recentJobs: getRecentJobsSnapshot(),
   };
 };
 
@@ -32,18 +35,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
 
-  if (intent === EMAIL_JOB_TEST_INTENT) {
+  if (intent === S3_TEST_INTENT) {
     try {
-      const result = startTestEmailJob();
+      const result = startTestJob();
 
       return {
         intent,
         ok: result.isStarted,
-        data: result.isStarted
-          ? {
-              message: `Test job started. Check ${result.recipient} in a minute. If no email arrives, check the server logs for "AppError[EmailJob:test]".`,
-            }
-          : { message: "A test job is already running." },
+        data: {
+          message: result.isStarted
+            ? "Test upload started. Press Refresh under Recent jobs in a few seconds."
+            : "A test upload is already running.",
+        },
       };
     } catch (error) {
       return {
@@ -51,7 +54,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ok: false,
         data: {
           message:
-            error instanceof Error ? error.message : "Unknown test job error.",
+            error instanceof Error
+              ? error.message
+              : "Unknown test upload error.",
         },
       };
     }
@@ -80,16 +85,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function AdminPanelPage() {
-  const { credentials, emailJobSetup } = useLoaderData<typeof loader>();
+  const { credentials, s3Setup, recentJobs } = useLoaderData<typeof loader>();
   const optimusFetcher = useFetcher<typeof action>();
-  const emailJobFetcher = useFetcher<typeof action>();
+  const s3TestFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
 
   const isSendingOptimusTest = optimusFetcher.state !== "idle";
-  const isStartingEmailJobTest = emailJobFetcher.state !== "idle";
-  const isEmailJobSetupComplete = emailJobSetup.envVars.every(
-    (envVar) => envVar.isSet,
-  );
+  const isStartingS3Test = s3TestFetcher.state !== "idle";
+  const isS3SetupComplete = s3Setup.envVars.every((envVar) => envVar.isSet);
 
   const optimusResponseContent = useMemo(() => {
     if (!optimusFetcher.data) {
@@ -112,12 +115,14 @@ The Optimus response will be displayed here after you send a test request.`;
   }, [optimusFetcher.data, shopify]);
 
   useEffect(() => {
-    if (!emailJobFetcher.data) return;
+    if (!s3TestFetcher.data) return;
 
     shopify.toast.show(
-      emailJobFetcher.data.ok ? "Test job started" : "Test job could not start",
+      s3TestFetcher.data.ok
+        ? "Test upload started"
+        : "Test upload could not start",
     );
-  }, [emailJobFetcher.data, shopify]);
+  }, [s3TestFetcher.data, shopify]);
 
   return (
     <s-page heading="Admin Panel">
@@ -156,15 +161,15 @@ The Optimus response will be displayed here after you send a test request.`;
 
         <ResponseViewer content={optimusResponseContent} />
 
-        <s-section heading="Bulk jobs: S3 and email setup">
+        <s-section heading="Bulk jobs: S3 setup">
           <s-stack direction="block" gap="base">
             <s-paragraph>
-              Bulk actions upload their result to S3 and email a download link.
-              Every variable below must be set for them to work.
+              Bulk actions store their result files in S3. Every variable below
+              must be set for them to work.
             </s-paragraph>
 
             <s-stack direction="block" gap="small-200">
-              {emailJobSetup.envVars.map((envVar) => (
+              {s3Setup.envVars.map((envVar) => (
                 <s-text key={envVar.name}>
                   {envVar.isSet ? "✅" : "❌"} {envVar.name}
                 </s-text>
@@ -172,42 +177,50 @@ The Optimus response will be displayed here after you send a test request.`;
             </s-stack>
 
             <ReadOnlyField
-              label="AWS region"
-              value={emailJobSetup.region ?? "(not set)"}
-            />
-            <ReadOnlyField
               label="S3 bucket"
-              value={emailJobSetup.bucket ?? "(not set)"}
+              value={s3Setup.bucket ?? "(not set)"}
             />
             <ReadOnlyField
-              label="Results are emailed to"
-              value={emailJobSetup.recipient ?? "(not set)"}
+              label="AWS region"
+              value={s3Setup.region ?? "(not set)"}
             />
+            <ReadOnlyField
+              label="This app's folder in the bucket"
+              value={s3Setup.appFolderKey || "(bucket root)"}
+            />
+
+            {s3Setup.appFolderConsoleUrl ? (
+              <s-link href={s3Setup.appFolderConsoleUrl} target="_blank">
+                Open this app&apos;s folder in the S3 console
+              </s-link>
+            ) : null}
 
             <s-paragraph>
-              The test uploads a small text file and emails its download link.
+              The test uploads a small text file. It then appears under Recent
+              jobs with a link to it in S3.
             </s-paragraph>
 
-            <emailJobFetcher.Form method="post">
-              <input
-                type="hidden"
-                name="intent"
-                value={EMAIL_JOB_TEST_INTENT}
-              />
+            <s3TestFetcher.Form method="post">
+              <input type="hidden" name="intent" value={S3_TEST_INTENT} />
               <s-button
                 type="submit"
-                {...(isStartingEmailJobTest ? { loading: true } : {})}
-                {...(!isEmailJobSetupComplete ? { disabled: true } : {})}
+                {...(isStartingS3Test ? { loading: true } : {})}
+                {...(!isS3SetupComplete ? { disabled: true } : {})}
               >
-                Send test job email
+                Upload test file
               </s-button>
-            </emailJobFetcher.Form>
+            </s3TestFetcher.Form>
 
-            {emailJobFetcher.data && "message" in emailJobFetcher.data.data ? (
-              <s-text>{emailJobFetcher.data.data.message}</s-text>
+            {s3TestFetcher.data && "message" in s3TestFetcher.data.data ? (
+              <s-text>{s3TestFetcher.data.data.message}</s-text>
             ) : null}
           </s-stack>
         </s-section>
+
+        <RecentJobsSection
+          initialSnapshot={recentJobs}
+          refreshSignal={s3TestFetcher.data}
+        />
       </s-stack>
     </s-page>
   );

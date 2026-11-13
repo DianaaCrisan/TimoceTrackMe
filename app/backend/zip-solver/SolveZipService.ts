@@ -58,6 +58,14 @@ export class SolveZipService {
     toBeSolvedOrders: ShopifyOrderShippingInfo[],
     unsupportedByOrder: Map<string, UnsupportedOrder>,
   ): Promise<SolvedOrdersResponse> {
+    if (toBeSolvedOrders.length === 0) {
+      return {
+        processedOrdersSolvedZip: [],
+        processedOrdersUnsolvedZip: [],
+        unsupportedOrders: Array.from(unsupportedByOrder.values()),
+      };
+    }
+
     const mappedAddresses = mapOrdersToAddressInputs(toBeSolvedOrders);
     const addressSuggestions = await getZipCodeSuggestions(mappedAddresses);
 

@@ -2,6 +2,7 @@ import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithout
 import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
 import { GET_ORDERS_PRINT_LABELS_INPUT_QUERY } from "./printLabels.operations.server";
 import type { GetOrdersPrintLabelsInputQuery } from "app/types/admin.generated";
+import { chunk, SHOPIFY_READ_BATCH_SIZE } from "../graphql/utils/batch-utils";
 
 const INITIAL_EXPECTED_COST = 80;
 
@@ -40,6 +41,23 @@ export type PrintLabelsOrder = {
 };
 
 export async function getOrdersPrintLabelsInputData(
+  admin: AdminApiContextWithoutRest,
+  shopUrl: string,
+  orderIds: string[],
+): Promise<PrintLabelsOrder[]> {
+  const orders: PrintLabelsOrder[] = [];
+
+  // In sequence: the query is expensive, and the limiter paces each batch.
+  for (const batch of chunk(orderIds, SHOPIFY_READ_BATCH_SIZE)) {
+    orders.push(
+      ...(await getOrdersPrintLabelsInputDataBatch(admin, shopUrl, batch)),
+    );
+  }
+
+  return orders;
+}
+
+async function getOrdersPrintLabelsInputDataBatch(
   admin: AdminApiContextWithoutRest,
   shopUrl: string,
   orderIds: string[],
