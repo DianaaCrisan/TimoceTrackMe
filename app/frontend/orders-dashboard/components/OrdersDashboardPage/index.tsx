@@ -38,16 +38,21 @@ import {
   type OrderSelection,
 } from "app/commons/orders/OrderSelection";
 import type { StartJobResponse } from "app/commons/jobs/StartJobResponse";
-import type {
-  RecentJobView,
-  RecentJobsSnapshot,
+import {
+  formatJobTitle,
+  type RecentJobView,
+  type RecentJobsSnapshot,
 } from "app/commons/jobs/RecentJobView";
+import { LOCALE_PARAM } from "app/commons/i18n/Locale";
+import type { Translate } from "app/commons/i18n/translate";
+import type { TranslationKey } from "app/commons/i18n/translations";
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
 
 type BulkJobAction = {
   key: "solve-zip" | "add-tracking" | "print-labels";
   endpoint: string;
-  title: string;
+  title: TranslationKey;
   icon: string;
   sendsTimeZone: boolean;
 };
@@ -56,21 +61,21 @@ const BULK_JOB_ACTIONS: BulkJobAction[] = [
   {
     key: "solve-zip",
     endpoint: "/app/orders-dashboard/solve-zip-codes",
-    title: "Solve ZIP codes",
+    title: "job.solve-zip",
     icon: locationIcon,
     sendsTimeZone: false,
   },
   {
     key: "add-tracking",
     endpoint: "/app/orders-dashboard/add-tracking",
-    title: "Add tracking numbers",
+    title: "job.add-tracking",
     icon: deliveryIcon,
     sendsTimeZone: false,
   },
   {
     key: "print-labels",
     endpoint: "/app/orders-dashboard/print-labels",
-    title: "Print labels",
+    title: "job.print-labels",
     icon: printIcon,
     // lets the server stamp the file names with the user's local date/time
     sendsTimeZone: true,
@@ -114,6 +119,7 @@ export function OrdersDashboardPage({
   pageNumbers,
   recentJobs,
 }: OrdersDashboardPageProps) {
+  const { locale, t } = useI18n();
   const shopify = useAppBridge();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
@@ -267,13 +273,19 @@ export function OrdersDashboardPage({
       tone: finishedJobs.some((job) => job.status === "failed" || job.hasErrors)
         ? "critical"
         : "success",
-      message: finishedJobs
-        .map(
-          (job) =>
-            `${job.title} ${job.status === "failed" ? "failed" : "finished"}: ${job.summary ?? job.error ?? ""}`,
+      message: `${finishedJobs
+        .map((job) =>
+          t(
+            job.status === "failed"
+              ? "dashboard.jobFailed"
+              : "dashboard.jobFinished",
+            {
+              title: formatJobTitle(job, t),
+              details: job.summary ?? job.error ?? "",
+            },
+          ),
         )
-        .join(" · ")
-        .concat(". The list was refreshed and the selection cleared."),
+        .join(" · ")}. ${t("dashboard.listRefreshed")}`,
     });
 
     navigate(buildOrdersDashboardUrl(activeFilter), { replace: true });
@@ -296,6 +308,8 @@ export function OrdersDashboardPage({
     try {
       const formData = new FormData();
       appendOrderSelection(formData, selection);
+      // the server answers (and words the job's summary) in this language
+      formData.append(LOCALE_PARAM, locale);
       if (action.sendsTimeZone) {
         formData.append(
           "timeZone",
@@ -310,24 +324,27 @@ export function OrdersDashboardPage({
         body: formData,
       });
 
-      const result = await readStartJobResponse(response);
+      const result = await readStartJobResponse(response, t);
 
       if (result.ok) {
         setNotice({
           tone: "success",
-          message: `${action.title} started for ${result.orderCount} order${result.orderCount === 1 ? "" : "s"}. When it finishes, the list refreshes and the result appears under Recent jobs.`,
+          message: t("dashboard.jobStarted", {
+            title: t(action.title),
+            count: result.orderCount,
+          }),
         });
         setJobsRefreshSignal((signal) => signal + 1);
       } else {
         setNotice({
           tone: "critical",
-          message: `${action.title}: ${result.error}`,
+          message: `${t(action.title)}: ${result.error}`,
         });
       }
     } catch (error) {
       setNotice({
         tone: "critical",
-        message: `${action.title}: ${error instanceof Error ? error.message : String(error)}`,
+        message: `${t(action.title)}: ${error instanceof Error ? error.message : String(error)}`,
       });
     } finally {
       setStartingActionKey(null);
@@ -343,7 +360,7 @@ export function OrdersDashboardPage({
             type="button"
             className="orders-dashboard-page__notice-close"
             onClick={() => setNotice(null)}
-            aria-label="Dismiss"
+            aria-label={t("dashboard.dismiss")}
           >
             ×
           </button>
@@ -361,7 +378,7 @@ export function OrdersDashboardPage({
                   activeFilter === filter ? " --active" : ""
                 }`}
               >
-                {formatOrdersDashboardFilter(filter)}
+                {formatOrdersDashboardFilter(filter, t)}
                 {renderTabCount(filter)}
               </Link>
             ))}
@@ -372,8 +389,11 @@ export function OrdersDashboardPage({
               <>
                 <div className="orders-dashboard-page__bulk-bar-text">
                   {isWholeTabSelected
-                    ? `All ${selectedCount} orders in "${formatOrdersDashboardFilter(activeFilter)}" selected`
-                    : `${selectedCount} selected`}
+                    ? t("dashboard.allInTabSelected", {
+                        count: selectedCount,
+                        tab: formatOrdersDashboardFilter(activeFilter, t),
+                      })
+                    : t("dashboard.selectedCount", { count: selectedCount })}
                 </div>
 
                 {allVisibleSelected &&
@@ -381,11 +401,12 @@ export function OrdersDashboardPage({
                 hasMoreOrdersThanVisible ? (
                   isFilterTooLarge ? (
                     <div className="orders-dashboard-page__bulk-bar-hint">
-                      {ordersCount?.isAtLeast
-                        ? `${filterOrderCount}+`
-                        : filterOrderCount}{" "}
-                      orders in this tab, more than one job takes (
-                      {MAX_ORDERS_PER_JOB})
+                      {t("dashboard.tabTooLarge", {
+                        count: ordersCount?.isAtLeast
+                          ? `${filterOrderCount}+`
+                          : filterOrderCount,
+                        max: MAX_ORDERS_PER_JOB,
+                      })}
                     </div>
                   ) : (
                     <button
@@ -394,7 +415,9 @@ export function OrdersDashboardPage({
                       disabled={isAnyActionBlocked}
                       onClick={handleSelectAllInFilter}
                     >
-                      Select all {filterOrderCount} orders in this tab
+                      {t("dashboard.selectAllInTab", {
+                        count: filterOrderCount,
+                      })}
                     </button>
                   )
                 ) : null}
@@ -405,7 +428,7 @@ export function OrdersDashboardPage({
                   disabled={isAnyActionBlocked}
                   onClick={handleDeselectAll}
                 >
-                  Deselect all
+                  {t("dashboard.deselectAll")}
                 </button>
 
                 <div className="orders-dashboard-page__bulk-actions">
@@ -424,8 +447,8 @@ export function OrdersDashboardPage({
                         <img src={action.icon} alt="" width={20} height={20} />
                       </span>
                       {startingActionKey === action.key
-                        ? "Starting..."
-                        : action.title}
+                        ? t("dashboard.starting")
+                        : t(action.title)}
                     </button>
                   ))}
                 </div>
@@ -460,7 +483,7 @@ export function OrdersDashboardPage({
           pageNumbers={pageNumbers}
         />
         <span className="orders-dashboard-page__shown-range">
-          {formatShownRange(pageNumbers, orders.length)}
+          {formatShownRange(pageNumbers, orders.length, t)}
         </span>
       </div>
 
@@ -479,6 +502,7 @@ export function OrdersDashboardPage({
 /** The server always answers JSON, but a proxy or crash page might not. */
 async function readStartJobResponse(
   response: Response,
+  t: Translate,
 ): Promise<StartJobResponse> {
   const contentType = response.headers.get("Content-Type") ?? "";
 
@@ -489,6 +513,6 @@ async function readStartJobResponse(
   const text = await response.text();
   return {
     ok: false,
-    error: text || `The server answered with HTTP ${response.status}.`,
+    error: text || t("dashboard.httpError", { status: response.status }),
   };
 }

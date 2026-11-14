@@ -1,3 +1,4 @@
+import type { Locale } from "app/commons/i18n/Locale";
 import type { AdminApiContextWithoutRest } from "../../core/types/AdminApiContextWithoutRest";
 
 /** What every bulk orders job gets when it starts building its result. */
@@ -9,4 +10,6 @@ export type OrdersJobContext = {
   startedAt: Date;
   /** The user's IANA time zone, for timestamps in file names. */
   timeZone: string | null;
+  /** The language of whoever started the job, for its summary. English if unset. */
+  locale?: Locale;
 };

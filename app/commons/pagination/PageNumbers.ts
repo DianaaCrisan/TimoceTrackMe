@@ -1,3 +1,5 @@
+import { translateEn, type Translate } from "../i18n/translate";
+
 /**
  * "Page 3 of 12" for a cursor-paginated list.
  *
@@ -50,27 +52,39 @@ export function buildPageNumbers(args: {
   };
 }
 
-export function formatPageNumbers(pageNumbers: PageNumbers): string {
+export function formatPageNumbers(
+  pageNumbers: PageNumbers,
+  t: Translate = translateEn,
+): string {
   const { currentPage, totalPages, isTotalAtLeast } = pageNumbers;
-  if (totalPages === null) return `Page ${currentPage}`;
-  return `Page ${currentPage} of ${totalPages}${isTotalAtLeast ? "+" : ""}`;
+  if (totalPages === null) {
+    return t("pagination.page", { current: currentPage });
+  }
+  return t("pagination.pageOf", {
+    current: currentPage,
+    total: `${totalPages}${isTotalAtLeast ? "+" : ""}`,
+  });
 }
 
 /** e.g. "Showing 51–100 of 312 orders", for the `shownCount` rows on this page. */
 export function formatShownRange(
   pageNumbers: PageNumbers,
   shownCount: number,
+  t: Translate = translateEn,
 ): string {
-  if (shownCount === 0) return "No orders";
+  if (shownCount === 0) return t("pagination.noOrders");
 
   const first = (pageNumbers.currentPage - 1) * pageNumbers.pageSize + 1;
   const last = first + shownCount - 1;
   const range = shownCount === 1 ? `${first}` : `${first}–${last}`;
 
   if (pageNumbers.totalCount === null) {
-    return `Showing ${range} (${shownCount} on this page)`;
+    return t("pagination.showingOnPage", { range, shown: shownCount });
   }
 
-  const total = `${pageNumbers.totalCount}${pageNumbers.isTotalAtLeast ? "+" : ""}`;
-  return `Showing ${range} of ${total} orders`;
+  return t("pagination.showingOf", {
+    range,
+    total: `${pageNumbers.totalCount}${pageNumbers.isTotalAtLeast ? "+" : ""}`,
+    count: pageNumbers.totalCount,
+  });
 }

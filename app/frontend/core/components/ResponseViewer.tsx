@@ -1,14 +1,15 @@
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
+
 type ResponseViewerProps = {
   title?: string;
   content: string;
 };
 
-export function ResponseViewer({
-  title = "Response output",
-  content,
-}: ResponseViewerProps) {
+export function ResponseViewer({ title, content }: ResponseViewerProps) {
+  const { t } = useI18n();
+
   return (
-    <s-section heading={title}>
+    <s-section heading={title ?? t("admin.responseOutput")}>
       <s-box
         padding="base"
         borderWidth="base"
