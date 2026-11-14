@@ -1,4 +1,5 @@
 import type { FetchResponseBody } from "@shopify/admin-api-client";
+import type { OrdersCount } from "app/commons/orders/OrdersCount";
 import type { OrdersDashboardFilter } from "app/commons/orders/OrdersDashboardFilter";
 import type {
   OrdersCountForFilterQuery,
@@ -16,11 +17,7 @@ const ORDERS_COUNT_FOR_FILTER_QUERY = `#graphql
   }
 `;
 
-export type OrdersCount = {
-  count: number;
-  /** Shopify stops counting at 10,000 and then reports a lower bound. */
-  isAtLeast: boolean;
-};
+export type { OrdersCount };
 
 export async function getOrdersCount(
   admin: AdminApiContextWithoutRest,

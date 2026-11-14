@@ -1,8 +1,19 @@
 $font-color: rgb(48, 48, 48);
 
+// The page fills the window as a column: the orders panel takes the free
+// space (its table scrolls inside it), and pagination and Recent jobs stay at
+// the bottom however few orders there are.
+//
+// - 16px: the body's default 8px margin, top and bottom
+// - the bottom padding keeps Shopify's floating Sidekick bar off Recent jobs
 .orders-dashboard-page {
   width: 100%;
   max-width: none;
+  height: calc(100vh - 16px);
+  box-sizing: border-box;
+  padding-bottom: 56px;
+  display: flex;
+  flex-direction: column;
 
   font-family:
     Inter,
@@ -16,6 +27,11 @@ $font-color: rgb(48, 48, 48);
 }
 
 .orders-dashboard-page__surface {
+  flex: 1 1 auto;
+  // on a very short window, keep a few rows visible and let the page scroll
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   background: var(--p-color-bg-surface, #ffffff);
   border: 1px solid var(--p-color-border-secondary, #d9d9d9);
@@ -134,13 +150,37 @@ $font-color: rgb(48, 48, 48);
   justify-content: center;
 }
 
+// The orders table and the Recent jobs list scroll on their own.
 .orders-dashboard-page__table-scroll {
-  max-height: 75vh;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
 }
 
 .orders-dashboard-page__pagination {
+  flex: none;
   margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orders-dashboard-page__shown-range {
+  color: #6d7175;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.orders-dashboard-page__tab-count {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--p-color-bg-fill-secondary, #ebebeb);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  color: #616161;
 }
 
 .orders-dashboard-page__bulk-bar-hint {
@@ -149,6 +189,7 @@ $font-color: rgb(48, 48, 48);
 }
 
 .orders-dashboard-page__notice {
+  flex: none;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -182,5 +223,6 @@ $font-color: rgb(48, 48, 48);
 }
 
 .orders-dashboard-page__recent-jobs {
+  flex: none;
   margin-top: 16px;
 }

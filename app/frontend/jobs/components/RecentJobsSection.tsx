@@ -13,8 +13,10 @@ type RecentJobsSectionProps = {
   initialSnapshot: RecentJobsSnapshot;
   /** Change it (to anything truthy) to reload the list, e.g. after starting a job. */
   refreshSignal?: unknown;
-  /** Called when a job that was running has finished, so the page can reload its data. */
-  onJobFinished?: () => void;
+  /** Called with the jobs that were running and have now finished, so the page can reload its data. */
+  onJobFinished?: (finishedJobs: RecentJobView[]) => void;
+  /** Caps the list's height (e.g. "22vh"); it scrolls past that. */
+  listMaxHeight?: string;
 };
 
 const STATUS_LABEL: Record<RecentJobView["status"], string> = {
@@ -33,6 +35,7 @@ export function RecentJobsSection({
   initialSnapshot,
   refreshSignal,
   onJobFinished,
+  listMaxHeight,
 }: RecentJobsSectionProps) {
   const fetcher = useFetcher<RecentJobsSnapshot>();
   const snapshot =
@@ -67,12 +70,12 @@ export function RecentJobsSection({
     const runningIds = new Set(
       jobs.filter((job) => job.status === "running").map((job) => job.id),
     );
-    const hasFinishedJob = [...runningIdsRef.current].some(
-      (id) => !runningIds.has(id),
+    const finishedJobs = jobs.filter(
+      (job) => runningIdsRef.current.has(job.id) && job.status !== "running",
     );
     runningIdsRef.current = runningIds;
 
-    if (hasFinishedJob) onJobFinishedRef.current?.();
+    if (finishedJobs.length > 0) onJobFinishedRef.current?.(finishedJobs);
   }, [jobs]);
 
   return (
@@ -96,45 +99,53 @@ export function RecentJobsSection({
         {jobs.length === 0 ? (
           <s-text color="subdued">No jobs since the app last started.</s-text>
         ) : (
-          <s-table>
-            <s-table-header-row>
-              <s-table-header>Job</s-table-header>
-              <s-table-header>Orders</s-table-header>
-              <s-table-header>Started</s-table-header>
-              <s-table-header>Status</s-table-header>
-              <s-table-header>Result</s-table-header>
-            </s-table-header-row>
-            <s-table-body>
-              {jobs.map((job) => (
-                <s-table-row key={job.id}>
-                  <s-table-cell>{job.title}</s-table-cell>
-                  <s-table-cell>{job.orderCount}</s-table-cell>
-                  <s-table-cell>{formatTime(job.startedAt)}</s-table-cell>
-                  <s-table-cell>
-                    {STATUS_LABEL[job.status]}
-                    {job.status === "succeeded" && job.hasErrors
-                      ? " (with errors)"
-                      : ""}
-                  </s-table-cell>
-                  <s-table-cell>
-                    <s-stack direction="block" gap="small-300">
-                      {job.summary ? <s-text>{job.summary}</s-text> : null}
-                      {job.error ? (
-                        <s-text tone="critical">{job.error}</s-text>
-                      ) : null}
-                      {job.downloadUrl ? (
-                        <s-link href={job.downloadUrl} target="_blank">
-                          {job.status === "failed"
-                            ? "Download error file"
-                            : `Download ${job.fileName ?? "file"}`}
-                        </s-link>
-                      ) : null}
-                    </s-stack>
-                  </s-table-cell>
-                </s-table-row>
-              ))}
-            </s-table-body>
-          </s-table>
+          <div
+            style={
+              listMaxHeight
+                ? { maxHeight: listMaxHeight, overflowY: "auto" }
+                : undefined
+            }
+          >
+            <s-table>
+              <s-table-header-row>
+                <s-table-header>Job</s-table-header>
+                <s-table-header>Orders</s-table-header>
+                <s-table-header>Started</s-table-header>
+                <s-table-header>Status</s-table-header>
+                <s-table-header>Result</s-table-header>
+              </s-table-header-row>
+              <s-table-body>
+                {jobs.map((job) => (
+                  <s-table-row key={job.id}>
+                    <s-table-cell>{job.title}</s-table-cell>
+                    <s-table-cell>{job.orderCount}</s-table-cell>
+                    <s-table-cell>{formatTime(job.startedAt)}</s-table-cell>
+                    <s-table-cell>
+                      {STATUS_LABEL[job.status]}
+                      {job.status === "succeeded" && job.hasErrors
+                        ? " (with errors)"
+                        : ""}
+                    </s-table-cell>
+                    <s-table-cell>
+                      <s-stack direction="block" gap="small-300">
+                        {job.summary ? <s-text>{job.summary}</s-text> : null}
+                        {job.error ? (
+                          <s-text tone="critical">{job.error}</s-text>
+                        ) : null}
+                        {job.downloadUrl ? (
+                          <s-link href={job.downloadUrl} target="_blank">
+                            {job.status === "failed"
+                              ? "Download error file"
+                              : `Download ${job.fileName ?? "file"}`}
+                          </s-link>
+                        ) : null}
+                      </s-stack>
+                    </s-table-cell>
+                  </s-table-row>
+                ))}
+              </s-table-body>
+            </s-table>
+          </div>
         )}
       </s-stack>
     </s-section>

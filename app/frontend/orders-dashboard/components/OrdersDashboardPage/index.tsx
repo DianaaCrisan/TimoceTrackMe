@@ -8,18 +8,40 @@ import { MAX_ORDERS_PER_JOB } from "app/commons/constants";
 import deliveryIcon from "app/frontend/core/icons/DeliveryIcon.svg";
 import locationIcon from "app/frontend/core/icons/LocationIcon.svg";
 import printIcon from "app/frontend/core/icons/PrintIcon.svg";
-import { Link, useLocation, useRevalidator } from "react-router";
+import {
+  Link,
+  useFetcher,
+  useLocation,
+  useNavigate,
+  useRevalidator,
+} from "react-router";
 import { OrdersDashboardQuery } from "app/types/admin.generated";
 import {
+  buildOrdersDashboardUrl,
+  COUNTED_ORDERS_DASHBOARD_FILTERS,
   formatOrdersDashboardFilter,
+  ORDERS_DASHBOARD_FILTERS,
+  ORDERS_DASHBOARD_PATH,
   type OrdersDashboardFilter,
 } from "app/commons/orders/OrdersDashboardFilter";
+import {
+  formatTabCount,
+  type CountedOrdersDashboardFilter,
+  type TabCounts,
+} from "app/commons/orders/TabCounts";
+import {
+  formatShownRange,
+  type PageNumbers,
+} from "app/commons/pagination/PageNumbers";
 import {
   appendOrderSelection,
   type OrderSelection,
 } from "app/commons/orders/OrderSelection";
 import type { StartJobResponse } from "app/commons/jobs/StartJobResponse";
-import type { RecentJobsSnapshot } from "app/commons/jobs/RecentJobView";
+import type {
+  RecentJobView,
+  RecentJobsSnapshot,
+} from "app/commons/jobs/RecentJobView";
 import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
 
 type BulkJobAction = {
@@ -57,12 +79,29 @@ const BULK_JOB_ACTIONS: BulkJobAction[] = [
 
 type Notice = { tone: "success" | "critical"; message: string };
 
+/**
+ * Shopify's order search can lag a few seconds behind a change, so a reload
+ * right after a job may still list orders the job just fulfilled or tagged.
+ */
+const SEARCH_INDEX_CATCH_UP_MS = 5000;
+
+const TAB_COUNTS_URL = `${ORDERS_DASHBOARD_PATH}/tab-counts`;
+
+function isCountedFilter(
+  filter: OrdersDashboardFilter,
+): filter is CountedOrdersDashboardFilter {
+  return (COUNTED_ORDERS_DASHBOARD_FILTERS as readonly string[]).includes(
+    filter,
+  );
+}
+
 type OrdersDashboardPageProps = {
   orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
   pageInfo: PageInfo;
   shopAdminUrl: string;
   activeFilter: OrdersDashboardFilter;
   ordersCount: { count: number; isAtLeast: boolean } | null;
+  pageNumbers: PageNumbers;
   recentJobs: RecentJobsSnapshot;
 };
 
@@ -72,11 +111,11 @@ export function OrdersDashboardPage({
   shopAdminUrl,
   activeFilter,
   ordersCount,
+  pageNumbers,
   recentJobs,
 }: OrdersDashboardPageProps) {
   const shopify = useAppBridge();
-  // re-runs the route loader in place, without remounting, so the selection
-  // survives and the user can chain jobs (solve ZIP -> add tracking -> labels)
+  const navigate = useNavigate();
   const revalidator = useRevalidator();
   const isRefreshingOrders = revalidator.state === "loading";
 
@@ -88,6 +127,32 @@ export function OrdersDashboardPage({
   >(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [jobsRefreshSignal, setJobsRefreshSignal] = useState(0);
+
+  // Counted after the page renders, so the order list never waits on them.
+  // Reloaded whenever the list is: a job or a page change can move orders
+  // between tabs. The previous numbers stay up while new ones load.
+  const tabCountsFetcher = useFetcher<TabCounts>();
+  const loadTabCountsRef = useRef(tabCountsFetcher.load);
+  loadTabCountsRef.current = tabCountsFetcher.load;
+  useEffect(() => {
+    loadTabCountsRef.current(TAB_COUNTS_URL);
+  }, [orders]);
+
+  const renderTabCount = (filter: OrdersDashboardFilter) => {
+    if (!isCountedFilter(filter)) return null;
+
+    const tabCounts = tabCountsFetcher.data;
+    if (!tabCounts) {
+      return <span className="orders-dashboard-page__tab-count">…</span>;
+    }
+
+    const count = tabCounts[filter];
+    return count ? (
+      <span className="orders-dashboard-page__tab-count">
+        {formatTabCount(count)}
+      </span>
+    ) : null;
+  };
 
   // the filter selection means "every order in this tab", so it cannot follow
   // the user to another tab
@@ -186,6 +251,40 @@ export function OrdersDashboardPage({
     setSelectedOrderIds([]);
   };
 
+  const catchUpTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(catchUpTimerRef.current), []);
+
+  /**
+   * A finished job can move orders out of the tab (fulfilled, printed), which
+   * leaves the current page's cursor pointing into a list that has changed.
+   * So: clear the selection, go back to the tab's first page, and reload once
+   * more after the search index has caught up.
+   */
+  function handleJobFinished(finishedJobs: RecentJobView[]) {
+    setSelectedOrderIds([]);
+    setIsFilterSelected(false);
+    setNotice({
+      tone: finishedJobs.some((job) => job.status === "failed" || job.hasErrors)
+        ? "critical"
+        : "success",
+      message: finishedJobs
+        .map(
+          (job) =>
+            `${job.title} ${job.status === "failed" ? "failed" : "finished"}: ${job.summary ?? job.error ?? ""}`,
+        )
+        .join(" · ")
+        .concat(". The list was refreshed and the selection cleared."),
+    });
+
+    navigate(buildOrdersDashboardUrl(activeFilter), { replace: true });
+
+    clearTimeout(catchUpTimerRef.current);
+    catchUpTimerRef.current = setTimeout(
+      () => revalidator.revalidate(),
+      SEARCH_INDEX_CATCH_UP_MS,
+    );
+  }
+
   async function handleStartJob(action: BulkJobAction) {
     setStartingActionKey(action.key);
     setNotice(null);
@@ -216,7 +315,7 @@ export function OrdersDashboardPage({
       if (result.ok) {
         setNotice({
           tone: "success",
-          message: `${action.title} started for ${result.orderCount} order${result.orderCount === 1 ? "" : "s"}. The result will appear under Recent jobs below.`,
+          message: `${action.title} started for ${result.orderCount} order${result.orderCount === 1 ? "" : "s"}. When it finishes, the list refreshes and the result appears under Recent jobs.`,
         });
         setJobsRefreshSignal((signal) => signal + 1);
       } else {
@@ -254,23 +353,18 @@ export function OrdersDashboardPage({
       <div className="orders-dashboard-page__surface">
         <div className="orders-dashboard-page__toolbar">
           <div className="orders-dashboard-page__tabs">
-            <Link
-              to="/app/orders-dashboard"
-              className={`orders-dashboard-page__tab${
-                activeFilter === "all" ? " --active" : ""
-              }`}
-            >
-              All
-            </Link>
-
-            <Link
-              to="/app/orders-dashboard?filter=pending_fulfillment"
-              className={`orders-dashboard-page__tab${
-                activeFilter === "pending_fulfillment" ? " --active" : ""
-              }`}
-            >
-              Pending fulfillment
-            </Link>
+            {ORDERS_DASHBOARD_FILTERS.map((filter) => (
+              <Link
+                key={filter}
+                to={buildOrdersDashboardUrl(filter)}
+                className={`orders-dashboard-page__tab${
+                  activeFilter === filter ? " --active" : ""
+                }`}
+              >
+                {formatOrdersDashboardFilter(filter)}
+                {renderTabCount(filter)}
+              </Link>
+            ))}
           </div>
 
           <div className="orders-dashboard-page__toolbar-right">
@@ -360,22 +454,22 @@ export function OrdersDashboardPage({
 
       <div className="orders-dashboard-page__pagination">
         <CursorPagination
-          basePath="/app/orders-dashboard"
+          basePath={ORDERS_DASHBOARD_PATH}
           pageInfo={pageInfo}
-          queryParams={
-            activeFilter === "pending_fulfillment"
-              ? { filter: "pending_fulfillment" }
-              : {}
-          }
+          queryParams={{ filter: activeFilter }}
+          pageNumbers={pageNumbers}
         />
+        <span className="orders-dashboard-page__shown-range">
+          {formatShownRange(pageNumbers, orders.length)}
+        </span>
       </div>
 
       <div className="orders-dashboard-page__recent-jobs">
         <RecentJobsSection
           initialSnapshot={recentJobs}
           refreshSignal={jobsRefreshSignal}
-          // a finished job may have changed ZIPs and fulfillments in the table
-          onJobFinished={() => revalidator.revalidate()}
+          onJobFinished={handleJobFinished}
+          listMaxHeight="22vh"
         />
       </div>
     </div>
