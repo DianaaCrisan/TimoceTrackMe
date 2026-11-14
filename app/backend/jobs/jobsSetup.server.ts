@@ -4,6 +4,7 @@ import { getDownloadUrl } from "../aws-s3/uploadToS3.server";
 import { isEnvSet } from "../core/utils/readRequiredEnv";
 import type { RecentJobsSnapshot } from "app/commons/jobs/RecentJobView";
 import type { S3SetupStatus } from "app/commons/jobs/S3SetupStatus";
+import { translateEn, type Translate } from "app/commons/i18n/translate";
 import { jobRegistry } from "./JobRegistry";
 import {
   startBackgroundJob,
@@ -78,7 +79,9 @@ async function signDownloadUrl(
 }
 
 /** Runs the whole job path (lock, build, upload, registry) on a tiny text file. */
-export function startTestJob(): StartBackgroundJobResult {
+export function startTestJob(
+  t: Translate = translateEn,
+): StartBackgroundJobResult {
   const createdAt = new Date().toISOString();
 
   return startBackgroundJob({
@@ -89,7 +92,7 @@ export function startTestJob(): StartBackgroundJobResult {
       buf: Buffer.from(`TrackMe test file\nCreated at ${createdAt}\n`, "utf8"),
       fileName: "trackme-test.txt",
       contentType: "text/plain; charset=utf-8",
-      summary: "Test file uploaded",
+      summary: t("summary.testFileUploaded"),
     }),
   });
 }

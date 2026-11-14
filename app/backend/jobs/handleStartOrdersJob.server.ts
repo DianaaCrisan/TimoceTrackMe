@@ -1,5 +1,7 @@
 import { authenticate } from "app/shopify.server";
 import type { StartJobResponse } from "app/commons/jobs/StartJobResponse";
+import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
+import { createTranslator, translateEn } from "app/commons/i18n/translate";
 import type { JobKind } from "../aws-s3/buildJobFileKey";
 import { RequestError } from "../core/errors/RequestError";
 import { ShopifyUtils } from "../graphql/utils/ShopifyUtils";
@@ -32,14 +34,20 @@ export async function handleStartOrdersJob(
   definition: OrdersJobDefinition,
 ): Promise<Response> {
   const { admin, session } = await authenticate.admin(request);
+  // English until the form says otherwise, so even a broken form gets an answer
+  let t = translateEn;
 
   try {
     const formData = await request.formData();
+    const locale = resolveLocale(formData.get(LOCALE_PARAM));
+    t = createTranslator(locale);
+
     const shopUrl = ShopifyUtils.getShopAdminUrl(session.shop);
     const orderIds = await resolveOrderIds(
       admin,
       shopUrl,
-      parseOrderSelection(formData),
+      parseOrderSelection(formData, t),
+      t,
     );
     const timeZone = formData.get("timeZone");
 
@@ -57,13 +65,16 @@ export async function handleStartOrdersJob(
           orderIds,
           startedAt,
           timeZone: typeof timeZone === "string" ? timeZone : null,
+          locale,
         }),
     });
 
     if (!result.isStarted) {
       return respond(409, {
         ok: false,
-        error: `${result.busyOrderIds.length} of these orders are already in a running job. Wait for it to finish, then try again.`,
+        error: t("startJob.ordersBusy", {
+          count: result.busyOrderIds.length,
+        }),
       });
     }
 
@@ -83,7 +94,9 @@ export async function handleStartOrdersJob(
     );
     return respond(500, {
       ok: false,
-      error: `Could not start the job: ${error instanceof Error ? error.message : String(error)}`,
+      error: t("startJob.couldNotStart", {
+        error: error instanceof Error ? error.message : String(error),
+      }),
     });
   }
 }

@@ -1,3 +1,6 @@
+import { translateEn, type Translate } from "../i18n/translate";
+import type { TranslationKey } from "../i18n/translations";
+
 /** The dashboard tabs, in the order they are shown. */
 export const ORDERS_DASHBOARD_FILTERS = [
   "all",
@@ -19,10 +22,10 @@ export const COUNTED_ORDERS_DASHBOARD_FILTERS = [
 
 export const ORDERS_DASHBOARD_PATH = "/app/orders-dashboard";
 
-const FILTER_LABELS: Record<OrdersDashboardFilter, string> = {
-  all: "All",
-  pending_fulfillment: "Pending fulfillment",
-  unprinted: "Unprinted",
+const FILTER_LABELS: Record<OrdersDashboardFilter, TranslationKey> = {
+  all: "filter.all",
+  pending_fulfillment: "filter.pending_fulfillment",
+  unprinted: "filter.unprinted",
 };
 
 export function parseOrdersDashboardFilter(
@@ -36,8 +39,9 @@ export function parseOrdersDashboardFilter(
 
 export function formatOrdersDashboardFilter(
   filter: OrdersDashboardFilter,
+  t: Translate = translateEn,
 ): string {
-  return FILTER_LABELS[filter];
+  return t(FILTER_LABELS[filter]);
 }
 
 /**

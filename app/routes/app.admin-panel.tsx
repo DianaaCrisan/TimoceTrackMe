@@ -15,6 +15,9 @@ import {
 import { ReadOnlyField } from "app/frontend/core/components/ReadOnlyField";
 import { ResponseViewer } from "app/frontend/core/components/ResponseViewer";
 import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
+import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
+import { createTranslator } from "app/commons/i18n/translate";
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 
 const OPTIMUS_TEST_INTENT = "optimusTest";
 const S3_TEST_INTENT = "s3Test";
@@ -34,18 +37,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const formData = await request.formData();
   const intent = formData.get("intent");
+  const t = createTranslator(resolveLocale(formData.get(LOCALE_PARAM)));
 
   if (intent === S3_TEST_INTENT) {
     try {
-      const result = startTestJob();
+      const result = startTestJob(t);
 
       return {
         intent,
         ok: result.isStarted,
         data: {
           message: result.isStarted
-            ? "Test upload started. Press Refresh under Recent jobs in a few seconds."
-            : "A test upload is already running.",
+            ? t("admin.testUploadStartedDetails")
+            : t("admin.testUploadAlreadyRunning"),
         },
       };
     } catch (error) {
@@ -56,7 +60,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           message:
             error instanceof Error
               ? error.message
-              : "Unknown test upload error.",
+              : t("admin.unknownTestUploadError"),
         },
       };
     }
@@ -78,7 +82,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         message:
           error instanceof Error
             ? error.message
-            : "Unknown Optimus test error.",
+            : t("admin.unknownOptimusError"),
       },
     };
   }
@@ -89,6 +93,7 @@ export default function AdminPanelPage() {
   const optimusFetcher = useFetcher<typeof action>();
   const s3TestFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
+  const { locale, t } = useI18n();
 
   const isSendingOptimusTest = optimusFetcher.state !== "idle";
   const isStartingS3Test = s3TestFetcher.state !== "idle";
@@ -96,22 +101,23 @@ export default function AdminPanelPage() {
 
   const optimusResponseContent = useMemo(() => {
     if (!optimusFetcher.data) {
-      return `No request sent yet.
-
-The Optimus response will be displayed here after you send a test request.`;
+      return t("admin.noRequestYet");
     }
 
     return JSON.stringify(optimusFetcher.data.data, null, 2);
-  }, [optimusFetcher.data]);
+  }, [optimusFetcher.data, t]);
 
   useEffect(() => {
     if (!optimusFetcher.data) return;
 
     shopify.toast.show(
       optimusFetcher.data.ok
-        ? "Optimus test request completed"
-        : "Optimus test request failed",
+        ? t("admin.optimusTestCompleted")
+        : t("admin.optimusTestFailed"),
     );
+    // `t` is left out: a language change reloads the app, and the toast must
+    // only show when a response arrives
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optimusFetcher.data, shopify]);
 
   useEffect(() => {
@@ -119,41 +125,46 @@ The Optimus response will be displayed here after you send a test request.`;
 
     shopify.toast.show(
       s3TestFetcher.data.ok
-        ? "Test upload started"
-        : "Test upload could not start",
+        ? t("admin.testUploadStarted")
+        : t("admin.testUploadCouldNotStart"),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s3TestFetcher.data, shopify]);
 
   return (
-    <s-page heading="Admin Panel">
+    <s-page heading={t("admin.heading")}>
       <s-stack direction="block" gap="large">
-        <s-section heading="Optimus test credentials">
+        <s-section heading={t("admin.credentialsHeading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>
-              These values are loaded from environment variables. The API key is
-              masked for safety.
-            </s-paragraph>
+            <s-paragraph>{t("admin.credentialsIntro")}</s-paragraph>
 
-            <ReadOnlyField label="API URL" value={credentials.apiUrl} />
-            <ReadOnlyField label="Username" value={credentials.username} />
-            <ReadOnlyField label="API Key" value={credentials.maskedApiKey} />
+            <ReadOnlyField
+              label={t("admin.apiUrl")}
+              value={credentials.apiUrl}
+            />
+            <ReadOnlyField
+              label={t("admin.username")}
+              value={credentials.username}
+            />
+            <ReadOnlyField
+              label={t("admin.apiKey")}
+              value={credentials.maskedApiKey}
+            />
           </s-stack>
         </s-section>
 
-        <s-section heading="Test request">
+        <s-section heading={t("admin.testRequestHeading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>
-              This sends a server-side test request to Optimus using test
-              credentials and a mocked AWB-style payload.
-            </s-paragraph>
+            <s-paragraph>{t("admin.testRequestIntro")}</s-paragraph>
 
             <optimusFetcher.Form method="post">
               <input type="hidden" name="intent" value={OPTIMUS_TEST_INTENT} />
+              <input type="hidden" name={LOCALE_PARAM} value={locale} />
               <s-button
                 type="submit"
                 {...(isSendingOptimusTest ? { loading: true } : {})}
               >
-                Send test request
+                {t("admin.sendTestRequest")}
               </s-button>
             </optimusFetcher.Form>
           </s-stack>
@@ -161,12 +172,9 @@ The Optimus response will be displayed here after you send a test request.`;
 
         <ResponseViewer content={optimusResponseContent} />
 
-        <s-section heading="Bulk jobs: S3 setup">
+        <s-section heading={t("admin.s3Heading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>
-              Bulk actions store their result files in S3. Every variable below
-              must be set for them to work.
-            </s-paragraph>
+            <s-paragraph>{t("admin.s3Intro")}</s-paragraph>
 
             <s-stack direction="block" gap="small-200">
               {s3Setup.envVars.map((envVar) => (
@@ -177,37 +185,35 @@ The Optimus response will be displayed here after you send a test request.`;
             </s-stack>
 
             <ReadOnlyField
-              label="S3 bucket"
-              value={s3Setup.bucket ?? "(not set)"}
+              label={t("admin.s3Bucket")}
+              value={s3Setup.bucket ?? t("admin.notSet")}
             />
             <ReadOnlyField
-              label="AWS region"
-              value={s3Setup.region ?? "(not set)"}
+              label={t("admin.awsRegion")}
+              value={s3Setup.region ?? t("admin.notSet")}
             />
             <ReadOnlyField
-              label="This app's folder in the bucket"
-              value={s3Setup.appFolderKey || "(bucket root)"}
+              label={t("admin.appFolder")}
+              value={s3Setup.appFolderKey || t("admin.bucketRoot")}
             />
 
             {s3Setup.appFolderConsoleUrl ? (
               <s-link href={s3Setup.appFolderConsoleUrl} target="_blank">
-                Open this app&apos;s folder in the S3 console
+                {t("admin.openAppFolder")}
               </s-link>
             ) : null}
 
-            <s-paragraph>
-              The test uploads a small text file. It then appears under Recent
-              jobs with a link to it in S3.
-            </s-paragraph>
+            <s-paragraph>{t("admin.s3TestIntro")}</s-paragraph>
 
             <s3TestFetcher.Form method="post">
               <input type="hidden" name="intent" value={S3_TEST_INTENT} />
+              <input type="hidden" name={LOCALE_PARAM} value={locale} />
               <s-button
                 type="submit"
                 {...(isStartingS3Test ? { loading: true } : {})}
                 {...(!isS3SetupComplete ? { disabled: true } : {})}
               >
-                Upload test file
+                {t("admin.uploadTestFile")}
               </s-button>
             </s3TestFetcher.Form>
 

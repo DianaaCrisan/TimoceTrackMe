@@ -1,6 +1,8 @@
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { Badge } from "app/frontend/core/components/Badge";
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { DateUtils } from "app/frontend/core/utils/DateUtils";
+import { formatMoney } from "app/frontend/core/utils/money";
 import {
   DeliveryMethodTypeDTO,
   formatDeliveryMethodType,
@@ -29,6 +31,8 @@ export function OrdersDashboardTable({
   onToggleOrder,
   onToggleAllVisible,
 }: OrdersDashboardTableProps) {
+  const { locale, t } = useI18n();
+
   return (
     <table className="orders-dashboard-table">
       <thead className="orders-dashboard-table__head">
@@ -38,24 +42,36 @@ export function OrdersDashboardTable({
               type="checkbox"
               checked={allVisibleSelected}
               onChange={onToggleAllVisible}
-              aria-label="Select all visible orders"
+              aria-label={t("table.selectAllVisible")}
             />
           </th>
-          <th className="orders-dashboard-table__header-cell">Order</th>
-          <th className="orders-dashboard-table__header-cell">Date</th>
-          <th className="orders-dashboard-table__header-cell">Customer</th>
-          <th className="orders-dashboard-table__header-cell">Total</th>
           <th className="orders-dashboard-table__header-cell">
-            Payment status
+            {t("table.order")}
           </th>
           <th className="orders-dashboard-table__header-cell">
-            Fulfillment status
+            {t("table.date")}
           </th>
-          <th className="orders-dashboard-table__header-cell">Items</th>
           <th className="orders-dashboard-table__header-cell">
-            Delivery method
+            {t("table.customer")}
           </th>
-          <th className="orders-dashboard-table__header-cell">ZIP code</th>
+          <th className="orders-dashboard-table__header-cell">
+            {t("table.total")}
+          </th>
+          <th className="orders-dashboard-table__header-cell">
+            {t("table.paymentStatus")}
+          </th>
+          <th className="orders-dashboard-table__header-cell">
+            {t("table.fulfillmentStatus")}
+          </th>
+          <th className="orders-dashboard-table__header-cell">
+            {t("table.items")}
+          </th>
+          <th className="orders-dashboard-table__header-cell">
+            {t("table.deliveryMethod")}
+          </th>
+          <th className="orders-dashboard-table__header-cell">
+            {t("table.zipCode")}
+          </th>
         </tr>
       </thead>
 
@@ -63,7 +79,7 @@ export function OrdersDashboardTable({
         {orders.length === 0 ? (
           <tr>
             <td colSpan={3} className="orders-dashboard-table__empty-cell">
-              No orders found.
+              {t("table.noOrders")}
             </td>
           </tr>
         ) : (
@@ -85,7 +101,7 @@ export function OrdersDashboardTable({
                     checked={isSelected}
                     disabled={isDisabled}
                     onChange={() => onToggleOrder(order.id)}
-                    aria-label={`Select order ${order.name}`}
+                    aria-label={t("table.selectOrder", { name: order.name })}
                   />
                 </td>
 
@@ -101,7 +117,7 @@ export function OrdersDashboardTable({
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
-                  {DateUtils.formatDate(order.createdAt)}
+                  {DateUtils.formatDate(order.createdAt, locale)}
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
@@ -109,13 +125,18 @@ export function OrdersDashboardTable({
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
-                  {`${order.netPaymentSet.presentmentMoney.currencyCode} ${order.netPaymentSet.presentmentMoney.amount}`}
+                  {formatMoney(
+                    order.netPaymentSet.presentmentMoney.amount,
+                    order.netPaymentSet.presentmentMoney.currencyCode,
+                    locale,
+                  )}
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
                   {(() => {
                     const { label, tone } = formatFinancialStatusWithTone(
                       order.displayFinancialStatus,
+                      t,
                     );
                     return <Badge tone={tone}>{label}</Badge>;
                   })()}
@@ -125,19 +146,23 @@ export function OrdersDashboardTable({
                   {(() => {
                     const { label, tone } = formatFulfillmentStatusWithTone(
                       order.displayFulfillmentStatus,
+                      t,
                     );
                     return <Badge tone={tone}>{label}</Badge>;
                   })()}
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
-                  {`${order.currentSubtotalLineItemsQuantity} ${order.currentSubtotalLineItemsQuantity > 1 ? "items" : "item"}`}
+                  {t("table.itemCount", {
+                    count: order.currentSubtotalLineItemsQuantity,
+                  })}
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
                   {formatDeliveryMethodType(
                     order.fulfillmentOrders.edges[0]?.node?.deliveryMethod
                       ?.methodType,
+                    t,
                   )}
                 </td>
 
@@ -153,7 +178,9 @@ export function OrdersDashboardTable({
                     const isMissingZip = isShipping && !zip;
 
                     if (isMissingZip) {
-                      return <Badge tone="critical">Missing</Badge>;
+                      return (
+                        <Badge tone="critical">{t("table.missingZip")}</Badge>
+                      );
                     }
                     return zip ?? "-";
                   })()}

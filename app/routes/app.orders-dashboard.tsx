@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { TitleBar } from "@shopify/app-bridge-react";
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { authenticate } from "../shopify.server";
 import {
   getOrdersDashboardData,
@@ -56,10 +57,11 @@ export default function OrdersDashboardRoute() {
     pageNumbers,
     recentJobs,
   } = useLoaderData<typeof loader>();
+  const { t } = useI18n();
 
   return (
     <>
-      <TitleBar title="Orders" />
+      <TitleBar title={t("nav.orders")} />
       <OrdersDashboardPage
         orders={orders}
         pageInfo={pageInfo}

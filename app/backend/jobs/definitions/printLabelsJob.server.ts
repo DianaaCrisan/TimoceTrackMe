@@ -7,6 +7,7 @@ import {
   countOrderResults,
   type OrderResultRow,
 } from "../../reports/OrderResultRow";
+import { createTranslator } from "app/commons/i18n/translate";
 import type { JobArtifact } from "../startBackgroundJob.server";
 import type { OrdersJobContext } from "./OrdersJobContext";
 
@@ -101,15 +102,21 @@ export async function buildPrintLabelsArtifact(
     zip.file("errors.txt", `${result.generalErrors.join("\n")}\n`);
   }
 
+  const t = createTranslator(ctx.locale);
   const failedOrderCount = countOrderResults(rows).failed;
   const markingFailureCount = markingFailuresByOrderId.size;
   const summary = [
-    `${result.printedUnits.length} labels for ${labelCountByOrderId.size} orders`,
-    failedOrderCount > 0 ? `${failedOrderCount} orders failed` : null,
-    markingFailureCount > 0
-      ? `${markingFailureCount} orders not marked as printed`
+    t("summary.labels", {
+      labels: result.printedUnits.length,
+      count: labelCountByOrderId.size,
+    }),
+    failedOrderCount > 0
+      ? t("summary.ordersFailed", { count: failedOrderCount })
       : null,
-    result.generalErrors.length > 0 ? "see errors.txt" : null,
+    markingFailureCount > 0
+      ? t("summary.notMarkedPrinted", { count: markingFailureCount })
+      : null,
+    result.generalErrors.length > 0 ? t("summary.seeErrorsFile") : null,
   ]
     .filter(Boolean)
     .join(", ");

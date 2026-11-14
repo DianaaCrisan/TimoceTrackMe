@@ -1,9 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
-import type {
-  RecentJobView,
-  RecentJobsSnapshot,
+import {
+  formatJobTitle,
+  type RecentJobView,
+  type RecentJobsSnapshot,
 } from "app/commons/jobs/RecentJobView";
+import { INTL_LOCALE, type Locale } from "app/commons/i18n/Locale";
+import type { TranslationKey } from "app/commons/i18n/translations";
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 
 const RECENT_JOBS_URL = "/app/jobs/recent";
 const POLL_INTERVAL_MS = 4000;
@@ -19,10 +23,10 @@ type RecentJobsSectionProps = {
   listMaxHeight?: string;
 };
 
-const STATUS_LABEL: Record<RecentJobView["status"], string> = {
-  running: "⏳ Running",
-  succeeded: "✅ Done",
-  failed: "❌ Failed",
+const STATUS_LABEL: Record<RecentJobView["status"], TranslationKey> = {
+  running: "jobs.status.running",
+  succeeded: "jobs.status.succeeded",
+  failed: "jobs.status.failed",
 };
 
 /**
@@ -37,6 +41,7 @@ export function RecentJobsSection({
   onJobFinished,
   listMaxHeight,
 }: RecentJobsSectionProps) {
+  const { locale, t } = useI18n();
   const fetcher = useFetcher<RecentJobsSnapshot>();
   const snapshot =
     fetcher.data && fetcher.data.generatedAt > initialSnapshot.generatedAt
@@ -79,25 +84,23 @@ export function RecentJobsSection({
   }, [jobs]);
 
   return (
-    <s-section heading="Recent jobs">
+    <s-section heading={t("jobs.heading")}>
       <s-stack direction="block" gap="base">
         <s-stack direction="inline" gap="base" alignItems="center">
           <s-paragraph>
-            Download links work for 1 hour. Press Refresh for new ones.
-            {hasRunningJob
-              ? " This list updates on its own while a job runs."
-              : ""}
+            {t("jobs.linksExpire")}
+            {hasRunningJob ? ` ${t("jobs.autoUpdates")}` : ""}
           </s-paragraph>
           <s-button
             onClick={reload}
             {...(fetcher.state !== "idle" ? { loading: true } : {})}
           >
-            Refresh
+            {t("jobs.refresh")}
           </s-button>
         </s-stack>
 
         {jobs.length === 0 ? (
-          <s-text color="subdued">No jobs since the app last started.</s-text>
+          <s-text color="subdued">{t("jobs.empty")}</s-text>
         ) : (
           <div
             style={
@@ -108,22 +111,24 @@ export function RecentJobsSection({
           >
             <s-table>
               <s-table-header-row>
-                <s-table-header>Job</s-table-header>
-                <s-table-header>Orders</s-table-header>
-                <s-table-header>Started</s-table-header>
-                <s-table-header>Status</s-table-header>
-                <s-table-header>Result</s-table-header>
+                <s-table-header>{t("jobs.colJob")}</s-table-header>
+                <s-table-header>{t("jobs.colOrders")}</s-table-header>
+                <s-table-header>{t("jobs.colStarted")}</s-table-header>
+                <s-table-header>{t("jobs.colStatus")}</s-table-header>
+                <s-table-header>{t("jobs.colResult")}</s-table-header>
               </s-table-header-row>
               <s-table-body>
                 {jobs.map((job) => (
                   <s-table-row key={job.id}>
-                    <s-table-cell>{job.title}</s-table-cell>
+                    <s-table-cell>{formatJobTitle(job, t)}</s-table-cell>
                     <s-table-cell>{job.orderCount}</s-table-cell>
-                    <s-table-cell>{formatTime(job.startedAt)}</s-table-cell>
                     <s-table-cell>
-                      {STATUS_LABEL[job.status]}
+                      {formatTime(job.startedAt, locale)}
+                    </s-table-cell>
+                    <s-table-cell>
+                      {t(STATUS_LABEL[job.status])}
                       {job.status === "succeeded" && job.hasErrors
-                        ? " (with errors)"
+                        ? ` ${t("jobs.withErrors")}`
                         : ""}
                     </s-table-cell>
                     <s-table-cell>
@@ -135,8 +140,11 @@ export function RecentJobsSection({
                         {job.downloadUrl ? (
                           <s-link href={job.downloadUrl} target="_blank">
                             {job.status === "failed"
-                              ? "Download error file"
-                              : `Download ${job.fileName ?? "file"}`}
+                              ? t("jobs.downloadErrorFile")
+                              : t("jobs.downloadFile", {
+                                  fileName:
+                                    job.fileName ?? t("jobs.defaultFileName"),
+                                })}
                           </s-link>
                         ) : null}
                       </s-stack>
@@ -152,8 +160,8 @@ export function RecentJobsSection({
   );
 }
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-GB", {
+function formatTime(iso: string, locale: Locale): string {
+  return new Date(iso).toLocaleString(INTL_LOCALE[locale], {
     day: "numeric",
     month: "short",
     hour: "2-digit",

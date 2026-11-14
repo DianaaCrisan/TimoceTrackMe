@@ -7,6 +7,7 @@ import {
   type OrderResultRow,
 } from "../../reports/OrderResultRow";
 import type { ZipChange } from "../../add-tracking/ZipRecovery.server";
+import { createTranslator } from "app/commons/i18n/translate";
 import type { JobArtifact } from "../startBackgroundJob.server";
 import type { OrdersJobContext } from "./OrdersJobContext";
 
@@ -66,7 +67,7 @@ export async function buildAddTrackingArtifact(
     contentType:
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     hasErrors: countOrderResults(rows).failed > 0,
-    summary: summarizeOrderResults(rows),
+    summary: summarizeOrderResults(rows, createTranslator(ctx.locale)),
   };
 }
 
