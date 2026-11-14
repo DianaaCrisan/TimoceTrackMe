@@ -1,3 +1,4 @@
+import type { OrdersDashboardOrder } from "app/commons/orders/OrdersDashboardOrder";
 import {
   useEffect,
   useRef,
@@ -7,6 +8,7 @@ import {
 } from "react";
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { Badge } from "app/frontend/core/components/Badge";
+import { CustomerNoteCell } from "app/frontend/orders-dashboard/components/CustomerNoteCell";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import deliveryIcon from "app/frontend/core/icons/DeliveryIcon.svg";
 import {
@@ -14,11 +16,10 @@ import {
   normalizeZip,
   type ManualZips,
 } from "app/commons/orders/ManualZips";
-import type { OrdersDashboardQuery } from "app/types/admin.generated";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable/styles.scss";
 import "app/frontend/orders-dashboard/components/ZipFixPanel/styles.scss";
 
-type Order = OrdersDashboardQuery["orders"]["edges"][number]["node"];
+type Order = OrdersDashboardOrder;
 
 type ZipFixPanelProps = {
   orders: Order[];
@@ -201,6 +202,9 @@ export function ZipFixPanel({
                   {t("table.customer")}
                 </th>
                 <th className="orders-dashboard-table__header-cell">
+                  {t("table.customerNote")}
+                </th>
+                <th className="orders-dashboard-table__header-cell">
                   {t("zipFix.colAddress")}
                 </th>
                 <th className="orders-dashboard-table__header-cell">
@@ -262,6 +266,11 @@ export function ZipFixPanel({
 
                     <td className="orders-dashboard-table__body-cell">
                       {order.customer?.displayName ?? ""}
+                    </td>
+
+                    <td className="orders-dashboard-table__body-cell">
+                      {/* customers sometimes write the right address or ZIP here */}
+                      <CustomerNoteCell customerNote={order} />
                     </td>
 
                     <td className="orders-dashboard-table__body-cell zip-fix-panel__address">

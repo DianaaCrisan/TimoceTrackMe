@@ -1,0 +1,130 @@
+$font-color: rgb(48, 48, 48);
+
+.customer-notes-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  box-sizing: border-box;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  color: $font-color;
+  font-size: 13px;
+  font-family: inherit;
+
+  &[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
+
+.customer-notes-dialog__title {
+  margin: 0;
+  padding: 16px 20px 4px;
+  font-size: 16px;
+}
+
+.customer-notes-dialog__intro {
+  margin: 0;
+  padding: 0 20px 12px;
+  color: #616161;
+  line-height: 18px;
+}
+
+.customer-notes-dialog__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0 20px;
+  list-style: none;
+}
+
+.customer-notes-dialog__item {
+  padding: 10px 0;
+  border-top: 1px solid #e1e3e5;
+
+  &.--left-out {
+    opacity: 0.5;
+  }
+}
+
+.customer-notes-dialog__item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.customer-notes-dialog__order-link {
+  font-weight: 600;
+  color: #005bd3;
+  text-decoration: none;
+}
+
+.customer-notes-dialog__customer {
+  color: #616161;
+}
+
+.customer-notes-dialog__include {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.customer-notes-dialog__note {
+  padding: 8px 10px;
+  border: 1px solid #f0c94c;
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: #fff4cc;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.customer-notes-dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid #e1e3e5;
+}
+
+.customer-notes-dialog__left-out {
+  margin-right: auto;
+  color: #616161;
+}
+
+.customer-notes-dialog__secondary,
+.customer-notes-dialog__primary {
+  padding: 6px 14px;
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.customer-notes-dialog__secondary {
+  border: 1px solid #c9cccf;
+  background: white;
+}
+
+.customer-notes-dialog__primary {
+  border: 1px solid #303030;
+  background: #303030;
+  color: white;
+  font-weight: 600;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}

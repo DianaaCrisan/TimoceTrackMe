@@ -1,3 +1,4 @@
+import type { OrdersDashboardOrder } from "app/commons/orders/OrdersDashboardOrder";
 import { PageInfo } from "app/types/admin.types";
 import type {
   OrdersDashboardQuery,
@@ -7,11 +8,12 @@ import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithout
 import { FetchResponseBody } from "@shopify/admin-api-client";
 import type { OrdersDashboardFilter } from "app/commons/orders/OrdersDashboardFilter";
 import { buildOrdersSearchQuery } from "./buildOrdersSearchQuery";
+import { toCustomerNote } from "app/commons/orders/CustomerNote";
 
 const ORDER_PAGE_SIZE = 50;
 
 type OrdersDashboardData = {
-  orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
+  orders: OrdersDashboardOrder[];
   pageInfo: PageInfo;
 };
 
@@ -48,6 +50,11 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           displayFulfillmentStatus
           currentSubtotalLineItemsQuantity
           cancelledAt
+          note
+          customAttributes {
+            key
+            value
+          }
 
           shippingAddress {
             zip
@@ -141,6 +148,8 @@ export async function getOrdersDashboardData(
       currentSubtotalLineItemsQuantity:
         edge.node.currentSubtotalLineItemsQuantity,
       cancelledAt: edge.node.cancelledAt,
+      // cleaned up here, so the table never shows hidden app attributes
+      ...toCustomerNote(edge.node.note, edge.node.customAttributes),
       shippingAddress: edge.node.shippingAddress
         ? {
             zip: edge.node.shippingAddress.zip,

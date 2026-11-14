@@ -1,3 +1,4 @@
+import type { OrdersDashboardOrder } from "app/commons/orders/OrdersDashboardOrder";
 import { useEffect, useRef, useState } from "react";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
@@ -14,7 +15,6 @@ import {
   useNavigate,
   useRevalidator,
 } from "react-router";
-import { OrdersDashboardQuery } from "app/types/admin.generated";
 import {
   buildOrdersDashboardUrl,
   COUNTED_ORDERS_DASHBOARD_FILTERS,
@@ -52,6 +52,11 @@ import {
   MANUAL_ZIPS_FIELD,
   type ManualZips,
 } from "app/commons/orders/ManualZips";
+import type { OrderNotesResponse } from "app/commons/orders/CustomerNote";
+import {
+  CustomerNotesDialog,
+  type NotesReview,
+} from "app/frontend/orders-dashboard/components/CustomerNotesDialog";
 
 type BulkJobAction = {
   key: "add-tracking" | "print-labels";
@@ -59,6 +64,8 @@ type BulkJobAction = {
   title: TranslationKey;
   icon: string;
   sendsTimeZone: boolean;
+  /** Shows the selected orders' customer notes before the job starts. */
+  reviewsCustomerNotes: boolean;
 };
 
 const ADD_TRACKING_ACTION: BulkJobAction = {
@@ -68,6 +75,8 @@ const ADD_TRACKING_ACTION: BulkJobAction = {
   title: "job.add-tracking",
   icon: deliveryIcon,
   sendsTimeZone: false,
+  // once tracking is added the order ships, so a note read later is too late
+  reviewsCustomerNotes: true,
 };
 
 const BULK_JOB_ACTIONS: BulkJobAction[] = [
@@ -79,6 +88,7 @@ const BULK_JOB_ACTIONS: BulkJobAction[] = [
     icon: printIcon,
     // lets the server stamp the file names with the user's local date/time
     sendsTimeZone: true,
+    reviewsCustomerNotes: false,
   },
 ];
 
@@ -96,6 +106,16 @@ type Notice = {
 const SEARCH_INDEX_CATCH_UP_MS = 5000;
 
 const TAB_COUNTS_URL = `${ORDERS_DASHBOARD_PATH}/tab-counts`;
+const ORDER_NOTES_URL = `${ORDERS_DASHBOARD_PATH}/order-notes`;
+
+/** A job waiting on the admin to read the customer notes. */
+type PendingNotesReview = {
+  review: NotesReview;
+  action: BulkJobAction;
+  selection: OrderSelection;
+  /** The selection's orders, so some can be left out; unset if unknown. */
+  orderIds?: string[];
+};
 
 /** Has its own panel instead of the orders table and bulk actions. */
 const ZIP_TO_FIX_FILTER: OrdersDashboardFilter = "zip_to_fix";
@@ -109,7 +129,7 @@ function isCountedFilter(
 }
 
 type OrdersDashboardPageProps = {
-  orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
+  orders: OrdersDashboardOrder[];
   pageInfo: PageInfo;
   shopAdminUrl: string;
   activeFilter: OrdersDashboardFilter;
@@ -140,6 +160,9 @@ export function OrdersDashboardPage({
     BulkJobAction["key"] | null
   >(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [isCheckingNotes, setIsCheckingNotes] = useState(false);
+  const [pendingNotesReview, setPendingNotesReview] =
+    useState<PendingNotesReview | null>(null);
   const [jobsRefreshSignal, setJobsRefreshSignal] = useState(0);
 
   // Counted after the page renders, so the order list never waits on them.
@@ -325,11 +348,106 @@ export function OrdersDashboardPage({
   }
 
   function handleStartJob(action: BulkJobAction) {
-    return startJob(
+    const selection: OrderSelection = isFilterSelected
+      ? { mode: "filter", filter: activeFilter }
+      : { mode: "ids", orderIds: selectedOrderIds };
+
+    return action.reviewsCustomerNotes
+      ? reviewNotesThenStart(action, selection)
+      : startJob(action, selection);
+  }
+
+  /**
+   * Loads the customer notes of every selected order (also those on other
+   * pages). With none, the job starts at once; otherwise the admin reads them
+   * in a dialog first.
+   */
+  async function reviewNotesThenStart(
+    action: BulkJobAction,
+    selection: OrderSelection,
+  ): Promise<void> {
+    setStartingActionKey(action.key);
+    setIsCheckingNotes(true);
+    setNotice(null);
+
+    let result: OrderNotesResponse;
+    let isRequestProblem = false;
+    try {
+      const formData = new FormData();
+      appendOrderSelection(formData, selection);
+      formData.append(LOCALE_PARAM, locale);
+
+      const token = await shopify.idToken();
+      const response = await fetch(ORDER_NOTES_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      // 4xx: the selection itself is wrong (empty, too big), as for a job
+      isRequestProblem = response.status >= 400 && response.status < 500;
+      result = await readJsonResponse<OrderNotesResponse>(response, t);
+    } catch (error) {
+      result = {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    } finally {
+      setIsCheckingNotes(false);
+      setStartingActionKey(null);
+    }
+
+    if (!result.ok && isRequestProblem) {
+      setNotice({
+        tone: "critical",
+        message: `${t(action.title)}: ${result.error}`,
+      });
+      return;
+    }
+
+    if (!result.ok) {
+      setPendingNotesReview({
+        review: {
+          kind: "loadFailed",
+          error: t("notes.couldNotLoad", { error: result.error }),
+        },
+        action,
+        selection,
+      });
+      return;
+    }
+
+    if (result.ordersWithNotes.length === 0) {
+      await startJob(action, selection);
+      return;
+    }
+
+    setPendingNotesReview({
+      review: {
+        kind: "notes",
+        ordersWithNotes: result.ordersWithNotes,
+        orderCount: result.orderIds.length,
+      },
       action,
-      isFilterSelected
-        ? { mode: "filter", filter: activeFilter }
-        : { mode: "ids", orderIds: selectedOrderIds },
+      selection,
+      orderIds: result.orderIds,
+    });
+  }
+
+  function handleNotesConfirmed(leftOutOrderIds: string[]) {
+    const pending = pendingNotesReview;
+    setPendingNotesReview(null);
+    if (!pending) return;
+
+    void startJob(
+      pending.action,
+      leftOutOrderIds.length > 0 && pending.orderIds
+        ? {
+            mode: "ids",
+            orderIds: pending.orderIds.filter(
+              (id) => !leftOutOrderIds.includes(id),
+            ),
+          }
+        : pending.selection,
     );
   }
 
@@ -369,7 +487,7 @@ export function OrdersDashboardPage({
         body: formData,
       });
 
-      const result = await readStartJobResponse(response, t);
+      const result = await readJsonResponse<StartJobResponse>(response, t);
 
       if (result.ok) {
         setNotice({
@@ -508,7 +626,11 @@ export function OrdersDashboardPage({
                         <img src={action.icon} alt="" width={20} height={20} />
                       </span>
                       {startingActionKey === action.key
-                        ? t("dashboard.starting")
+                        ? t(
+                            isCheckingNotes
+                              ? "notes.checking"
+                              : "dashboard.starting",
+                          )
                         : t(action.title)}
                     </button>
                   ))}
@@ -559,6 +681,13 @@ export function OrdersDashboardPage({
         </span>
       </div>
 
+      <CustomerNotesDialog
+        review={pendingNotesReview?.review ?? null}
+        shopAdminUrl={shopAdminUrl}
+        onCancel={() => setPendingNotesReview(null)}
+        onConfirm={handleNotesConfirmed}
+      />
+
       <div className="orders-dashboard-page__recent-jobs">
         <RecentJobsSection
           initialSnapshot={recentJobs}
@@ -572,14 +701,14 @@ export function OrdersDashboardPage({
 }
 
 /** The server always answers JSON, but a proxy or crash page might not. */
-async function readStartJobResponse(
+async function readJsonResponse<T extends { ok: boolean }>(
   response: Response,
   t: Translate,
-): Promise<StartJobResponse> {
+): Promise<T | { ok: false; error: string }> {
   const contentType = response.headers.get("Content-Type") ?? "";
 
   if (contentType.includes("application/json")) {
-    return (await response.json()) as StartJobResponse;
+    return (await response.json()) as T;
   }
 
   const text = await response.text();

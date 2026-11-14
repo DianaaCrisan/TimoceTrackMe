@@ -74,6 +74,7 @@ export const en = {
   "table.noOrders": "No orders found.",
   "table.itemCount": { one: "{count} item", other: "{count} items" },
   "table.missingZip": "Missing",
+  "table.customerNote": "Customer note",
 
   // "ZIP to fix" tab
   "zipFix.intro":
@@ -101,6 +102,28 @@ export const en = {
   "zipFix.inProgress": "Adding tracking...",
   "zipFix.empty":
     "No ZIP codes to fix. When add tracking stops on an order because of its ZIP, the order shows up here.",
+
+  // customer notes, checked before add tracking
+  "notes.checking": "Checking notes...",
+  "notes.couldNotLoad": "Could not load the customer notes: {error}",
+  "notes.dialogTitle": "Read the customer notes first",
+  "notes.dialogIntro": {
+    one: "{count} of the selected orders has a note from the customer. Untick it to leave it out of add tracking, e.g. if the customer asks you to wait.",
+    other:
+      "{count} of the selected orders have a note from the customer. Untick an order to leave it out of add tracking, e.g. if the customer asks you to wait.",
+  },
+  "notes.include": "Add tracking",
+  "notes.leftOut": {
+    one: "{count} order left out",
+    other: "{count} orders left out",
+  },
+  "notes.confirm": {
+    one: "Add tracking for {count} order",
+    other: "Add tracking for {count} orders",
+  },
+  "notes.cancel": "Cancel",
+  "notes.loadFailedTitle": "Customer notes could not be checked",
+  "notes.addWithoutChecking": "Add tracking without checking",
 
   // Shopify payment statuses
   "financialStatus.AUTHORIZED": "Authorized",
@@ -393,6 +416,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     other: "{count} de articole",
   },
   "table.missingZip": "Lipsește",
+  "table.customerNote": "Notă client",
 
   // tabul „Cod poștal de corectat”
   "zipFix.intro":
@@ -422,6 +446,30 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "zipFix.inProgress": "Se adaugă tracking...",
   "zipFix.empty":
     "Niciun cod poștal de corectat. Când adăugarea tracking-ului se oprește la o comandă din cauza codului poștal, comanda apare aici.",
+
+  // note client, verificate înainte de adăugarea tracking-ului
+  "notes.checking": "Se verifică notele...",
+  "notes.couldNotLoad": "Notele clienților nu au putut fi încărcate: {error}",
+  "notes.dialogTitle": "Citește întâi notele clienților",
+  "notes.dialogIntro": {
+    one: "{count} dintre comenzile selectate are o notă de la client. Debifeaz-o ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
+    other:
+      "{count} dintre comenzile selectate au o notă de la client. Debifează o comandă ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
+  },
+  "notes.include": "Adaugă tracking",
+  "notes.leftOut": {
+    one: "{count} comandă lăsată deoparte",
+    few: "{count} comenzi lăsate deoparte",
+    other: "{count} de comenzi lăsate deoparte",
+  },
+  "notes.confirm": {
+    one: "Adaugă tracking pentru {count} comandă",
+    few: "Adaugă tracking pentru {count} comenzi",
+    other: "Adaugă tracking pentru {count} de comenzi",
+  },
+  "notes.cancel": "Anulează",
+  "notes.loadFailedTitle": "Notele clienților nu au putut fi verificate",
+  "notes.addWithoutChecking": "Adaugă tracking fără verificare",
 
   // Shopify payment statuses
   "financialStatus.AUTHORIZED": "Autorizată",

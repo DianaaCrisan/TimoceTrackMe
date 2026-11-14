@@ -1,5 +1,7 @@
+import type { OrdersDashboardOrder } from "app/commons/orders/OrdersDashboardOrder";
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { Badge } from "app/frontend/core/components/Badge";
+import { CustomerNoteCell } from "app/frontend/orders-dashboard/components/CustomerNoteCell";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { DateUtils } from "app/frontend/core/utils/DateUtils";
 import { formatMoney } from "app/frontend/core/utils/money";
@@ -10,10 +12,9 @@ import {
 import { formatFinancialStatusWithTone } from "app/frontend/core/utils/financialStatus";
 import { formatFulfillmentStatusWithTone } from "app/frontend/core/utils/fulfillmentStatus";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable/styles.scss";
-import { OrdersDashboardQuery } from "app/types/admin.generated";
 
 type OrdersDashboardTableProps = {
-  orders: OrdersDashboardQuery["orders"]["edges"][number]["node"][];
+  orders: OrdersDashboardOrder[];
   shopAdminUrl: string;
   selectedOrderIds: string[];
   canSelectMore: boolean;
@@ -53,6 +54,9 @@ export function OrdersDashboardTable({
           </th>
           <th className="orders-dashboard-table__header-cell">
             {t("table.customer")}
+          </th>
+          <th className="orders-dashboard-table__header-cell">
+            {t("table.customerNote")}
           </th>
           <th className="orders-dashboard-table__header-cell">
             {t("table.total")}
@@ -122,6 +126,10 @@ export function OrdersDashboardTable({
 
                 <td className="orders-dashboard-table__body-cell">
                   {order.customer?.displayName ?? ""}
+                </td>
+
+                <td className="orders-dashboard-table__body-cell">
+                  <CustomerNoteCell customerNote={order} />
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
