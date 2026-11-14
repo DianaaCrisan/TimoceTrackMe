@@ -30,7 +30,6 @@ export const en = {
   "filter.unprinted": "Unprinted",
 
   // job names
-  "job.solve-zip": "Solve ZIP codes",
   "job.add-tracking": "Add tracking numbers",
   "job.print-labels": "Print labels",
   "job.test": "Test upload",
@@ -256,12 +255,10 @@ export const en = {
   "fileName.labelsZip": "labels",
   "fileName.printLabelsResults": "print-labels-results",
   "fileName.addTrackingResults": "add-tracking-results",
-  "fileName.solveZipResults": "solve-zip-results",
   "fileName.errors": "errors",
   "fileName.failed": "FAILED_{job}",
   "fileName.test": "trackme-test",
   "fileName.unfulfilledReport": "unfulfilled-report",
-  "fileName.job.solve-zip": "solve-zip",
   "fileName.job.add-tracking": "add-tracking",
   "fileName.job.print-labels": "print-labels",
   "fileName.job.test": "test",
@@ -294,7 +291,6 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "filter.unprinted": "Neprintate",
 
   // job names
-  "job.solve-zip": "Completează codurile poștale",
   "job.add-tracking": "Adaugă numere de tracking",
   "job.print-labels": "Printează etichete",
   "job.test": "Încărcare de test",
@@ -555,12 +551,10 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "fileName.labelsZip": "etichete",
   "fileName.printLabelsResults": "rezultate-printare-etichete",
   "fileName.addTrackingResults": "rezultate-adaugare-tracking",
-  "fileName.solveZipResults": "rezultate-coduri-postale",
   "fileName.errors": "erori",
   "fileName.failed": "ESUAT_{job}",
   "fileName.test": "trackme-test",
   "fileName.unfulfilledReport": "raport-neexecutate",
-  "fileName.job.solve-zip": "coduri-postale",
   "fileName.job.add-tracking": "adaugare-tracking",
   "fileName.job.print-labels": "printare-etichete",
   "fileName.job.test": "test",

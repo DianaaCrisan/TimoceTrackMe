@@ -6,7 +6,6 @@ import { PageInfo } from "app/types/admin.types";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { MAX_ORDERS_PER_JOB } from "app/commons/constants";
 import deliveryIcon from "app/frontend/core/icons/DeliveryIcon.svg";
-import locationIcon from "app/frontend/core/icons/LocationIcon.svg";
 import printIcon from "app/frontend/core/icons/PrintIcon.svg";
 import {
   Link,
@@ -50,7 +49,7 @@ import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
 
 type BulkJobAction = {
-  key: "solve-zip" | "add-tracking" | "print-labels";
+  key: "add-tracking" | "print-labels";
   endpoint: string;
   title: TranslationKey;
   icon: string;
@@ -59,13 +58,7 @@ type BulkJobAction = {
 
 const BULK_JOB_ACTIONS: BulkJobAction[] = [
   {
-    key: "solve-zip",
-    endpoint: "/app/orders-dashboard/solve-zip-codes",
-    title: "job.solve-zip",
-    icon: locationIcon,
-    sendsTimeZone: false,
-  },
-  {
+    // also fills in missing ZIP codes before creating the AWBs
     key: "add-tracking",
     endpoint: "/app/orders-dashboard/add-tracking",
     title: "job.add-tracking",

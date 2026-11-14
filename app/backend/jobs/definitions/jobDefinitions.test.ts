@@ -9,16 +9,11 @@ import {
   buildPrintLabels,
   type PrintLabelsResult,
 } from "../../print-labels/printLabels.server";
-import { SolveZipService } from "../../zip-solver/SolveZipService";
 import type { OrdersJobContext } from "./OrdersJobContext";
 import { buildPrintLabelsArtifact } from "./printLabelsJob.server";
-import { buildSolveZipArtifact } from "./solveZipJob.server";
 
 vi.mock("../../orders/getOrderNames.server", () => ({
   getOrderNames: vi.fn(),
-}));
-vi.mock("../../zip-solver/SolveZipService", () => ({
-  SolveZipService: { solveMissingZipCodesWithOrderIds: vi.fn() },
 }));
 vi.mock("../../print-labels/printLabels.server", () => ({
   buildPrintLabels: vi.fn(),
@@ -55,52 +50,6 @@ async function readResultRows(buf: Buffer): Promise<string[][]> {
   });
   return rows;
 }
-
-describe("buildSolveZipArtifact", () => {
-  beforeEach(() => {
-    vi.mocked(getOrderNames).mockResolvedValue(new Map([[gid(3), "#1003"]]));
-  });
-
-  it("reports solved, failed and skipped orders, counting a ZIP that could not be saved as failed", async () => {
-    vi.mocked(
-      SolveZipService.solveMissingZipCodesWithOrderIds,
-    ).mockResolvedValue({
-      processedOrdersSolvedZip: [
-        {
-          id: gid(1),
-          name: "#1001",
-          zipCode: "400001",
-          confidenceLevel: "high",
-        },
-        {
-          id: gid(2),
-          name: "#1002",
-          zipCode: "500001",
-          confidenceLevel: "medium",
-        },
-      ],
-      processedOrdersUnsolvedZip: [],
-      unsupportedOrders: [
-        { id: gid(2), name: "#1002", errorStack: ["orderUpdate failed"] },
-      ],
-    } as never);
-
-    const artifact = await buildSolveZipArtifact(ctx);
-
-    expect(artifact.summary).toBe("1 succeeded, 1 failed, 1 skipped");
-    expect(artifact.hasErrors).toBe(true);
-    expect(await readResultRows(artifact.buf)).toEqual([
-      [
-        "#1002",
-        "Failed",
-        "ZIP set to 500001 (medium confidence)",
-        "orderUpdate failed",
-      ],
-      ["#1003", "Skipped", "Already has a ZIP code, or is a pickup order.", ""],
-      ["#1001", "Succeeded", "ZIP set to 400001 (high confidence)", ""],
-    ]);
-  });
-});
 
 describe("buildPrintLabelsArtifact", () => {
   const printResult = (
