@@ -127,6 +127,30 @@ describe("startBackgroundJob", () => {
     });
   });
 
+  it("names the failure file as the caller asks", async () => {
+    const { deps, finished } = setup();
+
+    startBackgroundJob(
+      jobInput({
+        failureFileName: "ESUAT_printare-etichete.txt",
+        build: async () => {
+          throw new Error("Optimus is down");
+        },
+      }),
+      deps,
+    );
+    await finished;
+
+    expect(deps.uploadToS3).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "TrackMeTest/print-labels/2026-11-13/14-35-02_a1b2c3d4_ESUAT_printare-etichete.txt",
+      }),
+    );
+    expect(deps.registry.list()[0]).toMatchObject({
+      fileName: "ESUAT_printare-etichete.txt",
+    });
+  });
+
   it("still records the failure when even the failure file cannot be stored", async () => {
     const { deps, finished } = setup();
     deps.uploadToS3.mockRejectedValue(new Error("AccessDenied"));

@@ -14,18 +14,6 @@ export const GET_ORDERS_PRINT_LABELS_INPUT_QUERY = `#graphql
           lastName
           phone
         }
-        shippingLines(first: 10) {
-          edges {
-            node {
-              title
-              taxLines {
-                title
-                ratePercentage
-              }
-            }
-          }
-        }
-
         fulfillmentOrders(first: 50) {
           edges {
             node {

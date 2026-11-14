@@ -51,7 +51,7 @@ describe("LabelUnitFactory", () => {
       deliveryFulfillments: [],
     };
 
-    const { units, labelUnitKind } = await factory.buildForOrder(order);
+    const { units, labelUnitKind } = await factory.buildForOrder(order, "ro");
 
     expect(labelUnitKind).toBe(LabelUnitKind.PICKUP);
     expect(units).toHaveLength(1);
@@ -73,6 +73,9 @@ describe("LabelUnitFactory", () => {
     );
 
     expect(generatePickupLabelPDF).toHaveBeenCalledOnce();
+    expect(generatePickupLabelPDF).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "ro" }),
+    );
     expect(getCarrierLabelPDF).not.toHaveBeenCalled();
   });
 
@@ -136,7 +139,7 @@ describe("LabelUnitFactory", () => {
       deliveryFulfillments: [],
     };
 
-    const { units, labelUnitKind } = await factory.buildForOrder(order);
+    const { units, labelUnitKind } = await factory.buildForOrder(order, "ro");
 
     expect(labelUnitKind).toBe(LabelUnitKind.PICKUP);
     expect(units).toHaveLength(2);
@@ -224,7 +227,7 @@ describe("LabelUnitFactory", () => {
       ],
     };
 
-    const { units, labelUnitKind } = await factory.buildForOrder(order);
+    const { units, labelUnitKind } = await factory.buildForOrder(order, "ro");
 
     expect(labelUnitKind).toBe(LabelUnitKind.DELIVERY);
     expect(units).toHaveLength(2);
@@ -291,7 +294,7 @@ describe("LabelUnitFactory", () => {
       deliveryFulfillments: [],
     };
 
-    const { units, labelUnitKind } = await factory.buildForOrder(order);
+    const { units, labelUnitKind } = await factory.buildForOrder(order, "ro");
 
     expect(labelUnitKind).toBe(LabelUnitKind.PICKUP);
     expect(units).toHaveLength(1);
@@ -328,7 +331,7 @@ describe("LabelUnitFactory", () => {
       deliveryFulfillments: [],
     };
 
-    await expect(factory.buildForOrder(order)).rejects.toThrow(
+    await expect(factory.buildForOrder(order, "ro")).rejects.toThrow(
       'Variant id missing for pickup item "Papaya - 2kg" in order gid://shopify/Order/4.',
     );
   });
@@ -363,7 +366,7 @@ describe("LabelUnitFactory", () => {
       ],
     };
 
-    await expect(factory.buildForOrder(order)).rejects.toThrow(
+    await expect(factory.buildForOrder(order, "ro")).rejects.toThrow(
       "Variant id missing for fulfillment gid://shopify/Fulfillment/51 in order #1005.",
     );
   });

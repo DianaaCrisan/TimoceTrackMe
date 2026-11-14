@@ -5,6 +5,7 @@ import { isEnvSet } from "../core/utils/readRequiredEnv";
 import type { RecentJobsSnapshot } from "app/commons/jobs/RecentJobView";
 import type { S3SetupStatus } from "app/commons/jobs/S3SetupStatus";
 import { translateEn, type Translate } from "app/commons/i18n/translate";
+import { buildFailureFileName } from "./buildFailureFileName";
 import { jobRegistry } from "./JobRegistry";
 import {
   startBackgroundJob,
@@ -88,9 +89,10 @@ export function startTestJob(
     job: "test",
     title: "Test upload",
     orderIds: [],
+    failureFileName: buildFailureFileName("test", t),
     build: async () => ({
       buf: Buffer.from(`TrackMe test file\nCreated at ${createdAt}\n`, "utf8"),
-      fileName: "trackme-test.txt",
+      fileName: `${t("fileName.test")}.txt`,
       contentType: "text/plain; charset=utf-8",
       summary: t("summary.testFileUploaded"),
     }),

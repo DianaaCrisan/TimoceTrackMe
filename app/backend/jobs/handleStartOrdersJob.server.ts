@@ -9,6 +9,7 @@ import {
   parseOrderSelection,
   resolveOrderIds,
 } from "../orders/resolveOrderSelection.server";
+import { buildFailureFileName } from "./buildFailureFileName";
 import { createJobAdmin } from "./createJobAdmin.server";
 import type { OrdersJobContext } from "./definitions/OrdersJobContext";
 import {
@@ -58,6 +59,7 @@ export async function handleStartOrdersJob(
       job: definition.job,
       title: definition.title,
       orderIds,
+      failureFileName: buildFailureFileName(definition.job, t),
       build: () =>
         definition.buildArtifact({
           admin: jobAdmin,

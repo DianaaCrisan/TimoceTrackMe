@@ -4,6 +4,9 @@ import { LabelUnitDetails } from "./models/LabelUnitDetails";
 import { LabelUnitKind } from "./models/LabelUnitKind";
 import { GroupedPdfComposer } from "./GroupedPdfComposer";
 import { LineItem } from "./models/LineItem";
+import { createTranslator } from "app/commons/i18n/translate";
+
+const t = createTranslator("ro");
 
 describe("GroupedPdfComposer", () => {
   it("prints one totals page, then per identical items group one header page (items and order numbers) followed by its labels", async () => {
@@ -73,6 +76,7 @@ describe("GroupedPdfComposer", () => {
         ["gid://shopify/Order/2", "#2"],
         ["gid://shopify/Order/3", "#3"],
       ]),
+      t,
     );
 
     expect(errors).toEqual([]);
@@ -104,6 +108,7 @@ describe("GroupedPdfComposer", () => {
     expect(generateTotalsPDF).toHaveBeenCalledWith(
       { delivery: 2, pickup: 1, total: 3 },
       expect.arrayContaining(["#1", "#2", "#3"]),
+      t,
     );
 
     expect(generateGroupHeaderPDF).toHaveBeenCalledTimes(2);
@@ -139,7 +144,11 @@ describe("GroupedPdfComposer", () => {
     });
 
     await expect(
-      composer.compose([badUnit], new Map([["gid://shopify/Order/3", "#3"]])),
+      composer.compose(
+        [badUnit],
+        new Map([["gid://shopify/Order/3", "#3"]]),
+        t,
+      ),
     ).resolves.toMatchObject({
       appended: [],
       errors: [{ orderIds: ["gid://shopify/Order/3"], message: "some error" }],
@@ -198,6 +207,7 @@ describe("GroupedPdfComposer", () => {
     const { pdfData, errors } = await composer.compose(
       [uQty4, uQty1],
       new Map([["gid://shopify/Order/999", "#999"]]),
+      t,
     );
 
     expect(pdfData).toBeInstanceOf(Buffer);
@@ -222,12 +232,14 @@ describe("GroupedPdfComposer", () => {
       expect.anything(),
       1,
       ["#999"],
+      t,
     );
     expect(generateGroupHeaderPDF).toHaveBeenNthCalledWith(
       2,
       expect.anything(),
       1,
       ["#999"],
+      t,
     );
   });
 
@@ -256,6 +268,7 @@ describe("GroupedPdfComposer", () => {
         unit("gid://shopify/Order/2", "F2"),
       ],
       new Map(),
+      t,
     );
 
     expect(appended.map((u) => u.unitId)).toEqual(["F1"]);

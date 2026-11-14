@@ -1,4 +1,5 @@
 import { PDFDocument } from "pdf-lib";
+import type { Translate } from "app/commons/i18n/translate";
 
 import type { LabelUnitDetails } from "./models/LabelUnitDetails";
 import { appendPDFToDocument } from "./utils/appendPDFToDocument";
@@ -29,6 +30,9 @@ type Deps = {
  * 1. a totals page: label counts and every order in the PDF, as ranges
  * 2. per group of units with identical items: a header page (items, then the
  *    group's order numbers), followed by the group's labels
+ *
+ * The pages it writes itself are worded with `t`, the language of whoever
+ * printed the labels.
  */
 export class GroupedPdfComposer {
   // eslint-disable-next-line no-useless-constructor
@@ -43,6 +47,7 @@ export class GroupedPdfComposer {
   async compose(
     units: LabelUnitDetails[],
     orderNamesById: Map<string, string>,
+    t: Translate,
   ): Promise<{
     pdfData?: Buffer;
     errors: ComposeError[];
@@ -73,6 +78,7 @@ export class GroupedPdfComposer {
         const totalsBytes = await this.deps.generateTotalsPDF(
           counts,
           usableOrderNames,
+          t,
         );
         await this.deps.appendPDFToDocument(Buffer.from(totalsBytes), merged);
       } catch (e) {
@@ -93,6 +99,7 @@ export class GroupedPdfComposer {
           g.items,
           g.units.length,
           groupOrderIds.map((id) => orderNamesById.get(id) ?? id),
+          t,
         );
         await this.deps.appendPDFToDocument(Buffer.from(headerBytes), merged);
       } catch (e) {

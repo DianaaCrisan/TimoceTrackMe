@@ -7,6 +7,7 @@ import {
   countOrderResults,
   type OrderResultRow,
 } from "../../reports/OrderResultRow";
+import { DEFAULT_LOCALE } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import type { JobArtifact } from "../startBackgroundJob.server";
 import type { OrdersJobContext } from "./OrdersJobContext";
@@ -25,13 +26,18 @@ export const PRINT_LABELS_JOB = {
  *
  * Fails the job only when there are errors and no PDF at all; a run where
  * every order is simply skipped still produces its report.
+ *
+ * The PDFs and every file name follow the language of whoever started it.
  */
 export async function buildPrintLabelsArtifact(
   ctx: OrdersJobContext,
 ): Promise<JobArtifact> {
+  const locale = ctx.locale ?? DEFAULT_LOCALE;
+  const t = createTranslator(locale);
   const result = await buildPrintLabels(ctx.admin, ctx.shopUrl, {
     orderIds: ctx.orderIds,
     timeZone: ctx.timeZone,
+    locale,
   });
 
   const orderErrors = [...result.errorsByOrderId.values()].flat();
@@ -90,7 +96,7 @@ export async function buildPrintLabelsArtifact(
   const zip = new JSZip();
   for (const file of result.files) zip.file(file.fileName, file.buf);
   zip.file(
-    "print-labels-results.xlsx",
+    `${t("fileName.printLabelsResults")}.xlsx`,
     await buildOrderResultsWorkbook({
       title: PRINT_LABELS_JOB.title,
       shopAdminUrl: ctx.shopUrl,
@@ -98,11 +104,11 @@ export async function buildPrintLabelsArtifact(
       createdAt: ctx.startedAt,
     }),
   );
+  const errorsFileName = `${t("fileName.errors")}.txt`;
   if (result.generalErrors.length > 0) {
-    zip.file("errors.txt", `${result.generalErrors.join("\n")}\n`);
+    zip.file(errorsFileName, `${result.generalErrors.join("\n")}\n`);
   }
 
-  const t = createTranslator(ctx.locale);
   const failedOrderCount = countOrderResults(rows).failed;
   const markingFailureCount = markingFailuresByOrderId.size;
   const summary = [
@@ -116,14 +122,16 @@ export async function buildPrintLabelsArtifact(
     markingFailureCount > 0
       ? t("summary.notMarkedPrinted", { count: markingFailureCount })
       : null,
-    result.generalErrors.length > 0 ? t("summary.seeErrorsFile") : null,
+    result.generalErrors.length > 0
+      ? t("summary.seeErrorsFile", { fileName: errorsFileName })
+      : null,
   ]
     .filter(Boolean)
     .join(", ");
 
   return {
     buf: await zip.generateAsync({ type: "nodebuffer" }),
-    fileName: `labels_${result.timestamp}.zip`,
+    fileName: `${t("fileName.labelsZip")}_${result.timestamp}.zip`,
     contentType: "application/zip",
     hasErrors:
       failedOrderCount > 0 ||
