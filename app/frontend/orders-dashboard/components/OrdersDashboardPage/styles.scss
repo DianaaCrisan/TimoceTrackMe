@@ -4,14 +4,19 @@ $font-color: rgb(48, 48, 48);
 // space (its table scrolls inside it), and pagination and Recent jobs stay at
 // the bottom however few orders there are.
 //
-// - 16px: the body's default 8px margin, top and bottom
+// Pinned to the window rather than sized with `100vh`: the app shell puts
+// other elements in the body (title bar, nav), and any pixel they add on top
+// of a full-height page makes the whole frame scroll. Pinned, the page cannot
+// push the body past the window; on a very short window it scrolls itself.
+//
+// - 8px: the gap the body's default margin used to give
 // - the bottom padding keeps Shopify's floating Sidekick bar off Recent jobs
 .orders-dashboard-page {
-  width: 100%;
-  max-width: none;
-  height: calc(100vh - 16px);
+  position: fixed;
+  inset: 8px 8px 0;
   box-sizing: border-box;
   padding-bottom: 56px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 
