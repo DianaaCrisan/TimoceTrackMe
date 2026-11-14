@@ -1,6 +1,6 @@
 $font-color: rgb(48, 48, 48);
 
-.customer-notes-dialog {
+.tracking-review-dialog {
   width: min(640px, calc(100vw - 32px));
   max-height: calc(100vh - 48px);
   box-sizing: border-box;
@@ -22,20 +22,20 @@ $font-color: rgb(48, 48, 48);
   }
 }
 
-.customer-notes-dialog__title {
+.tracking-review-dialog__title {
   margin: 0;
   padding: 16px 20px 4px;
   font-size: 16px;
 }
 
-.customer-notes-dialog__intro {
+.tracking-review-dialog__intro {
   margin: 0;
   padding: 0 20px 12px;
   color: #616161;
   line-height: 18px;
 }
 
-.customer-notes-dialog__list {
+.tracking-review-dialog__list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -44,7 +44,7 @@ $font-color: rgb(48, 48, 48);
   list-style: none;
 }
 
-.customer-notes-dialog__item {
+.tracking-review-dialog__item {
   padding: 10px 0;
   border-top: 1px solid #e1e3e5;
 
@@ -53,24 +53,24 @@ $font-color: rgb(48, 48, 48);
   }
 }
 
-.customer-notes-dialog__item-header {
+.tracking-review-dialog__item-header {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 6px;
 }
 
-.customer-notes-dialog__order-link {
+.tracking-review-dialog__order-link {
   font-weight: 600;
   color: #005bd3;
   text-decoration: none;
 }
 
-.customer-notes-dialog__customer {
+.tracking-review-dialog__customer {
   color: #616161;
 }
 
-.customer-notes-dialog__include {
+.tracking-review-dialog__include {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -79,7 +79,7 @@ $font-color: rgb(48, 48, 48);
   cursor: pointer;
 }
 
-.customer-notes-dialog__note {
+.tracking-review-dialog__note {
   padding: 8px 10px;
   border: 1px solid #f0c94c;
   border-left-width: 3px;
@@ -89,7 +89,7 @@ $font-color: rgb(48, 48, 48);
   overflow-wrap: anywhere;
 }
 
-.customer-notes-dialog__footer {
+.tracking-review-dialog__footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -98,13 +98,13 @@ $font-color: rgb(48, 48, 48);
   border-top: 1px solid #e1e3e5;
 }
 
-.customer-notes-dialog__left-out {
+.tracking-review-dialog__left-out {
   margin-right: auto;
   color: #616161;
 }
 
-.customer-notes-dialog__secondary,
-.customer-notes-dialog__primary {
+.tracking-review-dialog__secondary,
+.tracking-review-dialog__primary {
   padding: 6px 14px;
   border-radius: 10px;
   font: inherit;
@@ -112,12 +112,12 @@ $font-color: rgb(48, 48, 48);
   white-space: nowrap;
 }
 
-.customer-notes-dialog__secondary {
+.tracking-review-dialog__secondary {
   border: 1px solid #c9cccf;
   background: white;
 }
 
-.customer-notes-dialog__primary {
+.tracking-review-dialog__primary {
   border: 1px solid #303030;
   background: #303030;
   color: white;
@@ -127,4 +127,12 @@ $font-color: rgb(48, 48, 48);
     opacity: 0.45;
     cursor: not-allowed;
   }
+}
+
+.tracking-review-dialog__weight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #4a3b00;
 }

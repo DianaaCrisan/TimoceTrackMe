@@ -18,14 +18,22 @@ import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSectio
 import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
+import { SettingsRepository } from "app/backend/settings/SettingsRepository.server";
+import {
+  AUTO_SPLIT_HEAVY_ORDERS_FIELD,
+  PARCEL_WEIGHT_LIMIT_FIELD,
+  parseWeightLimitKg,
+} from "app/commons/settings/ParcelWeightSettings";
 
 const OPTIMUS_TEST_INTENT = "optimusTest";
 const S3_TEST_INTENT = "s3Test";
+const PARCEL_WEIGHT_INTENT = "parcelWeight";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
   return {
+    parcelWeight: await SettingsRepository.getParcelWeight(),
     credentials: getOptimusTestCredentialsForDisplay(),
     s3Setup: getS3SetupStatus(),
     recentJobs: await getRecentJobsSnapshot(),
@@ -38,6 +46,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
   const t = createTranslator(resolveLocale(formData.get(LOCALE_PARAM)));
+
+  if (intent === PARCEL_WEIGHT_INTENT) {
+    const parcelWeightLimitKg = parseWeightLimitKg(
+      formData.get(PARCEL_WEIGHT_LIMIT_FIELD),
+    );
+    if (parcelWeightLimitKg === undefined) {
+      return {
+        intent,
+        ok: false,
+        data: { message: t("settings.invalidWeightLimit") },
+      };
+    }
+
+    await SettingsRepository.update({
+      parcelWeightLimitKg,
+      autoSplitHeavyOrders:
+        formData.get(AUTO_SPLIT_HEAVY_ORDERS_FIELD) === "true",
+    });
+    return { intent, ok: true, data: { message: t("settings.saved") } };
+  }
 
   if (intent === S3_TEST_INTENT) {
     try {
@@ -89,7 +117,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function AdminPanelPage() {
-  const { credentials, s3Setup, recentJobs } = useLoaderData<typeof loader>();
+  const { parcelWeight, credentials, s3Setup, recentJobs } =
+    useLoaderData<typeof loader>();
+  const settingsFetcher = useFetcher<typeof action>();
   const optimusFetcher = useFetcher<typeof action>();
   const s3TestFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
@@ -121,6 +151,11 @@ export default function AdminPanelPage() {
   }, [optimusFetcher.data, shopify]);
 
   useEffect(() => {
+    if (settingsFetcher.data?.ok) shopify.toast.show(t("settings.saved"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsFetcher.data, shopify]);
+
+  useEffect(() => {
     if (!s3TestFetcher.data) return;
 
     shopify.toast.show(
@@ -134,6 +169,60 @@ export default function AdminPanelPage() {
   return (
     <s-page heading={t("admin.heading")}>
       <s-stack direction="block" gap="large">
+        <s-section heading={t("settings.parcelWeightHeading")}>
+          <settingsFetcher.Form method="post">
+            <input type="hidden" name="intent" value={PARCEL_WEIGHT_INTENT} />
+            <input type="hidden" name={LOCALE_PARAM} value={locale} />
+            <s-stack direction="block" gap="base">
+              <s-paragraph>{t("settings.parcelWeightIntro")}</s-paragraph>
+              <s-stack direction="block" gap="small-200">
+                {/* a few digits: a full-width field reads as a long text */}
+                <s-box maxInlineSize="200px">
+                  <s-number-field
+                    label={t("settings.weightLimit")}
+                    name={PARCEL_WEIGHT_LIMIT_FIELD}
+                    defaultValue={
+                      parcelWeight.parcelWeightLimitKg?.toString() ?? ""
+                    }
+                    suffix="kg"
+                    inputMode="decimal"
+                    min={0}
+                    step={0.1}
+                  />
+                </s-box>
+                <s-text color="subdued">
+                  {t("settings.weightLimitDetails")}
+                </s-text>
+              </s-stack>
+              <s-checkbox
+                label={t("settings.autoSplit")}
+                name={AUTO_SPLIT_HEAVY_ORDERS_FIELD}
+                value="true"
+                defaultChecked={parcelWeight.autoSplitHeavyOrders}
+                details={t("settings.autoSplitDetails")}
+              />
+              {settingsFetcher.data?.ok === false ? (
+                <s-banner tone="critical">
+                  {"message" in settingsFetcher.data.data
+                    ? settingsFetcher.data.data.message
+                    : null}
+                </s-banner>
+              ) : null}
+              <div>
+                <s-button
+                  type="submit"
+                  variant="primary"
+                  {...(settingsFetcher.state !== "idle"
+                    ? { loading: true }
+                    : {})}
+                >
+                  {t("settings.save")}
+                </s-button>
+              </div>
+            </s-stack>
+          </settingsFetcher.Form>
+        </s-section>
+
         <s-section heading={t("admin.credentialsHeading")}>
           <s-stack direction="block" gap="base">
             <s-paragraph>{t("admin.credentialsIntro")}</s-paragraph>

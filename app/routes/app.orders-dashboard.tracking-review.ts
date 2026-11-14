@@ -2,19 +2,20 @@ import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "app/shopify.server";
 import { RequestError } from "app/backend/core/errors/RequestError";
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
-import { getOrdersWithCustomerNotes } from "app/backend/orders/getOrdersWithCustomerNotes.server";
+import { getOrdersToReview } from "app/backend/orders/getOrdersToReview.server";
 import {
   parseOrderSelection,
   resolveOrderIds,
 } from "app/backend/orders/resolveOrderSelection.server";
+import { SettingsRepository } from "app/backend/settings/SettingsRepository.server";
 import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator, translateEn } from "app/commons/i18n/translate";
-import type { OrderNotesResponse } from "app/commons/orders/CustomerNote";
+import type { TrackingReviewResponse } from "app/commons/orders/TrackingReview";
 
 /**
  * Asked by the dashboard before add tracking: which of the selected orders
- * carry a customer note, so the admin reads them before the orders ship.
- * Takes the same selection form as the bulk jobs.
+ * the admin should look at first (customer notes, heavy parcels). Takes the
+ * same selection form as the bulk jobs.
  */
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -25,37 +26,40 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     t = createTranslator(resolveLocale(formData.get(LOCALE_PARAM)));
 
     const shopUrl = ShopifyUtils.getShopAdminUrl(session.shop);
-    const orderIds = await resolveOrderIds(
-      admin,
-      shopUrl,
-      parseOrderSelection(formData, t),
-      t,
-    );
+    const [orderIds, parcelWeight] = await Promise.all([
+      resolveOrderIds(admin, shopUrl, parseOrderSelection(formData, t), t),
+      SettingsRepository.getParcelWeight(),
+    ]);
 
     return respond(200, {
       ok: true,
       orderIds,
-      ordersWithNotes: await getOrdersWithCustomerNotes(
+      ordersToReview: await getOrdersToReview(
         admin,
         shopUrl,
         orderIds,
+        parcelWeight,
       ),
+      parcelWeightLimitKg: parcelWeight.parcelWeightLimitKg,
     });
   } catch (error) {
     if (error instanceof RequestError) {
       return respond(error.status, { ok: false, error: error.message });
     }
 
-    console.error("AppError[OrderNotes] could not load customer notes.", error);
+    console.error(
+      "AppError[TrackingReview] could not load the orders to review.",
+      error,
+    );
     return respond(500, {
       ok: false,
-      error: t("notes.couldNotLoad", {
+      error: t("trackingReview.couldNotLoad", {
         error: error instanceof Error ? error.message : String(error),
       }),
     });
   }
 };
 
-function respond(status: number, body: OrderNotesResponse): Response {
+function respond(status: number, body: TrackingReviewResponse): Response {
   return Response.json(body, { status });
 }

@@ -16,6 +16,8 @@ import {
   PAGE_PARAM,
 } from "app/commons/pagination/PageNumbers";
 import { OrdersDashboardPage } from "app/frontend/orders-dashboard/components/OrdersDashboardPage";
+import { SettingsRepository } from "app/backend/settings/SettingsRepository.server";
+import { withShippedParcelCounts } from "app/backend/orders/getShippedParcelCounts.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -23,7 +25,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const filter = parseOrdersDashboardFilter(url.searchParams.get("filter"));
 
-  const [data, ordersCount, recentJobs] = await Promise.all([
+  const [data, ordersCount, recentJobs, parcelWeight] = await Promise.all([
     getOrdersDashboardData(admin, {
       after: url.searchParams.get("after"),
       before: url.searchParams.get("before"),
@@ -31,10 +33,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }),
     getOrdersCount(admin, filter),
     getRecentJobsSnapshot(),
+    SettingsRepository.getParcelWeight(),
   ]);
+  const shopAdminUrl = ShopifyUtils.getShopAdminUrl(session.shop);
 
   return {
     ...data,
+    orders: await withShippedParcelCounts(
+      admin,
+      shopAdminUrl,
+      data.orders,
+      parcelWeight,
+    ),
     filter,
     ordersCount,
     pageNumbers: buildPageNumbers({
@@ -43,7 +53,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       count: ordersCount,
     }),
     recentJobs,
-    shopAdminUrl: ShopifyUtils.getShopAdminUrl(session.shop),
+    shopAdminUrl,
+    parcelWeight,
   };
 };
 
@@ -56,6 +67,7 @@ export default function OrdersDashboardRoute() {
     ordersCount,
     pageNumbers,
     recentJobs,
+    parcelWeight,
   } = useLoaderData<typeof loader>();
   const { t } = useI18n();
 
@@ -70,6 +82,7 @@ export default function OrdersDashboardRoute() {
         ordersCount={ordersCount}
         pageNumbers={pageNumbers}
         recentJobs={recentJobs}
+        parcelWeight={parcelWeight}
       />
     </>
   );

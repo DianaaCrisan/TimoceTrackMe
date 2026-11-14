@@ -38,6 +38,7 @@ export const en = {
   // dashboard
   "dashboard.starting": "Starting...",
   "dashboard.dismiss": "Dismiss",
+  "dashboard.loading": "Loading...",
   "dashboard.jobStarted": {
     one: "{title} started for {count} order. When it finishes, the list refreshes and the result appears under Recent jobs.",
     other:
@@ -75,6 +76,33 @@ export const en = {
   "table.itemCount": { one: "{count} item", other: "{count} items" },
   "table.missingZip": "Missing",
   "table.customerNote": "Customer note",
+  "table.weight": "Weight",
+
+  // order weight, against the limit per parcel
+  "weight.overLimit": "Over {limit}",
+  "weight.willSplit": "Will be split into parcels",
+  "weight.splitInto": {
+    one: "Shipped in {count} parcel",
+    other: "Split into {count} parcels",
+  },
+  "weight.limitTitle": "Over the {limit} limit per parcel",
+  "trackingReview.overWeightLimit":
+    "Over the {limit} limit per parcel. Automatic split is off, so it will ship as one parcel.",
+
+  // settings in the admin panel
+  "settings.parcelWeightHeading": "Parcel weight",
+  "settings.parcelWeightIntro":
+    "Orders heavier than the limit are highlighted on the Orders page. With automatic split on, adding tracking ships them as several parcels, each with its own shipping label marked 1/3, 2/3 and so on.",
+  "settings.weightLimit": "Weight limit per parcel",
+  "settings.weightLimitDetails":
+    "Leave empty to turn the check off. Set it a few kg below the courier's maximum: products sold by weight often weigh more than listed.",
+  "settings.autoSplit": "Split heavy orders automatically",
+  "settings.autoSplitDetails":
+    "When adding tracking, an order over the limit is packed into several parcels, each with its own AWB. When off, heavy orders are only highlighted, and listed for a check before adding tracking.",
+  "settings.save": "Save",
+  "settings.saved": "Settings saved",
+  "settings.invalidWeightLimit":
+    "The weight limit must be a number of kg greater than 0, or empty.",
 
   // "ZIP to fix" tab
   "zipFix.intro":
@@ -104,26 +132,26 @@ export const en = {
     "No ZIP codes to fix. When add tracking stops on an order because of its ZIP, the order shows up here.",
 
   // customer notes, checked before add tracking
-  "notes.checking": "Checking notes...",
-  "notes.couldNotLoad": "Could not load the customer notes: {error}",
-  "notes.dialogTitle": "Read the customer notes first",
-  "notes.dialogIntro": {
-    one: "{count} of the selected orders has a note from the customer. Untick it to leave it out of add tracking, e.g. if the customer asks you to wait.",
+  "trackingReview.checking": "Checking orders...",
+  "trackingReview.couldNotLoad": "Could not check the orders: {error}",
+  "trackingReview.dialogTitle": "Check these orders first",
+  "trackingReview.dialogIntro": {
+    one: "{count} of the selected orders has a customer note or is over the weight limit. Untick it to leave it out of add tracking, e.g. if the customer asks you to wait.",
     other:
-      "{count} of the selected orders have a note from the customer. Untick an order to leave it out of add tracking, e.g. if the customer asks you to wait.",
+      "{count} of the selected orders have a customer note or are over the weight limit. Untick an order to leave it out of add tracking, e.g. if the customer asks you to wait.",
   },
-  "notes.include": "Add tracking",
-  "notes.leftOut": {
+  "trackingReview.include": "Add tracking",
+  "trackingReview.leftOut": {
     one: "{count} order left out",
     other: "{count} orders left out",
   },
-  "notes.confirm": {
+  "trackingReview.confirm": {
     one: "Add tracking for {count} order",
     other: "Add tracking for {count} orders",
   },
-  "notes.cancel": "Cancel",
-  "notes.loadFailedTitle": "Customer notes could not be checked",
-  "notes.addWithoutChecking": "Add tracking without checking",
+  "trackingReview.cancel": "Cancel",
+  "trackingReview.loadFailedTitle": "The orders could not be checked",
+  "trackingReview.addWithoutChecking": "Add tracking without checking",
 
   // Shopify payment statuses
   "financialStatus.AUTHORIZED": "Authorized",
@@ -362,6 +390,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // dashboard
   "dashboard.starting": "Se pornește...",
   "dashboard.dismiss": "Închide",
+  "dashboard.loading": "Se încarcă...",
   "dashboard.jobStarted": {
     one: "{title} a pornit pentru {count} comandă. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
     few: "{title} a pornit pentru {count} comenzi. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
@@ -417,6 +446,34 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   },
   "table.missingZip": "Lipsește",
   "table.customerNote": "Notă client",
+  "table.weight": "Greutate",
+
+  // greutatea comenzii, față de limita pe colet
+  "weight.overLimit": "Peste {limit}",
+  "weight.willSplit": "Se va împărți în colete",
+  "weight.splitInto": {
+    one: "Expediată într-un colet",
+    few: "Împărțită în {count} colete",
+    other: "Împărțită în {count} de colete",
+  },
+  "weight.limitTitle": "Peste limita de {limit} pe colet",
+  "trackingReview.overWeightLimit":
+    "Peste limita de {limit} pe colet. Împărțirea automată este oprită, așa că va pleca într-un singur colet.",
+
+  // setări în panoul de administrare
+  "settings.parcelWeightHeading": "Greutatea coletelor",
+  "settings.parcelWeightIntro":
+    "Comenzile mai grele decât limita sunt evidențiate pe pagina Comenzi. Cu împărțirea automată pornită, la adăugarea tracking-ului pleacă în mai multe colete, fiecare cu eticheta lui de expediere, marcată 1/3, 2/3 și așa mai departe.",
+  "settings.weightLimit": "Greutate maximă pe colet",
+  "settings.weightLimitDetails":
+    "Lasă gol ca să oprești verificarea. Pune câteva kg sub maximul curierului: produsele vândute la kilogram cântăresc des mai mult decât e trecut.",
+  "settings.autoSplit": "Împarte automat comenzile grele",
+  "settings.autoSplitDetails":
+    "La adăugarea tracking-ului, o comandă peste limită e împărțită în mai multe colete, fiecare cu AWB-ul lui. Când e oprită, comenzile grele sunt doar evidențiate și afișate pentru verificare înainte de adăugarea tracking-ului.",
+  "settings.save": "Salvează",
+  "settings.saved": "Setările au fost salvate",
+  "settings.invalidWeightLimit":
+    "Greutatea maximă trebuie să fie un număr de kg mai mare decât 0, sau gol.",
 
   // tabul „Cod poștal de corectat”
   "zipFix.intro":
@@ -448,28 +505,29 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     "Niciun cod poștal de corectat. Când adăugarea tracking-ului se oprește la o comandă din cauza codului poștal, comanda apare aici.",
 
   // note client, verificate înainte de adăugarea tracking-ului
-  "notes.checking": "Se verifică notele...",
-  "notes.couldNotLoad": "Notele clienților nu au putut fi încărcate: {error}",
-  "notes.dialogTitle": "Citește întâi notele clienților",
-  "notes.dialogIntro": {
-    one: "{count} dintre comenzile selectate are o notă de la client. Debifeaz-o ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
+  "trackingReview.checking": "Se verifică comenzile...",
+  "trackingReview.couldNotLoad": "Comenzile nu au putut fi verificate: {error}",
+  "trackingReview.dialogTitle": "Verifică întâi aceste comenzi",
+  "trackingReview.dialogIntro": {
+    one: "{count} dintre comenzile selectate are o notă de la client sau depășește greutatea maximă. Debifeaz-o ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
+    few: "{count} dintre comenzile selectate au o notă de la client sau depășesc greutatea maximă. Debifează o comandă ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
     other:
-      "{count} dintre comenzile selectate au o notă de la client. Debifează o comandă ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
+      "{count} dintre comenzile selectate au o notă de la client sau depășesc greutatea maximă. Debifează o comandă ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
   },
-  "notes.include": "Adaugă tracking",
-  "notes.leftOut": {
+  "trackingReview.include": "Adaugă tracking",
+  "trackingReview.leftOut": {
     one: "{count} comandă lăsată deoparte",
     few: "{count} comenzi lăsate deoparte",
     other: "{count} de comenzi lăsate deoparte",
   },
-  "notes.confirm": {
+  "trackingReview.confirm": {
     one: "Adaugă tracking pentru {count} comandă",
     few: "Adaugă tracking pentru {count} comenzi",
     other: "Adaugă tracking pentru {count} de comenzi",
   },
-  "notes.cancel": "Anulează",
-  "notes.loadFailedTitle": "Notele clienților nu au putut fi verificate",
-  "notes.addWithoutChecking": "Adaugă tracking fără verificare",
+  "trackingReview.cancel": "Anulează",
+  "trackingReview.loadFailedTitle": "Comenzile nu au putut fi verificate",
+  "trackingReview.addWithoutChecking": "Adaugă tracking fără verificare",
 
   // Shopify payment statuses
   "financialStatus.AUTHORIZED": "Autorizată",

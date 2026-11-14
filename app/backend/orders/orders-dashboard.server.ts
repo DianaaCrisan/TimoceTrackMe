@@ -9,6 +9,7 @@ import { FetchResponseBody } from "@shopify/admin-api-client";
 import type { OrdersDashboardFilter } from "app/commons/orders/OrdersDashboardFilter";
 import { buildOrdersSearchQuery } from "./buildOrdersSearchQuery";
 import { toCustomerNote } from "app/commons/orders/CustomerNote";
+import { toKilograms } from "app/commons/shipping/Weight";
 
 const ORDER_PAGE_SIZE = 50;
 
@@ -50,6 +51,7 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           displayFulfillmentStatus
           currentSubtotalLineItemsQuantity
           cancelledAt
+          currentTotalWeight
           note
           customAttributes {
             key
@@ -148,6 +150,8 @@ export async function getOrdersDashboardData(
       currentSubtotalLineItemsQuantity:
         edge.node.currentSubtotalLineItemsQuantity,
       cancelledAt: edge.node.cancelledAt,
+      weightKg: toOrderWeightKg(edge.node.currentTotalWeight),
+      shippedParcelCount: null,
       // cleaned up here, so the table never shows hidden app attributes
       ...toCustomerNote(edge.node.note, edge.node.customAttributes),
       shippingAddress: edge.node.shippingAddress
@@ -180,3 +184,12 @@ export async function getOrdersDashboardData(
 }
 
 export { ORDER_PAGE_SIZE };
+
+/**
+ * Shopify gives the order's weight in grams, as a string. Null when no
+ * product on the order has a weight, so the table shows "-" instead of 0 kg.
+ */
+function toOrderWeightKg(grams: string | number | null): number | null {
+  const weightKg = toKilograms(Number(grams ?? 0), "GRAMS");
+  return Number.isFinite(weightKg) && weightKg > 0 ? weightKg : null;
+}

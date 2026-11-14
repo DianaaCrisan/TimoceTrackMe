@@ -24,6 +24,16 @@ import { ZIP_TO_FIX_ORDER_TAG } from "app/commons/constants";
 import { normalizeZip, type ManualZips } from "app/commons/orders/ManualZips";
 import { addZipToFixTag, removeZipToFixTag } from "./zipToFixTag.server";
 import { ZipRecovery, type ZipChange } from "./ZipRecovery.server";
+import {
+  packIntoParcels,
+  type PackableItem,
+  type PackedParcel,
+} from "./packIntoParcels";
+import {
+  getSplitLimitKg,
+  type ParcelWeightSettings,
+} from "app/commons/settings/ParcelWeightSettings";
+import { formatKilogramsForAwb } from "app/commons/shipping/Weight";
 
 type AddTrackingDeps = {
   getOrders: typeof getOrdersTrackingInputDataInBatches;
@@ -62,8 +72,14 @@ const defaultDeps: AddTrackingDeps = {
 class ZipProblemError extends Error {}
 
 /**
- * Creates an Optimus AWB for every shipping fulfillment order that still has
- * items to ship, and fulfills it in Shopify with that tracking number.
+ * Creates an Optimus AWB for every parcel of the shipping fulfillment orders
+ * that still have items to ship, and fulfills each parcel in Shopify with its
+ * tracking number.
+ *
+ * Parcels: a fulfillment order is one parcel, unless auto split is on and it
+ * weighs more than the limit (`request.parcelWeight`). Then it is packed into
+ * several parcels, each its own AWB and its own Shopify fulfillment. An order
+ * with several parcels numbers them ("2/3") on the AWB.
  *
  * ZIPs the admin typed (`request.manualZips`) are saved to the orders first.
  * Every other ZIP is solved automatically (see `ZipRecovery`):
@@ -125,6 +141,7 @@ export async function addTrackingNumbers(
           order: ordersById.get(orderId),
           zipRecovery,
           manualZip,
+          parcelWeight: request.parcelWeight,
           deps,
           successfulOrders,
           failedOrders,
@@ -156,6 +173,7 @@ async function processOneOrder({
   order,
   zipRecovery,
   manualZip,
+  parcelWeight,
   deps,
   successfulOrders,
   failedOrders,
@@ -167,6 +185,7 @@ async function processOneOrder({
   zipRecovery: ZipRecovery;
   /** Set when the admin typed this order's ZIP. */
   manualZip?: ManualZipResult;
+  parcelWeight?: ParcelWeightSettings;
   deps: AddTrackingDeps;
   successfulOrders: AddTrackingNumbersSuccessfulOrder[];
   failedOrders: AddTrackingNumbersFailedOrder[];
@@ -203,80 +222,85 @@ async function processOneOrder({
       return;
     }
 
-    const createdTrackingNumbers: string[] = [];
-    const fulfillmentErrors: string[] = [];
-    let isZipProblem = false;
+    const parcels = planOrderParcels(
+      shippingFulfillmentOrders,
+      parcelWeight ? getSplitLimitKg(parcelWeight) : null,
+    );
+    const limitKg = parcelWeight?.parcelWeightLimitKg ?? null;
 
-    for (const fulfillmentOrder of shippingFulfillmentOrders) {
+    const createdTrackingNumbers: string[] = [];
+    const weightWarnings: string[] = [];
+    let failure: { error: string; isZipProblem: boolean } | undefined;
+
+    for (const [index, parcel] of parcels.entries()) {
+      const parcelPosition =
+        parcels.length > 1 ? `${index + 1}/${parcels.length}` : undefined;
+      const parcelLabel = describeParcel(parcel, parcelPosition);
+
       try {
-        const totalWeight = getTotalWeightForFulfillmentOrder(fulfillmentOrder);
         const awbResponse = await createAwbWithZipRetry(
           order,
-          totalWeight,
+          { weightKg: parcel.weightKg, parcelPosition },
           zipRecovery,
           deps,
           manualZip !== undefined,
         );
 
         await deps.addTrackingToFulfillment(admin, shopUrl, {
-          fulfillmentOrderId: fulfillmentOrder.id,
-          fulfillmentOrderLineItems: fulfillmentOrder.lineItems
-            .filter((lineItem) => lineItem.remainingQuantity > 0)
-            .map((lineItem) => ({
-              id: lineItem.fulfillmentOrderLineItemId,
-              quantity: lineItem.remainingQuantity,
-            })),
+          fulfillmentOrderId: parcel.fulfillmentOrderId,
+          fulfillmentOrderLineItems: parcel.items.map(({ id, quantity }) => ({
+            id,
+            quantity,
+          })),
           trackingNumber: awbResponse.trackingNumber,
         });
 
         createdTrackingNumbers.push(awbResponse.trackingNumber);
-      } catch (fulfillmentError) {
-        if (fulfillmentError instanceof ZipProblemError) isZipProblem = true;
-        fulfillmentErrors.push(
-          `Fulfillment ${ShopifyUtils.extractShopifyId(fulfillmentOrder.id)}: ${
-            fulfillmentError instanceof Error
-              ? fulfillmentError.message
-              : String(fulfillmentError)
-          }`,
+        const weightWarning = describeWeightWarning(
+          parcel,
+          parcelLabel,
+          limitKg,
         );
+        if (weightWarning) weightWarnings.push(weightWarning);
+      } catch (parcelError) {
+        // Stop at the first failure: the parcels left would carry numbers from
+        // a set that is no longer complete. Adding tracking again ships them.
+        failure = {
+          error: `${parcelLabel}: ${errorMessage(parcelError)}`,
+          isZipProblem: parcelError instanceof ZipProblemError,
+        };
+        break;
       }
     }
 
     const zipChange = manualZip?.change ?? zipRecovery.getChange(order.id);
 
-    if (createdTrackingNumbers.length > 0 && fulfillmentErrors.length === 0) {
+    if (!failure && createdTrackingNumbers.length > 0) {
       successfulOrders.push({
         id: order.id,
         name: order.name,
         trackingNumbers: createdTrackingNumbers,
         zipChange,
+        ...(weightWarnings.length > 0 ? { weightWarnings } : {}),
       });
       return;
     }
 
-    if (createdTrackingNumbers.length > 0 && fulfillmentErrors.length > 0) {
-      failedOrders.push({
-        id: order.id,
-        name: order.name,
-        errors: [
-          `Some fulfillment orders succeeded (${createdTrackingNumbers.join(", ")}) and some failed.`,
-          ...fulfillmentErrors,
-        ],
-        zipChange,
-        isZipProblem,
-      });
-      return;
-    }
+    const errors = [
+      ...(createdTrackingNumbers.length > 0
+        ? [
+            `${createdTrackingNumbers.length} of ${parcels.length} parcels were shipped (${createdTrackingNumbers.join(", ")}). Add tracking again to ship the rest.`,
+          ]
+        : []),
+      failure?.error ?? "No tracking numbers were created for this order.",
+    ];
 
     failedOrders.push({
       id: order.id,
       name: order.name,
-      errors:
-        fulfillmentErrors.length > 0
-          ? fulfillmentErrors
-          : ["No tracking numbers were created for this order."],
+      errors,
       zipChange,
-      isZipProblem,
+      isZipProblem: failure?.isZipProblem ?? false,
     });
   } catch (error) {
     failedOrders.push({
@@ -296,13 +320,13 @@ async function processOneOrder({
  */
 async function createAwbWithZipRetry(
   order: TrackingInputOrder,
-  totalWeight: number,
+  parcel: AwbParcel,
   zipRecovery: ZipRecovery,
   deps: AddTrackingDeps,
   isZipEnteredByHand: boolean,
 ): Promise<{ trackingNumber: string }> {
   try {
-    return await deps.createAwb(buildAwbRequest(order, totalWeight));
+    return await deps.createAwb(buildAwbRequest(order, parcel));
   } catch (error) {
     if (!isOptimusInvalidZipError(error)) throw error;
 
@@ -321,7 +345,7 @@ async function createAwbWithZipRetry(
     }
 
     try {
-      return await deps.createAwb(buildAwbRequest(order, totalWeight));
+      return await deps.createAwb(buildAwbRequest(order, parcel));
     } catch (retryError) {
       if (isOptimusInvalidZipError(retryError)) {
         throw new ZipProblemError(errorMessage(retryError));
@@ -477,7 +501,9 @@ async function syncZipToFixTags({
   ]);
 }
 
-function buildAwbRequest(order: TrackingInputOrder, totalWeight: number) {
+type AwbParcel = { weightKg: number; parcelPosition?: string };
+
+function buildAwbRequest(order: TrackingInputOrder, parcel: AwbParcel) {
   return {
     orderName: order.name,
     email: order.email ?? undefined,
@@ -489,8 +515,11 @@ function buildAwbRequest(order: TrackingInputOrder, totalWeight: number) {
     city: order.shippingAddress?.city ?? "",
     country: order.shippingAddress?.country ?? "",
     zip: order.shippingAddress?.zip ?? "",
-    invoiceDetails: `Comanda ${order.name}`,
-    weight: totalWeight.toString(),
+    invoiceDetails: parcel.parcelPosition
+      ? `Comanda ${order.name} (colet ${parcel.parcelPosition})`
+      : `Comanda ${order.name}`,
+    weightKg: parcel.weightKg,
+    parcelPosition: parcel.parcelPosition,
     formatted: order.shippingAddress?.formatted.join(", ") ?? "",
   };
 }
@@ -517,27 +546,73 @@ function getEligibleShippingFulfillmentOrders(
   });
 }
 
-function getTotalWeightForFulfillmentOrder(
+type OrderParcel = PackedParcel & { fulfillmentOrderId: string };
+
+/**
+ * The order's parcels, in the order they are numbered. A parcel never mixes
+ * fulfillment orders, because each parcel becomes one Shopify fulfillment.
+ * Throws before any AWB exists when an item has no usable weight.
+ */
+function planOrderParcels(
+  fulfillmentOrders: TrackingInputFulfillmentOrder[],
+  splitLimitKg: number | null,
+): OrderParcel[] {
+  return fulfillmentOrders.flatMap((fulfillmentOrder) =>
+    packIntoParcels(toPackableItems(fulfillmentOrder), splitLimitKg).map(
+      (parcel) => ({ ...parcel, fulfillmentOrderId: fulfillmentOrder.id }),
+    ),
+  );
+}
+
+function toPackableItems(
   fulfillmentOrder: TrackingInputFulfillmentOrder,
-): number {
-  const totalWeight = fulfillmentOrder.lineItems.reduce((sum, lineItem) => {
-    if (lineItem.remainingQuantity <= 0) {
-      return sum;
-    }
+): PackableItem[] {
+  return fulfillmentOrder.lineItems
+    .filter((lineItem) => lineItem.remainingQuantity > 0)
+    .map((lineItem) => {
+      const unitWeightKg = lineItem.weightKg;
+      if (
+        unitWeightKg == null ||
+        !Number.isFinite(unitWeightKg) ||
+        unitWeightKg <= 0
+      ) {
+        throw new Error(
+          `Fulfillment ${ShopifyUtils.extractShopifyId(fulfillmentOrder.id)}: missing or invalid weight for item "${lineItem.name}".`,
+        );
+      }
 
-    const weight = Number(lineItem.weight);
-    if (!Number.isFinite(weight) || weight <= 0) {
-      throw new Error(`Missing or invalid weight for item "${lineItem.name}".`);
-    }
+      return {
+        id: lineItem.fulfillmentOrderLineItemId,
+        name: lineItem.name,
+        quantity: lineItem.remainingQuantity,
+        unitWeightKg,
+      };
+    });
+}
 
-    return sum + weight * lineItem.remainingQuantity;
-  }, 0);
+function describeParcel(parcel: OrderParcel, parcelPosition?: string): string {
+  const fulfillmentId = ShopifyUtils.extractShopifyId(
+    parcel.fulfillmentOrderId,
+  );
+  return parcelPosition
+    ? `Parcel ${parcelPosition} (fulfillment ${fulfillmentId})`
+    : `Fulfillment ${fulfillmentId}`;
+}
 
-  if (totalWeight <= 0) {
-    throw new Error("Total shipment weight must be greater than 0.");
-  }
+/** Set when the parcel shipped heavier than the admin's limit. */
+function describeWeightWarning(
+  parcel: PackedParcel,
+  parcelLabel: string,
+  limitKg: number | null,
+): string | undefined {
+  if (limitKg === null || parcel.weightKg <= limitKg) return undefined;
 
-  return totalWeight;
+  const weight = `${formatKilogramsForAwb(parcel.weightKg)} kg`;
+  const limit = `${formatKilogramsForAwb(limitKg)} kg`;
+
+  return parcel.isOverLimit
+    ? `${parcelLabel}: "${parcel.items[0].name}" alone weighs ${weight}, over the ${limit} limit, so it ships in a parcel of its own.`
+    : `${parcelLabel} weighs ${weight}, over the ${limit} limit. Auto split is off, so it ships as one parcel.`;
 }
 
 function buildFullAddress(order: TrackingInputOrder): string {

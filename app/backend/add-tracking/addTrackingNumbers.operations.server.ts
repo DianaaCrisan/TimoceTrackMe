@@ -41,7 +41,8 @@ export const GET_ORDERS_TRACKING_INPUT_DATA_QUERY = `#graphql
                         inventoryItem{
                           measurement {
                             weight {
-                              value 
+                              value
+                              unit
                             }
                           }
                         }

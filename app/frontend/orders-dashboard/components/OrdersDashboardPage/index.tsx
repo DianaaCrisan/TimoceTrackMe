@@ -2,6 +2,8 @@ import type { OrdersDashboardOrder } from "app/commons/orders/OrdersDashboardOrd
 import { useEffect, useRef, useState } from "react";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
+import { LoadingBar } from "app/frontend/core/components/LoadingBar";
+import type { ParcelWeightSettings } from "app/commons/settings/ParcelWeightSettings";
 import "app/frontend/orders-dashboard/components/OrdersDashboardPage/styles.scss";
 import { PageInfo } from "app/types/admin.types";
 import { useAppBridge } from "@shopify/app-bridge-react";
@@ -13,6 +15,7 @@ import {
   useFetcher,
   useLocation,
   useNavigate,
+  useNavigation,
   useRevalidator,
 } from "react-router";
 import {
@@ -52,11 +55,11 @@ import {
   MANUAL_ZIPS_FIELD,
   type ManualZips,
 } from "app/commons/orders/ManualZips";
-import type { OrderNotesResponse } from "app/commons/orders/CustomerNote";
+import type { TrackingReviewResponse } from "app/commons/orders/TrackingReview";
 import {
-  CustomerNotesDialog,
-  type NotesReview,
-} from "app/frontend/orders-dashboard/components/CustomerNotesDialog";
+  TrackingReviewDialog,
+  type TrackingReview,
+} from "app/frontend/orders-dashboard/components/TrackingReviewDialog";
 
 type BulkJobAction = {
   key: "add-tracking" | "print-labels";
@@ -64,8 +67,11 @@ type BulkJobAction = {
   title: TranslationKey;
   icon: string;
   sendsTimeZone: boolean;
-  /** Shows the selected orders' customer notes before the job starts. */
-  reviewsCustomerNotes: boolean;
+  /**
+   * Shows the selected orders that need a look (customer notes, heavy
+   * parcels) before the job starts.
+   */
+  reviewsOrdersFirst: boolean;
 };
 
 const ADD_TRACKING_ACTION: BulkJobAction = {
@@ -76,7 +82,7 @@ const ADD_TRACKING_ACTION: BulkJobAction = {
   icon: deliveryIcon,
   sendsTimeZone: false,
   // once tracking is added the order ships, so a note read later is too late
-  reviewsCustomerNotes: true,
+  reviewsOrdersFirst: true,
 };
 
 const BULK_JOB_ACTIONS: BulkJobAction[] = [
@@ -88,7 +94,7 @@ const BULK_JOB_ACTIONS: BulkJobAction[] = [
     icon: printIcon,
     // lets the server stamp the file names with the user's local date/time
     sendsTimeZone: true,
-    reviewsCustomerNotes: false,
+    reviewsOrdersFirst: false,
   },
 ];
 
@@ -105,12 +111,18 @@ type Notice = {
  */
 const SEARCH_INDEX_CATCH_UP_MS = 5000;
 
-const TAB_COUNTS_URL = `${ORDERS_DASHBOARD_PATH}/tab-counts`;
-const ORDER_NOTES_URL = `${ORDERS_DASHBOARD_PATH}/order-notes`;
+/**
+ * Success notices hide after this long. Errors and notices with a link stay
+ * until closed: they ask the admin to read or do something.
+ */
+const SUCCESS_NOTICE_DISMISS_MS = 8000;
 
-/** A job waiting on the admin to read the customer notes. */
-type PendingNotesReview = {
-  review: NotesReview;
+const TAB_COUNTS_URL = `${ORDERS_DASHBOARD_PATH}/tab-counts`;
+const TRACKING_REVIEW_URL = `${ORDERS_DASHBOARD_PATH}/tracking-review`;
+
+/** A job waiting on the admin to look at the orders it would run on. */
+type PendingTrackingReview = {
+  review: TrackingReview;
   action: BulkJobAction;
   selection: OrderSelection;
   /** The selection's orders, so some can be left out; unset if unknown. */
@@ -136,6 +148,7 @@ type OrdersDashboardPageProps = {
   ordersCount: { count: number; isAtLeast: boolean } | null;
   pageNumbers: PageNumbers;
   recentJobs: RecentJobsSnapshot;
+  parcelWeight: ParcelWeightSettings;
 };
 
 export function OrdersDashboardPage({
@@ -146,12 +159,15 @@ export function OrdersDashboardPage({
   ordersCount,
   pageNumbers,
   recentJobs,
+  parcelWeight,
 }: OrdersDashboardPageProps) {
   const { locale, t } = useI18n();
   const shopify = useAppBridge();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
   const isRefreshingOrders = revalidator.state === "loading";
+  // switching tab or page
+  const isNavigating = useNavigation().state !== "idle";
 
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   // "Select all N orders in this tab": the server resolves the IDs
@@ -160,9 +176,9 @@ export function OrdersDashboardPage({
     BulkJobAction["key"] | null
   >(null);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [isCheckingNotes, setIsCheckingNotes] = useState(false);
-  const [pendingNotesReview, setPendingNotesReview] =
-    useState<PendingNotesReview | null>(null);
+  const [isReviewingOrders, setIsReviewingOrders] = useState(false);
+  const [pendingTrackingReview, setPendingTrackingReview] =
+    useState<PendingTrackingReview | null>(null);
   const [jobsRefreshSignal, setJobsRefreshSignal] = useState(0);
 
   // Counted after the page renders, so the order list never waits on them.
@@ -232,6 +248,7 @@ export function OrdersDashboardPage({
       selectedOrderIds.length === orders.length);
 
   const isAnyActionBlocked = startingActionKey !== null || isRefreshingOrders;
+  const isLoading = isAnyActionBlocked || isNavigating;
   const isZipToFixTab = activeFilter === ZIP_TO_FIX_FILTER;
 
   // reset scroll position when going to the next page
@@ -299,6 +316,14 @@ export function OrdersDashboardPage({
   const catchUpTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(catchUpTimerRef.current), []);
 
+  // a newer notice restarts the timer, through the cleanup
+  useEffect(() => {
+    if (notice?.tone !== "success" || notice.link) return;
+
+    const timer = setTimeout(() => setNotice(null), SUCCESS_NOTICE_DISMISS_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   /**
    * A finished job can move orders out of the tab (fulfilled, printed), which
    * leaves the current page's cursor pointing into a list that has changed.
@@ -352,25 +377,25 @@ export function OrdersDashboardPage({
       ? { mode: "filter", filter: activeFilter }
       : { mode: "ids", orderIds: selectedOrderIds };
 
-    return action.reviewsCustomerNotes
-      ? reviewNotesThenStart(action, selection)
+    return action.reviewsOrdersFirst
+      ? reviewOrdersThenStart(action, selection)
       : startJob(action, selection);
   }
 
   /**
-   * Loads the customer notes of every selected order (also those on other
-   * pages). With none, the job starts at once; otherwise the admin reads them
-   * in a dialog first.
+   * Checks every selected order (also those on other pages) for customer
+   * notes and heavy parcels. With nothing to look at, the job starts at once;
+   * otherwise the admin goes through them in a dialog first.
    */
-  async function reviewNotesThenStart(
+  async function reviewOrdersThenStart(
     action: BulkJobAction,
     selection: OrderSelection,
   ): Promise<void> {
     setStartingActionKey(action.key);
-    setIsCheckingNotes(true);
+    setIsReviewingOrders(true);
     setNotice(null);
 
-    let result: OrderNotesResponse;
+    let result: TrackingReviewResponse;
     let isRequestProblem = false;
     try {
       const formData = new FormData();
@@ -378,21 +403,21 @@ export function OrdersDashboardPage({
       formData.append(LOCALE_PARAM, locale);
 
       const token = await shopify.idToken();
-      const response = await fetch(ORDER_NOTES_URL, {
+      const response = await fetch(TRACKING_REVIEW_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       // 4xx: the selection itself is wrong (empty, too big), as for a job
       isRequestProblem = response.status >= 400 && response.status < 500;
-      result = await readJsonResponse<OrderNotesResponse>(response, t);
+      result = await readJsonResponse<TrackingReviewResponse>(response, t);
     } catch (error) {
       result = {
         ok: false,
         error: error instanceof Error ? error.message : String(error),
       };
     } finally {
-      setIsCheckingNotes(false);
+      setIsReviewingOrders(false);
       setStartingActionKey(null);
     }
 
@@ -405,10 +430,10 @@ export function OrdersDashboardPage({
     }
 
     if (!result.ok) {
-      setPendingNotesReview({
+      setPendingTrackingReview({
         review: {
           kind: "loadFailed",
-          error: t("notes.couldNotLoad", { error: result.error }),
+          error: t("trackingReview.couldNotLoad", { error: result.error }),
         },
         action,
         selection,
@@ -416,16 +441,17 @@ export function OrdersDashboardPage({
       return;
     }
 
-    if (result.ordersWithNotes.length === 0) {
+    if (result.ordersToReview.length === 0) {
       await startJob(action, selection);
       return;
     }
 
-    setPendingNotesReview({
+    setPendingTrackingReview({
       review: {
-        kind: "notes",
-        ordersWithNotes: result.ordersWithNotes,
+        kind: "review",
+        ordersToReview: result.ordersToReview,
         orderCount: result.orderIds.length,
+        parcelWeightLimitKg: result.parcelWeightLimitKg,
       },
       action,
       selection,
@@ -433,9 +459,9 @@ export function OrdersDashboardPage({
     });
   }
 
-  function handleNotesConfirmed(leftOutOrderIds: string[]) {
-    const pending = pendingNotesReview;
-    setPendingNotesReview(null);
+  function handleReviewConfirmed(leftOutOrderIds: string[]) {
+    const pending = pendingTrackingReview;
+    setPendingTrackingReview(null);
     if (!pending) return;
 
     void startJob(
@@ -627,8 +653,8 @@ export function OrdersDashboardPage({
                       </span>
                       {startingActionKey === action.key
                         ? t(
-                            isCheckingNotes
-                              ? "notes.checking"
+                            isReviewingOrders
+                              ? "trackingReview.checking"
                               : "dashboard.starting",
                           )
                         : t(action.title)}
@@ -639,6 +665,8 @@ export function OrdersDashboardPage({
             ) : null}
           </div>
         </div>
+
+        <LoadingBar isActive={isLoading} label={t("dashboard.loading")} />
 
         {isZipToFixTab ? (
           <ZipFixPanel
@@ -664,6 +692,7 @@ export function OrdersDashboardPage({
               allVisibleSelected={allVisibleSelected}
               onToggleOrder={handleToggleOrder}
               onToggleAllVisible={handleToggleAllVisible}
+              parcelWeight={parcelWeight}
             />
           </div>
         )}
@@ -681,11 +710,11 @@ export function OrdersDashboardPage({
         </span>
       </div>
 
-      <CustomerNotesDialog
-        review={pendingNotesReview?.review ?? null}
+      <TrackingReviewDialog
+        review={pendingTrackingReview?.review ?? null}
         shopAdminUrl={shopAdminUrl}
-        onCancel={() => setPendingNotesReview(null)}
-        onConfirm={handleNotesConfirmed}
+        onCancel={() => setPendingTrackingReview(null)}
+        onConfirm={handleReviewConfirmed}
       />
 
       <div className="orders-dashboard-page__recent-jobs">

@@ -6,6 +6,7 @@ import type {
 import { GET_ORDERS_TRACKING_INPUT_DATA_QUERY } from "./addTrackingNumbers.operations.server";
 import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { chunk, SHOPIFY_READ_BATCH_SIZE } from "../graphql/utils/batch-utils";
+import { toKilograms, type WeightUnit } from "app/commons/shipping/Weight";
 
 type TrackingInputShippingAddress = {
   address1?: string | null;
@@ -25,7 +26,8 @@ type TrackingInputLineItem = {
   name: string;
   remainingQuantity: number;
   variantId?: string | null;
-  weight?: number | null;
+  /** One unit's weight in kg, whatever unit the product uses in Shopify. */
+  weightKg?: number | null;
 };
 
 export type TrackingInputFulfillmentOrder = {
@@ -103,9 +105,10 @@ async function getOrdersTrackingInputDataBatch(
             name: lineItemEdge.node.lineItem.name,
             remainingQuantity: lineItemEdge.node.remainingQuantity,
             variantId: lineItemEdge.node.lineItem.variant?.id ?? null,
-            weight:
+            weightKg: toWeightKg(
               lineItemEdge.node.lineItem.variant?.inventoryItem?.measurement
-                ?.weight?.value ?? null,
+                ?.weight,
+            ),
           })),
         })),
       },
@@ -124,4 +127,10 @@ export async function getOrdersTrackingInputDataInBatches(
   );
 
   return results.flat();
+}
+
+function toWeightKg(
+  weight: { value: number; unit: WeightUnit } | null | undefined,
+): number | null {
+  return weight ? toKilograms(weight.value, weight.unit) : null;
 }

@@ -11,6 +11,11 @@ import {
 } from "app/frontend/core/utils/deliveryMethod";
 import { formatFinancialStatusWithTone } from "app/frontend/core/utils/financialStatus";
 import { formatFulfillmentStatusWithTone } from "app/frontend/core/utils/fulfillmentStatus";
+import { WeightCell } from "app/frontend/orders-dashboard/components/WeightCell";
+import {
+  isOverWeightLimit,
+  type ParcelWeightSettings,
+} from "app/commons/settings/ParcelWeightSettings";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable/styles.scss";
 
 type OrdersDashboardTableProps = {
@@ -21,6 +26,7 @@ type OrdersDashboardTableProps = {
   allVisibleSelected: boolean;
   onToggleOrder: (orderId: string) => void;
   onToggleAllVisible: () => void;
+  parcelWeight: ParcelWeightSettings;
 };
 
 export function OrdersDashboardTable({
@@ -31,6 +37,7 @@ export function OrdersDashboardTable({
   allVisibleSelected,
   onToggleOrder,
   onToggleAllVisible,
+  parcelWeight,
 }: OrdersDashboardTableProps) {
   const { locale, t } = useI18n();
 
@@ -71,6 +78,9 @@ export function OrdersDashboardTable({
             {t("table.items")}
           </th>
           <th className="orders-dashboard-table__header-cell">
+            {t("table.weight")}
+          </th>
+          <th className="orders-dashboard-table__header-cell">
             {t("table.deliveryMethod")}
           </th>
           <th className="orders-dashboard-table__header-cell">
@@ -90,6 +100,17 @@ export function OrdersDashboardTable({
           orders.map((order) => {
             const isSelected = selectedOrderIds.includes(order.id);
             const isDisabled = !isSelected && !canSelectMore;
+            const isShipping =
+              order.fulfillmentOrders.edges[0]?.node?.deliveryMethod
+                ?.methodType === DeliveryMethodTypeDTO.SHIPPING.toString();
+            // pickup orders get no AWB, so their weight does not matter
+            const isHeavy =
+              isShipping && isOverWeightLimit(order.weightKg, parcelWeight);
+            // once everything shipped, show what happened, not what will
+            const shippedParcelCount =
+              order.displayFulfillmentStatus === "FULFILLED"
+                ? order.shippedParcelCount
+                : null;
 
             return (
               <tr
@@ -97,6 +118,7 @@ export function OrdersDashboardTable({
                 className={`orders-dashboard-table__row
                   ${isSelected ? " --selected" : ""}
                   ${order.cancelledAt ? " --cancelled" : ""}
+                  ${isHeavy && shippedParcelCount === null ? " --heavy" : ""}
                 `}
               >
                 <td className="orders-dashboard-table__checkbox-cell">
@@ -167,6 +189,15 @@ export function OrdersDashboardTable({
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
+                  <WeightCell
+                    weightKg={order.weightKg}
+                    isHeavy={isHeavy}
+                    shippedParcelCount={shippedParcelCount}
+                    parcelWeight={parcelWeight}
+                  />
+                </td>
+
+                <td className="orders-dashboard-table__body-cell">
                   {formatDeliveryMethodType(
                     order.fulfillmentOrders.edges[0]?.node?.deliveryMethod
                       ?.methodType,
@@ -176,12 +207,6 @@ export function OrdersDashboardTable({
 
                 <td className="orders-dashboard-table__body-cell">
                   {(() => {
-                    const methodType =
-                      order.fulfillmentOrders?.edges[0]?.node?.deliveryMethod
-                        ?.methodType;
-                    const isShipping =
-                      methodType === DeliveryMethodTypeDTO.SHIPPING.toString();
-
                     const zip = order.shippingAddress?.zip;
                     const isMissingZip = isShipping && !zip;
 

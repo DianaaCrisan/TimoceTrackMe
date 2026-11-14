@@ -7,24 +7,6 @@ export type CustomerNote = {
   attributes: CustomerAttribute[];
 };
 
-/** An order with something from the customer on it. */
-export type OrderWithCustomerNote = CustomerNote & {
-  id: string;
-  name: string;
-  customerName: string;
-};
-
-/** What the dashboard asks before add tracking: the orders it would run on. */
-export type OrderNotesResponse =
-  | {
-      ok: true;
-      /** Every order in the selection, so some can be left out by ID. */
-      orderIds: string[];
-      /** Only the orders with a note or a filled-in checkout field. */
-      ordersWithNotes: OrderWithCustomerNote[];
-    }
-  | { ok: false; error: string };
-
 /**
  * The customer's note and checkout fields, without empty ones and without
  * keys starting with "_": Shopify's convention for attributes that apps add

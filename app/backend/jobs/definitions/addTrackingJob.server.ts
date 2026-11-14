@@ -1,4 +1,5 @@
 import { addTrackingNumbers } from "../../add-tracking/addTrackingNumbers.server";
+import { SettingsRepository } from "../../settings/SettingsRepository.server";
 import { buildOrderResultsWorkbook } from "../../reports/buildOrderResultsWorkbook";
 import { completeOrderResultRows } from "../../reports/completeOrderResultRows.server";
 import {
@@ -19,9 +20,11 @@ export const ADD_TRACKING_JOB = {
 export async function buildAddTrackingArtifact(
   ctx: OrdersJobContext,
 ): Promise<JobArtifact> {
+  // read when the job runs, so a limit changed meanwhile applies
   const result = await addTrackingNumbers(ctx.admin, ctx.shopUrl, {
     orderIds: ctx.orderIds,
     manualZips: ctx.manualZips,
+    parcelWeight: await SettingsRepository.getParcelWeight(),
   });
 
   const rowsById = new Map<string, OrderResultRow>();
@@ -32,8 +35,11 @@ export async function buildAddTrackingArtifact(
       orderName: order.name,
       status: "succeeded",
       details: joinDetails(
-        `AWB ${order.trackingNumbers.join(", ")}`,
+        order.trackingNumbers.length > 1
+          ? `${order.trackingNumbers.length} parcels, AWB ${order.trackingNumbers.join(", ")}`
+          : `AWB ${order.trackingNumbers.join(", ")}`,
         describeZipChange(order.zipChange),
+        ...(order.weightWarnings ?? []),
       ),
     });
   }
