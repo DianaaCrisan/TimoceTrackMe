@@ -186,6 +186,18 @@ $font-color: rgb(48, 48, 48);
   font-weight: 500;
   line-height: 18px;
   color: #616161;
+
+  &.--attention {
+    background: #fed3d1;
+    color: #8e0b21;
+    font-weight: 600;
+  }
+}
+
+.orders-dashboard-page__notice-link {
+  color: inherit;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .orders-dashboard-page__bulk-bar-hint {

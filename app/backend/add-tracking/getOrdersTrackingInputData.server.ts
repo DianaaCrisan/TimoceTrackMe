@@ -41,6 +41,7 @@ export type TrackingInputOrder = {
   email?: string | null;
   phone?: string | null;
   createdAt: string;
+  tags: string[];
   shippingAddress?: TrackingInputShippingAddress | null;
   fulfillmentOrders: TrackingInputFulfillmentOrder[];
 };
@@ -78,6 +79,7 @@ async function getOrdersTrackingInputDataBatch(
         email: node.email ?? null,
         phone: node.phone ?? null,
         createdAt: node.createdAt,
+        tags: node.tags ?? [],
         shippingAddress: node.shippingAddress
           ? {
               address1: node.shippingAddress.address1 ?? null,

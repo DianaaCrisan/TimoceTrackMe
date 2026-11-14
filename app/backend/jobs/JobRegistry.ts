@@ -18,6 +18,8 @@ export type JobRecord = {
   hasErrors?: boolean;
   /** One line for the jobs list, e.g. "40 succeeded, 2 failed". */
   summary?: string;
+  /** Orders now on the "ZIP to fix" tab because of this job. */
+  zipToFixCount?: number;
   error?: string;
 };
 

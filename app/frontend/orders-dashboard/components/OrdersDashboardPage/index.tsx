@@ -47,6 +47,11 @@ import type { Translate } from "app/commons/i18n/translate";
 import type { TranslationKey } from "app/commons/i18n/translations";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
+import { ZipFixPanel } from "app/frontend/orders-dashboard/components/ZipFixPanel";
+import {
+  MANUAL_ZIPS_FIELD,
+  type ManualZips,
+} from "app/commons/orders/ManualZips";
 
 type BulkJobAction = {
   key: "add-tracking" | "print-labels";
@@ -56,15 +61,17 @@ type BulkJobAction = {
   sendsTimeZone: boolean;
 };
 
+const ADD_TRACKING_ACTION: BulkJobAction = {
+  // also fills in missing ZIP codes before creating the AWBs
+  key: "add-tracking",
+  endpoint: "/app/orders-dashboard/add-tracking",
+  title: "job.add-tracking",
+  icon: deliveryIcon,
+  sendsTimeZone: false,
+};
+
 const BULK_JOB_ACTIONS: BulkJobAction[] = [
-  {
-    // also fills in missing ZIP codes before creating the AWBs
-    key: "add-tracking",
-    endpoint: "/app/orders-dashboard/add-tracking",
-    title: "job.add-tracking",
-    icon: deliveryIcon,
-    sendsTimeZone: false,
-  },
+  ADD_TRACKING_ACTION,
   {
     key: "print-labels",
     endpoint: "/app/orders-dashboard/print-labels",
@@ -75,7 +82,12 @@ const BULK_JOB_ACTIONS: BulkJobAction[] = [
   },
 ];
 
-type Notice = { tone: "success" | "critical"; message: string };
+type Notice = {
+  tone: "success" | "critical";
+  message: string;
+  /** A link to where the user can act on the result, e.g. the ZIP to fix tab. */
+  link?: { label: string; to: string };
+};
 
 /**
  * Shopify's order search can lag a few seconds behind a change, so a reload
@@ -84,6 +96,9 @@ type Notice = { tone: "success" | "critical"; message: string };
 const SEARCH_INDEX_CATCH_UP_MS = 5000;
 
 const TAB_COUNTS_URL = `${ORDERS_DASHBOARD_PATH}/tab-counts`;
+
+/** Has its own panel instead of the orders table and bulk actions. */
+const ZIP_TO_FIX_FILTER: OrdersDashboardFilter = "zip_to_fix";
 
 function isCountedFilter(
   filter: OrdersDashboardFilter,
@@ -146,8 +161,15 @@ export function OrdersDashboardPage({
     }
 
     const count = tabCounts[filter];
+    // orders waiting on the admin stand out
+    const needsAttention =
+      filter === ZIP_TO_FIX_FILTER && (count?.count ?? 0) > 0;
     return count ? (
-      <span className="orders-dashboard-page__tab-count">
+      <span
+        className={`orders-dashboard-page__tab-count${
+          needsAttention ? " --attention" : ""
+        }`}
+      >
         {formatTabCount(count)}
       </span>
     ) : null;
@@ -187,6 +209,7 @@ export function OrdersDashboardPage({
       selectedOrderIds.length === orders.length);
 
   const isAnyActionBlocked = startingActionKey !== null || isRefreshingOrders;
+  const isZipToFixTab = activeFilter === ZIP_TO_FIX_FILTER;
 
   // reset scroll position when going to the next page
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
@@ -262,7 +285,18 @@ export function OrdersDashboardPage({
   function handleJobFinished(finishedJobs: RecentJobView[]) {
     setSelectedOrderIds([]);
     setIsFilterSelected(false);
+    const zipToFixCount = finishedJobs.reduce(
+      (sum, job) => sum + (job.zipToFixCount ?? 0),
+      0,
+    );
     setNotice({
+      link:
+        zipToFixCount > 0 && activeFilter !== ZIP_TO_FIX_FILTER
+          ? {
+              label: t("dashboard.fixZips", { count: zipToFixCount }),
+              to: buildOrdersDashboardUrl(ZIP_TO_FIX_FILTER),
+            }
+          : undefined,
       tone: finishedJobs.some((job) => job.status === "failed" || job.hasErrors)
         ? "critical"
         : "success",
@@ -290,17 +324,35 @@ export function OrdersDashboardPage({
     );
   }
 
-  async function handleStartJob(action: BulkJobAction) {
+  function handleStartJob(action: BulkJobAction) {
+    return startJob(
+      action,
+      isFilterSelected
+        ? { mode: "filter", filter: activeFilter }
+        : { mode: "ids", orderIds: selectedOrderIds },
+    );
+  }
+
+  /** Add tracking for the orders ticked on the ZIP to fix tab. */
+  function handleFixZips(orderIds: string[], manualZips: ManualZips) {
+    return startJob(ADD_TRACKING_ACTION, { mode: "ids", orderIds }, manualZips);
+  }
+
+  /** Resolves to whether the job started. */
+  async function startJob(
+    action: BulkJobAction,
+    selection: OrderSelection,
+    manualZips?: ManualZips,
+  ): Promise<boolean> {
     setStartingActionKey(action.key);
     setNotice(null);
-
-    const selection: OrderSelection = isFilterSelected
-      ? { mode: "filter", filter: activeFilter }
-      : { mode: "ids", orderIds: selectedOrderIds };
 
     try {
       const formData = new FormData();
       appendOrderSelection(formData, selection);
+      if (manualZips && Object.keys(manualZips).length > 0) {
+        formData.append(MANUAL_ZIPS_FIELD, JSON.stringify(manualZips));
+      }
       // the server answers (and words the job's summary) in this language
       formData.append(LOCALE_PARAM, locale);
       if (action.sendsTimeZone) {
@@ -328,17 +380,20 @@ export function OrdersDashboardPage({
           }),
         });
         setJobsRefreshSignal((signal) => signal + 1);
-      } else {
-        setNotice({
-          tone: "critical",
-          message: `${t(action.title)}: ${result.error}`,
-        });
+        return true;
       }
+
+      setNotice({
+        tone: "critical",
+        message: `${t(action.title)}: ${result.error}`,
+      });
+      return false;
     } catch (error) {
       setNotice({
         tone: "critical",
         message: `${t(action.title)}: ${error instanceof Error ? error.message : String(error)}`,
       });
+      return false;
     } finally {
       setStartingActionKey(null);
     }
@@ -348,7 +403,20 @@ export function OrdersDashboardPage({
     <div className="orders-dashboard-page">
       {notice ? (
         <div className={`orders-dashboard-page__notice --${notice.tone}`}>
-          <span>{notice.message}</span>
+          <span>
+            {notice.message}
+            {notice.link ? (
+              <>
+                {" "}
+                <Link
+                  to={notice.link.to}
+                  className="orders-dashboard-page__notice-link"
+                >
+                  {notice.link.label} →
+                </Link>
+              </>
+            ) : null}
+          </span>
           <button
             type="button"
             className="orders-dashboard-page__notice-close"
@@ -378,7 +446,7 @@ export function OrdersDashboardPage({
           </div>
 
           <div className="orders-dashboard-page__toolbar-right">
-            {selectedCount > 0 ? (
+            {selectedCount > 0 && !isZipToFixTab ? (
               <>
                 <div className="orders-dashboard-page__bulk-bar-text">
                   {isWholeTabSelected
@@ -450,22 +518,33 @@ export function OrdersDashboardPage({
           </div>
         </div>
 
-        <div
-          ref={tableScrollRef}
-          className="orders-dashboard-page__table-scroll"
-        >
-          <OrdersDashboardTable
+        {isZipToFixTab ? (
+          <ZipFixPanel
             orders={orders}
             shopAdminUrl={shopAdminUrl}
-            selectedOrderIds={
-              isFilterSelected ? visibleOrderIds : selectedOrderIds
-            }
-            canSelectMore={canSelectMore}
-            allVisibleSelected={allVisibleSelected}
-            onToggleOrder={handleToggleOrder}
-            onToggleAllVisible={handleToggleAllVisible}
+            isBusy={isAnyActionBlocked}
+            isStarting={startingActionKey === ADD_TRACKING_ACTION.key}
+            onSubmit={handleFixZips}
+            scrollRef={tableScrollRef}
           />
-        </div>
+        ) : (
+          <div
+            ref={tableScrollRef}
+            className="orders-dashboard-page__table-scroll"
+          >
+            <OrdersDashboardTable
+              orders={orders}
+              shopAdminUrl={shopAdminUrl}
+              selectedOrderIds={
+                isFilterSelected ? visibleOrderIds : selectedOrderIds
+              }
+              canSelectMore={canSelectMore}
+              allVisibleSelected={allVisibleSelected}
+              onToggleOrder={handleToggleOrder}
+              onToggleAllVisible={handleToggleAllVisible}
+            />
+          </div>
+        )}
       </div>
 
       <div className="orders-dashboard-page__pagination">

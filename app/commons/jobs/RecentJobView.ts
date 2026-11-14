@@ -14,6 +14,8 @@ export type RecentJobView = {
   downloadUrl: string | null;
   hasErrors?: boolean;
   summary?: string;
+  /** Orders now on the "ZIP to fix" tab because of this job. */
+  zipToFixCount?: number;
   error?: string;
 };
 

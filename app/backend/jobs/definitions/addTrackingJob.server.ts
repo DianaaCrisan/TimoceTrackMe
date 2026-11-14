@@ -21,6 +21,7 @@ export async function buildAddTrackingArtifact(
 ): Promise<JobArtifact> {
   const result = await addTrackingNumbers(ctx.admin, ctx.shopUrl, {
     orderIds: ctx.orderIds,
+    manualZips: ctx.manualZips,
   });
 
   const rowsById = new Map<string, OrderResultRow>();
@@ -42,10 +43,17 @@ export async function buildAddTrackingArtifact(
       orderId: order.id,
       orderName: order.name,
       status: "failed",
-      details: describeZipChange(order.zipChange),
+      details: joinDetails(
+        order.isZipProblem ? 'Fix the ZIP on the "ZIP to fix" tab.' : undefined,
+        describeZipChange(order.zipChange),
+      ),
       errors: order.errors,
     });
   }
+
+  const zipToFixCount = result.failedOrders.filter(
+    (order) => order.isZipProblem,
+  ).length;
 
   const t = createTranslator(ctx.locale);
   const rows = await completeOrderResultRows({
@@ -68,7 +76,15 @@ export async function buildAddTrackingArtifact(
     contentType:
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     hasErrors: countOrderResults(rows).failed > 0,
-    summary: summarizeOrderResults(rows, t),
+    summary: [
+      summarizeOrderResults(rows, t),
+      zipToFixCount > 0
+        ? t("summary.zipToFix", { count: zipToFixCount })
+        : null,
+    ]
+      .filter(Boolean)
+      .join(", "),
+    zipToFixCount,
   };
 }
 
@@ -76,6 +92,10 @@ export function describeZipChange(
   zipChange: ZipChange | undefined,
 ): string | undefined {
   if (!zipChange) return undefined;
+
+  if (zipChange.isEnteredByHand) {
+    return `ZIP entered by hand: ${zipChange.previousZip ?? "(missing)"} → ${zipChange.newZip}`;
+  }
 
   return `ZIP solved automatically: ${zipChange.previousZip ?? "(missing)"} → ${zipChange.newZip} (${zipChange.confidence} confidence)`;
 }

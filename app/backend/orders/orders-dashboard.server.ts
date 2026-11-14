@@ -51,6 +51,10 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
 
           shippingAddress {
             zip
+            address1
+            address2
+            city
+            province
           }
           
           fulfillmentOrders(first: 1) {
@@ -137,9 +141,15 @@ export async function getOrdersDashboardData(
       currentSubtotalLineItemsQuantity:
         edge.node.currentSubtotalLineItemsQuantity,
       cancelledAt: edge.node.cancelledAt,
-      shippingAddress: {
-        zip: edge.node.shippingAddress?.zip,
-      },
+      shippingAddress: edge.node.shippingAddress
+        ? {
+            zip: edge.node.shippingAddress.zip,
+            address1: edge.node.shippingAddress.address1,
+            address2: edge.node.shippingAddress.address2,
+            city: edge.node.shippingAddress.city,
+            province: edge.node.shippingAddress.province,
+          }
+        : null,
       fulfillmentOrders: edge.node.fulfillmentOrders,
       customer: {
         displayName: edge.node.customer?.displayName ?? "",

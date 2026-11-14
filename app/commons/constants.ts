@@ -10,3 +10,10 @@ export const MAX_ORDERS_PER_JOB = 1000;
  * filters on it, so it must not change without retagging existing orders.
  */
 export const PRINTED_ORDER_TAG = "eticheta-printata";
+
+/**
+ * Added to an order when add tracking fails because of its ZIP code (missing
+ * and not found, or rejected by Optimus); removed once tracking is added or
+ * the order fails for another reason. The "ZIP to fix" tab filters on it.
+ */
+export const ZIP_TO_FIX_ORDER_TAG = "cod-postal-de-corectat";

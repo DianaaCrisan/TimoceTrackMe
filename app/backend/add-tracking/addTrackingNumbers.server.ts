@@ -19,7 +19,11 @@ import { createOptimusTrackingNumber } from "../optimus/createOptimusTrackingNum
 import { isEligibleForFulfillment } from "../graphql/utils/fulfillment-order-utils";
 import { ShopifyUtils } from "../graphql/utils/ShopifyUtils";
 import { isOptimusInvalidZipError } from "../optimus/isOptimusInvalidZipError";
-import { ZipRecovery } from "./ZipRecovery.server";
+import { addZipCodeToOrderMutation } from "../zip-solver/addZipCodeToOrder.server";
+import { ZIP_TO_FIX_ORDER_TAG } from "app/commons/constants";
+import { normalizeZip, type ManualZips } from "app/commons/orders/ManualZips";
+import { addZipToFixTag, removeZipToFixTag } from "./zipToFixTag.server";
+import { ZipRecovery, type ZipChange } from "./ZipRecovery.server";
 
 type AddTrackingDeps = {
   getOrders: typeof getOrdersTrackingInputDataInBatches;
@@ -29,6 +33,14 @@ type AddTrackingDeps = {
     admin: AdminApiContextWithoutRest,
     shopUrl: string,
   ) => ZipRecovery;
+  saveZip: (
+    admin: AdminApiContextWithoutRest,
+    shopUrl: string,
+    orderId: string,
+    zip: string,
+  ) => Promise<void>;
+  addZipToFixTag: typeof addZipToFixTag;
+  removeZipToFixTag: typeof removeZipToFixTag;
 };
 
 const defaultDeps: AddTrackingDeps = {
@@ -36,16 +48,32 @@ const defaultDeps: AddTrackingDeps = {
   createAwb: createOptimusTrackingNumber,
   addTrackingToFulfillment: addTrackingNumberToFulfillment,
   createZipRecovery: (admin, shopUrl) => new ZipRecovery(admin, shopUrl),
+  saveZip: async (admin, shopUrl, orderId, zip) => {
+    await addZipCodeToOrderMutation(admin, shopUrl, {
+      id: orderId,
+      shippingAddress: { zip },
+    });
+  },
+  addZipToFixTag,
+  removeZipToFixTag,
 };
+
+/** Optimus refused the order's ZIP and it could not be fixed in this run. */
+class ZipProblemError extends Error {}
 
 /**
  * Creates an Optimus AWB for every shipping fulfillment order that still has
  * items to ship, and fulfills it in Shopify with that tracking number.
  *
- * ZIP codes are solved automatically (see `ZipRecovery`):
+ * ZIPs the admin typed (`request.manualZips`) are saved to the orders first.
+ * Every other ZIP is solved automatically (see `ZipRecovery`):
  * - orders without a ZIP are solved in one batch before any AWB is created
  * - when Optimus rejects a ZIP, the order is solved once more and the AWB
  *   retried once. Optimus keeps the rejected AWB; it is never fulfilled.
+ *
+ * Orders that still fail on their ZIP get the `ZIP_TO_FIX_ORDER_TAG`, so the
+ * admin finds them on the "ZIP to fix" tab; every other order processed here
+ * loses it.
  */
 export async function addTrackingNumbers(
   admin: AdminApiContextWithoutRest,
@@ -59,10 +87,21 @@ export async function addTrackingNumbers(
   const orders = await deps.getOrders(admin, request.orderIds);
   const ordersById = new Map(orders.map((order) => [order.id, order]));
 
+  const manualZipResults = await saveManualZips({
+    admin,
+    shopUrl,
+    orders,
+    manualZips: request.manualZips ?? {},
+    deps,
+    failedOrders,
+  });
+
   const zipRecovery = deps.createZipRecovery(admin, shopUrl);
   await zipRecovery.fillMissingZips(
     orders.filter(
-      (order) => getEligibleShippingFulfillmentOrders(order).length > 0,
+      (order) =>
+        !manualZipResults.has(order.id) &&
+        getEligibleShippingFulfillmentOrders(order).length > 0,
     ),
   );
 
@@ -75,12 +114,17 @@ export async function addTrackingNumbers(
   await Promise.all(
     request.orderIds.map((orderId) =>
       scheduleWithProgress(pool, progress, orderId, async () => {
+        const manualZip = manualZipResults.get(orderId);
+        // the ZIP could not be saved, so the order already failed
+        if (manualZip?.isSaveFailed) return;
+
         await processOneOrder({
           admin,
           shopUrl,
           orderId,
           order: ordersById.get(orderId),
           zipRecovery,
+          manualZip,
           deps,
           successfulOrders,
           failedOrders,
@@ -88,6 +132,15 @@ export async function addTrackingNumbers(
       }),
     ),
   );
+
+  await syncZipToFixTags({
+    admin,
+    shopUrl,
+    ordersById,
+    successfulOrders,
+    failedOrders,
+    deps,
+  });
 
   return {
     ok: failedOrders.length === 0,
@@ -102,6 +155,7 @@ async function processOneOrder({
   orderId,
   order,
   zipRecovery,
+  manualZip,
   deps,
   successfulOrders,
   failedOrders,
@@ -111,6 +165,8 @@ async function processOneOrder({
   orderId: string;
   order?: TrackingInputOrder;
   zipRecovery: ZipRecovery;
+  /** Set when the admin typed this order's ZIP. */
+  manualZip?: ManualZipResult;
   deps: AddTrackingDeps;
   successfulOrders: AddTrackingNumbersSuccessfulOrder[];
   failedOrders: AddTrackingNumbersFailedOrder[];
@@ -142,12 +198,14 @@ async function processOneOrder({
             ? `Missing shipping ZIP code, and it could not be solved automatically: ${reason}.`
             : "Missing shipping ZIP code.",
         ],
+        isZipProblem: true,
       });
       return;
     }
 
     const createdTrackingNumbers: string[] = [];
     const fulfillmentErrors: string[] = [];
+    let isZipProblem = false;
 
     for (const fulfillmentOrder of shippingFulfillmentOrders) {
       try {
@@ -157,6 +215,7 @@ async function processOneOrder({
           totalWeight,
           zipRecovery,
           deps,
+          manualZip !== undefined,
         );
 
         await deps.addTrackingToFulfillment(admin, shopUrl, {
@@ -172,6 +231,7 @@ async function processOneOrder({
 
         createdTrackingNumbers.push(awbResponse.trackingNumber);
       } catch (fulfillmentError) {
+        if (fulfillmentError instanceof ZipProblemError) isZipProblem = true;
         fulfillmentErrors.push(
           `Fulfillment ${ShopifyUtils.extractShopifyId(fulfillmentOrder.id)}: ${
             fulfillmentError instanceof Error
@@ -182,7 +242,7 @@ async function processOneOrder({
       }
     }
 
-    const zipChange = zipRecovery.getChange(order.id);
+    const zipChange = manualZip?.change ?? zipRecovery.getChange(order.id);
 
     if (createdTrackingNumbers.length > 0 && fulfillmentErrors.length === 0) {
       successfulOrders.push({
@@ -203,6 +263,7 @@ async function processOneOrder({
           ...fulfillmentErrors,
         ],
         zipChange,
+        isZipProblem,
       });
       return;
     }
@@ -215,6 +276,7 @@ async function processOneOrder({
           ? fulfillmentErrors
           : ["No tracking numbers were created for this order."],
       zipChange,
+      isZipProblem,
     });
   } catch (error) {
     failedOrders.push({
@@ -228,13 +290,16 @@ async function processOneOrder({
 /**
  * Creates the AWB; if Optimus rejects the ZIP, solves it and retries once.
  * The order is patched in place, so its later fulfillment orders use the new
- * ZIP from the start.
+ * ZIP from the start. A ZIP the admin typed is never solved again.
+ *
+ * Throws `ZipProblemError` when the order ends up without a ZIP Optimus takes.
  */
 async function createAwbWithZipRetry(
   order: TrackingInputOrder,
   totalWeight: number,
   zipRecovery: ZipRecovery,
   deps: AddTrackingDeps,
+  isZipEnteredByHand: boolean,
 ): Promise<{ trackingNumber: string }> {
   try {
     return await deps.createAwb(buildAwbRequest(order, totalWeight));
@@ -242,15 +307,174 @@ async function createAwbWithZipRetry(
     if (!isOptimusInvalidZipError(error)) throw error;
 
     const rejectedZip = order.shippingAddress?.zip ?? "";
+    if (isZipEnteredByHand) {
+      throw new ZipProblemError(
+        `Optimus rejected ZIP ${rejectedZip}, which was entered by hand. ${errorMessage(error)}`,
+      );
+    }
+
     const decision = await zipRecovery.retryAfterRejection(order);
     if (!decision.shouldRetry) {
-      throw new Error(
+      throw new ZipProblemError(
         `Optimus rejected ZIP ${rejectedZip}, and it could not be solved automatically: ${decision.reason}. ${errorMessage(error)}`,
       );
     }
 
-    return deps.createAwb(buildAwbRequest(order, totalWeight));
+    try {
+      return await deps.createAwb(buildAwbRequest(order, totalWeight));
+    } catch (retryError) {
+      if (isOptimusInvalidZipError(retryError)) {
+        throw new ZipProblemError(errorMessage(retryError));
+      }
+      throw retryError;
+    }
   }
+}
+
+type ManualZipResult = {
+  /** Unset when the typed ZIP is the one the order already had. */
+  change?: ZipChange;
+  isSaveFailed?: boolean;
+};
+
+/**
+ * Saves the ZIPs the admin typed to the orders in Shopify and patches the
+ * in-memory orders, so the AWBs use them. An order whose ZIP cannot be saved
+ * fails here and gets no AWB: the label would not match the order.
+ */
+async function saveManualZips({
+  admin,
+  shopUrl,
+  orders,
+  manualZips,
+  deps,
+  failedOrders,
+}: {
+  admin: AdminApiContextWithoutRest;
+  shopUrl: string;
+  orders: TrackingInputOrder[];
+  manualZips: ManualZips;
+  deps: AddTrackingDeps;
+  failedOrders: AddTrackingNumbersFailedOrder[];
+}): Promise<Map<string, ManualZipResult>> {
+  const results = new Map<string, ManualZipResult>();
+  const pool = createPool(ADD_TRACKING_GRAPHQL_POOL_WORKERS);
+
+  await Promise.all(
+    orders.map((order) => {
+      const typedZip = manualZips[order.id];
+      if (typedZip === undefined) return undefined;
+
+      return pool.schedule(async () => {
+        const zip = normalizeZip(typedZip);
+        const address = order.shippingAddress;
+
+        if (!address) {
+          results.set(order.id, { isSaveFailed: true });
+          failedOrders.push({
+            id: order.id,
+            name: order.name,
+            errors: [
+              `ZIP ${zip} was not saved: the order has no shipping address.`,
+            ],
+          });
+          return;
+        }
+
+        const previousZip = address.zip ?? null;
+        if (zip === previousZip) {
+          results.set(order.id, {});
+          return;
+        }
+
+        try {
+          await deps.saveZip(admin, shopUrl, order.id, zip);
+          address.zip = zip;
+          results.set(order.id, {
+            change: { previousZip, newZip: zip, isEnteredByHand: true },
+          });
+        } catch (error) {
+          results.set(order.id, { isSaveFailed: true });
+          failedOrders.push({
+            id: order.id,
+            name: order.name,
+            errors: [
+              `Could not save ZIP ${zip} to the order: ${errorMessage(error)}`,
+            ],
+            isZipProblem: true,
+          });
+        }
+      });
+    }),
+  );
+
+  return results;
+}
+
+/**
+ * Puts the orders that failed on their ZIP on the "ZIP to fix" tab, and takes
+ * every other processed order off it. Tags only orders that do not have the
+ * tag yet (and untags only those that do), so a normal run costs no calls.
+ */
+async function syncZipToFixTags({
+  admin,
+  shopUrl,
+  ordersById,
+  successfulOrders,
+  failedOrders,
+  deps,
+}: {
+  admin: AdminApiContextWithoutRest;
+  shopUrl: string;
+  ordersById: Map<string, TrackingInputOrder>;
+  successfulOrders: AddTrackingNumbersSuccessfulOrder[];
+  failedOrders: AddTrackingNumbersFailedOrder[];
+  deps: AddTrackingDeps;
+}): Promise<void> {
+  const hasTag = (orderId: string) =>
+    ordersById.get(orderId)?.tags.includes(ZIP_TO_FIX_ORDER_TAG) ?? false;
+  const pool = createPool(ADD_TRACKING_GRAPHQL_POOL_WORKERS);
+
+  const toTag = failedOrders.filter(
+    (order) =>
+      order.isZipProblem && ordersById.has(order.id) && !hasTag(order.id),
+  );
+  const toUntag = [
+    ...successfulOrders,
+    ...failedOrders.filter((order) => !order.isZipProblem),
+  ].filter((order) => hasTag(order.id));
+
+  await Promise.all([
+    ...toTag.map((order) =>
+      pool.schedule(async () => {
+        try {
+          await deps.addZipToFixTag(admin, shopUrl, order.id);
+        } catch (error) {
+          order.errors.push(
+            `Could not add the "${ZIP_TO_FIX_ORDER_TAG}" tag, so the order is not on the "ZIP to fix" tab: ${errorMessage(error)}`,
+          );
+        }
+      }),
+    ),
+    ...toUntag.map((order) =>
+      pool.schedule(async () => {
+        try {
+          await deps.removeZipToFixTag(admin, shopUrl, order.id);
+        } catch (error) {
+          // a fulfilled order leaves the tab anyway; only a failed one stays
+          console.error(
+            `AppError[AddTracking] could not remove the "${ZIP_TO_FIX_ORDER_TAG}" tag from ${order.id}.`,
+            error,
+          );
+          if ("errors" in order) {
+            order.errors.push(
+              `Could not remove the "${ZIP_TO_FIX_ORDER_TAG}" tag: ${errorMessage(error)}`,
+            );
+          }
+        }
+      }),
+    ),
+  ]);
 }
 
 function buildAwbRequest(order: TrackingInputOrder, totalWeight: number) {

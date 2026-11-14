@@ -8,5 +8,6 @@ import { handleStartOrdersJob } from "app/backend/jobs/handleStartOrdersJob.serv
 export const action = async ({ request }: ActionFunctionArgs) =>
   handleStartOrdersJob(request, {
     ...ADD_TRACKING_JOB,
+    acceptsManualZips: true,
     buildArtifact: buildAddTrackingArtifact,
   });

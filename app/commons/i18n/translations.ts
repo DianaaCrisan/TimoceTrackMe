@@ -27,6 +27,7 @@ export const en = {
   // dashboard tabs
   "filter.all": "All",
   "filter.pending_fulfillment": "Pending fulfillment",
+  "filter.zip_to_fix": "ZIP to fix",
   "filter.unprinted": "Unprinted",
 
   // job names
@@ -53,6 +54,10 @@ export const en = {
   "dashboard.selectAllInTab": "Select all {count} orders in this tab",
   "dashboard.deselectAll": "Deselect all",
   "dashboard.httpError": "The server answered with HTTP {status}.",
+  "dashboard.fixZips": {
+    one: "Fix {count} ZIP code",
+    other: "Fix {count} ZIP codes",
+  },
 
   // orders table
   "table.selectAllVisible": "Select all visible orders",
@@ -69,6 +74,33 @@ export const en = {
   "table.noOrders": "No orders found.",
   "table.itemCount": { one: "{count} item", other: "{count} items" },
   "table.missingZip": "Missing",
+
+  // "ZIP to fix" tab
+  "zipFix.intro":
+    "Add tracking stopped on these orders because of their ZIP code. Correct the ZIPs, then add tracking again. Rows you edit are ticked; tick a row without editing it to retry it as it is.",
+  "zipFix.submit": {
+    one: "Save & add tracking for {count} order",
+    other: "Save & add tracking for {count} orders",
+  },
+  "zipFix.invalidCount": {
+    one: "{count} ZIP code is not 6 digits",
+    other: "{count} ZIP codes are not 6 digits",
+  },
+  "zipFix.selectAll": "Select all orders on this page",
+  "zipFix.colAddress": "Address",
+  "zipFix.colCity": "City",
+  "zipFix.colCounty": "County",
+  "zipFix.colProblem": "Problem",
+  "zipFix.colCorrectZip": "Correct ZIP",
+  "zipFix.problemMissing": "Missing, not found automatically",
+  "zipFix.problemRejected": "{zip} rejected by Optimus",
+  "zipFix.zipInputLabel": "Correct ZIP for order {name}",
+  "zipFix.invalidZip": "A ZIP code has 6 digits",
+  "zipFix.search": "Search",
+  "zipFix.searchTitle": "Look up the ZIP code of this address on Google",
+  "zipFix.inProgress": "Adding tracking...",
+  "zipFix.empty":
+    "No ZIP codes to fix. When add tracking stops on an order because of its ZIP, the order shows up here.",
 
   // Shopify payment statuses
   "financialStatus.AUTHORIZED": "Authorized",
@@ -139,6 +171,10 @@ export const en = {
   "summary.notMarkedPrinted": "{count} orders not marked as printed",
   "summary.seeErrorsFile": "see {fileName}",
   "summary.testFileUploaded": "Test file uploaded",
+  "summary.zipToFix": {
+    one: "{count} needs a ZIP fix",
+    other: "{count} need a ZIP fix",
+  },
 
   // errors when starting a job
   "startJob.ordersBusy":
@@ -149,6 +185,10 @@ export const en = {
   "startJob.noOrdersInTab": 'No orders match the "{tab}" tab.',
   "startJob.tooManyOrders":
     "A job can take at most {max} orders. This selection has more.",
+  "startJob.unreadableManualZips":
+    "The ZIP codes you typed could not be read. Reload the page and try again.",
+  "startJob.invalidManualZip":
+    'ZIP code "{zip}" is not valid: it must have 6 digits.',
 
   // admin panel
   "admin.heading": "Admin Panel",
@@ -288,6 +328,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // dashboard tabs
   "filter.all": "Toate",
   "filter.pending_fulfillment": "Neexecutate",
+  "filter.zip_to_fix": "Cod poștal de corectat",
   "filter.unprinted": "Neprintate",
 
   // job names
@@ -327,6 +368,11 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   },
   "dashboard.deselectAll": "Deselectează tot",
   "dashboard.httpError": "Serverul a răspuns cu HTTP {status}.",
+  "dashboard.fixZips": {
+    one: "Corectează {count} cod poștal",
+    few: "Corectează {count} coduri poștale",
+    other: "Corectează {count} de coduri poștale",
+  },
 
   // orders table
   "table.selectAllVisible": "Selectează toate comenzile vizibile",
@@ -347,6 +393,35 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     other: "{count} de articole",
   },
   "table.missingZip": "Lipsește",
+
+  // tabul „Cod poștal de corectat”
+  "zipFix.intro":
+    "Adăugarea tracking-ului s-a oprit la aceste comenzi din cauza codului poștal. Corectează codurile, apoi adaugă din nou tracking-ul. Rândurile editate se bifează singure; bifează un rând needitat ca să-l reîncerci așa cum e.",
+  "zipFix.submit": {
+    one: "Salvează și adaugă tracking pentru {count} comandă",
+    few: "Salvează și adaugă tracking pentru {count} comenzi",
+    other: "Salvează și adaugă tracking pentru {count} de comenzi",
+  },
+  "zipFix.invalidCount": {
+    one: "{count} cod poștal nu are 6 cifre",
+    few: "{count} coduri poștale nu au 6 cifre",
+    other: "{count} de coduri poștale nu au 6 cifre",
+  },
+  "zipFix.selectAll": "Selectează toate comenzile de pe pagină",
+  "zipFix.colAddress": "Adresă",
+  "zipFix.colCity": "Localitate",
+  "zipFix.colCounty": "Județ",
+  "zipFix.colProblem": "Problemă",
+  "zipFix.colCorrectZip": "Cod poștal corect",
+  "zipFix.problemMissing": "Lipsește, negăsit automat",
+  "zipFix.problemRejected": "{zip} respins de Optimus",
+  "zipFix.zipInputLabel": "Codul poștal corect pentru comanda {name}",
+  "zipFix.invalidZip": "Un cod poștal are 6 cifre",
+  "zipFix.search": "Caută",
+  "zipFix.searchTitle": "Caută pe Google codul poștal al acestei adrese",
+  "zipFix.inProgress": "Se adaugă tracking...",
+  "zipFix.empty":
+    "Niciun cod poștal de corectat. Când adăugarea tracking-ului se oprește la o comandă din cauza codului poștal, comanda apare aici.",
 
   // Shopify payment statuses
   "financialStatus.AUTHORIZED": "Autorizată",
@@ -422,6 +497,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "summary.notMarkedPrinted": "Comenzi nemarcate ca printate: {count}",
   "summary.seeErrorsFile": "vezi {fileName}",
   "summary.testFileUploaded": "Fișierul de test a fost încărcat",
+  "summary.zipToFix": "Coduri poștale de corectat: {count}",
 
   // errors when starting a job
   "startJob.ordersBusy": {
@@ -435,6 +511,10 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "startJob.noOrdersInTab": "Nicio comandă în tabul „{tab}”.",
   "startJob.tooManyOrders":
     "O sarcină poate prelua cel mult {max} de comenzi. Selecția aceasta are mai multe.",
+  "startJob.unreadableManualZips":
+    "Codurile poștale introduse nu au putut fi citite. Reîncarcă pagina și încearcă din nou.",
+  "startJob.invalidManualZip":
+    "Codul poștal „{zip}” nu este valid: trebuie să aibă 6 cifre.",
 
   // admin panel
   "admin.heading": "Panou de administrare",

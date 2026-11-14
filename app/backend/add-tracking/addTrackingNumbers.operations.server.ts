@@ -8,6 +8,7 @@ export const GET_ORDERS_TRACKING_INPUT_DATA_QUERY = `#graphql
         email
         phone
         createdAt
+        tags
         shippingAddress {
           address1
           address2
