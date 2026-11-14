@@ -79,7 +79,7 @@ export function layoutTotalsPage(args: {
     title: { text: "Total etichete", y: TITLE_Y },
     countRows: [
       ["Etichete livrare", counts.delivery],
-      ["Etichete pickup", counts.pickup],
+      ["Etichete ridicare", counts.pickup],
       ["Nr. total etichete", counts.total],
     ].map(([label, value], index) => ({
       label: String(label),

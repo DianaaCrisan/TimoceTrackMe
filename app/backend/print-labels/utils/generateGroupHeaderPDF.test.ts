@@ -2,6 +2,7 @@ import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 import { LineItem } from "../models/LineItem";
 import {
+  formatGroupTitle,
   generateGroupHeaderPDF,
   layoutGroupHeader,
   toItemRows,
@@ -21,13 +22,13 @@ const orderNames = (count: number): string[] =>
 describe("layoutGroupHeader", () => {
   it("puts items and order numbers on one page when they fit", () => {
     const pages = layoutGroupHeader({
-      title: "3 Etichete -> 3 tipuri produse",
+      title: "3 etichete -> 3 tipuri de produse",
       itemRows: itemRows(3),
       orderNames: orderNames(12),
     });
 
     expect(pages).toHaveLength(1);
-    expect(pages[0].title?.text).toBe("3 Etichete -> 3 tipuri produse");
+    expect(pages[0].title?.text).toBe("3 etichete -> 3 tipuri de produse");
     expect(pages[0].itemRows).toHaveLength(3);
     expect(pages[0].ordersHeader).toMatchObject({
       text: "Comenzi (12)",
@@ -150,5 +151,15 @@ describe("generateGroupHeaderPDF", () => {
     const { width, height } = doc.getPage(0).getSize();
     expect(Math.round(width)).toBe(425);
     expect(Math.round(height)).toBe(283);
+  });
+});
+
+describe("formatGroupTitle", () => {
+  it("uses Romanian singular, plural and 'de' from 20 up", () => {
+    expect(formatGroupTitle(1, 1)).toBe("1 etichetă -> 1 tip de produs");
+    expect(formatGroupTitle(3, 2)).toBe("3 etichete -> 2 tipuri de produse");
+    expect(formatGroupTitle(21, 20)).toBe(
+      "21 de etichete -> 20 de tipuri de produse",
+    );
   });
 });

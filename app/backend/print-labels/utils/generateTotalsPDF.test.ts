@@ -21,7 +21,7 @@ describe("layoutTotalsPage", () => {
     expect(rest).toEqual([]);
     expect(page.countRows.map((row) => [row.label, row.value])).toEqual([
       ["Etichete livrare", "7"],
-      ["Etichete pickup", "2"],
+      ["Etichete ridicare", "2"],
       ["Nr. total etichete", "9"],
     ]);
     expect(page.ordersHeader?.text).toBe("Comenzi (8)");

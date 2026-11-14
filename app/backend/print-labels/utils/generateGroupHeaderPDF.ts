@@ -140,9 +140,41 @@ function itemRowsPerPage(startY: number): number {
 }
 
 function buildTitle(items: LineItem[], labelCount: number): string {
-  const itemTypeCount = toItemRows(items).length;
-  const labels = `${labelCount} ${labelCount > 1 ? "Etichete" : "Eticheta"}`;
-  const itemTypes = `${itemTypeCount} ${itemTypeCount > 1 ? "tipuri produse" : "tip produs"}`;
+  return formatGroupTitle(labelCount, toItemRows(items).length);
+}
+
+const roPluralRules = new Intl.PluralRules("ro");
+
+/** Romanian count + noun: "1 etichetă", "3 etichete", "20 de etichete". */
+function countRo(
+  count: number,
+  forms: { one: string; few: string; other: string },
+): string {
+  const category = roPluralRules.select(count);
+  const noun =
+    category === "one"
+      ? forms.one
+      : category === "few"
+        ? forms.few
+        : forms.other;
+  return `${count} ${noun}`;
+}
+
+/** e.g. "3 etichete -> 2 tipuri de produse". The label PDFs are always in Romanian. */
+export function formatGroupTitle(
+  labelCount: number,
+  itemTypeCount: number,
+): string {
+  const labels = countRo(labelCount, {
+    one: "etichetă",
+    few: "etichete",
+    other: "de etichete",
+  });
+  const itemTypes = countRo(itemTypeCount, {
+    one: "tip de produs",
+    few: "tipuri de produse",
+    other: "de tipuri de produse",
+  });
   return `${labels} -> ${itemTypes}`;
 }
 
