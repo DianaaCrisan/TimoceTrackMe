@@ -1,16 +1,23 @@
 import { PageInfo } from "app/types/admin.types";
 import { Link } from "react-router";
+import {
+  formatPageNumbers,
+  PAGE_PARAM,
+  type PageNumbers,
+} from "app/commons/pagination/PageNumbers";
 
 type CursorPaginationProps = {
   basePath: string;
   pageInfo: PageInfo;
   queryParams?: Record<string, string>;
+  pageNumbers?: PageNumbers;
 };
 
 export function CursorPagination({
   basePath,
   pageInfo,
   queryParams = {},
+  pageNumbers,
 }: CursorPaginationProps) {
   const buildUrl = (
     cursorParam: "before" | "after",
@@ -22,6 +29,14 @@ export function CursorPagination({
     searchParams.delete("before");
     searchParams.delete("after");
     searchParams.set(cursorParam, cursorValue);
+
+    if (pageNumbers) {
+      const targetPage =
+        cursorParam === "after"
+          ? pageNumbers.currentPage + 1
+          : Math.max(1, pageNumbers.currentPage - 1);
+      searchParams.set(PAGE_PARAM, String(targetPage));
+    }
 
     return `${basePath}?${searchParams.toString()}`;
   };
@@ -37,7 +52,7 @@ export function CursorPagination({
       : null;
 
   return (
-    <s-stack direction="inline" gap="base">
+    <s-stack direction="inline" gap="base" alignItems="center">
       <div>
         {previousUrl ? (
           <Link to={previousUrl}>
@@ -47,6 +62,8 @@ export function CursorPagination({
           <s-button disabled>Previous</s-button>
         )}
       </div>
+
+      {pageNumbers ? <s-text>{formatPageNumbers(pageNumbers)}</s-text> : null}
 
       <div>
         {nextUrl ? (

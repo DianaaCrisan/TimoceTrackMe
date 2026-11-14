@@ -67,7 +67,7 @@ export async function createOptimusTrackingNumber(
 ): Promise<NewAWBResponse> {
   if (!OPTIMUS_API_URL || !OPTIMUS_USERNAME || !OPTIMUS_API_KEY) {
     throw new Error(
-      `Invalid optimus credentials. API_URL: ${OPTIMUS_API_URL}, USERNAME: ${OPTIMUS_USERNAME}, API_KEY: ${OPTIMUS_API_KEY}.`,
+      `Invalid optimus credentials. API_URL: ${OPTIMUS_API_URL}, USERNAME: ${OPTIMUS_USERNAME}, API_KEY: ${OPTIMUS_API_KEY ? "set" : "missing"}.`,
     );
   }
 
@@ -87,9 +87,14 @@ export async function createOptimusTrackingNumber(
     data_colectare: new Date().toISOString().split("T")[0].toString(),
     ramburs_valoare: "0",
     ref_factura: shippingDetails.invoiceDetails ?? "",
-    colet_descriere: `fructe (${shippingDetails.orderName})`,
+    colet_descriere: `produse (${shippingDetails.orderName})`,
     destinatar_email: shippingDetails.email ?? "",
   };
+
+  const loggablePayload = JSON.stringify(withoutCredentials(optimusPayload));
+  console.log(
+    `[Optimus] new_awb payload for order ${shippingDetails.orderName}: ${loggablePayload}`,
+  );
 
   let rawText = "";
   let status = 0;
@@ -108,7 +113,7 @@ export async function createOptimusTrackingNumber(
 
     if (!res.ok) {
       throw new Error(
-        `Optimus responded with HTTP ${status} for order ${shippingDetails.orderName}. Body: ${rawText}. Status: ${status}. Payload: ${optimusPayload}`,
+        `Optimus responded with HTTP ${status} for order ${shippingDetails.orderName}. Body: ${rawText}. Status: ${status}. Payload: ${loggablePayload}`,
       );
     }
   } catch (error) {
@@ -132,13 +137,13 @@ export async function createOptimusTrackingNumber(
     optimusResponse.pcl.length < 1
   ) {
     throw new Error(
-      `Optimus response missing tracking number or ID for order ${shippingDetails.orderName}. Payload: ${optimusPayload}. Response: ${optimusResponse}`,
+      `Optimus response missing tracking number or ID for order ${shippingDetails.orderName}. Payload: ${loggablePayload}. Response: ${JSON.stringify(optimusResponse)}`,
     );
   }
 
   if (optimusResponse.pcl.length > 1) {
     throw new Error(
-      `Generating tracking number via Optimus returned multiple numbers for order ${shippingDetails.orderName}. Payload: ${optimusPayload}. Response: ${optimusResponse}`,
+      `Generating tracking number via Optimus returned multiple numbers for order ${shippingDetails.orderName}. Payload: ${loggablePayload}. Response: ${JSON.stringify(optimusResponse)}`,
     );
   }
 
@@ -210,4 +215,11 @@ function normalizeOptimusResponse(src: any | null): NewAWBOptimusResponse {
     error_message:
       typeof src.error_message === "string" ? src.error_message : undefined,
   };
+}
+
+/** The payload as sent, minus the API key, so it is safe to log. */
+function withoutCredentials(
+  payload: NewAWBOptimusRequest,
+): NewAWBOptimusRequest {
+  return { ...payload, api_key: "***" };
 }

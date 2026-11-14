@@ -2,13 +2,13 @@ import type {
   AddPrintedOrderTagMutation,
   MarkFulfillmentLabelPrintedMutation,
 } from "app/types/admin.generated";
+import { PRINTED_ORDER_TAG } from "app/commons/constants";
 import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { createPool } from "../graphql/throttle-handling/helpers/createPool";
 import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
 import type { PrintedLabelUnit } from "./GroupedPdfComposer";
 import { LabelUnitKind } from "./models/LabelUnitKind";
 
-export const PRINTED_ORDER_TAG = "eticheta-printata";
 export const LABEL_PRINTED_EVENT_MESSAGE = "Etichetă printată (TrackMe)";
 
 const MARK_PRINTED_POOL_WORKERS = 4;
