@@ -22,6 +22,8 @@ export type StartBackgroundJobInput = {
   title: string;
   orderIds: string[];
   build: () => Promise<JobArtifact>;
+  /** Name of the text file stored when the job fails. `FAILED_<job>.txt` if unset. */
+  failureFileName?: string;
 };
 
 export type StartBackgroundJobResult =
@@ -131,7 +133,7 @@ async function runJob(
     console.error(`AppError[Job:${input.job}] job failed.`, error);
 
     const failedAt = deps.now();
-    const failureFileName = `FAILED_${input.job}.txt`;
+    const failureFileName = input.failureFileName ?? `FAILED_${input.job}.txt`;
     const failureKey = buildJobFileKey({
       job: input.job,
       startedAt,

@@ -12,6 +12,7 @@ export type TranslationEntry = string | PluralForms;
 export const en = {
   // navigation
   "nav.orders": "Orders",
+  "nav.unfulfilledReport": "Unfulfilled report",
   "nav.adminPanel": "Admin Panel",
 
   // landing page
@@ -137,7 +138,7 @@ export const en = {
   "summary.labels": "{labels} labels for {count} orders",
   "summary.ordersFailed": "{count} orders failed",
   "summary.notMarkedPrinted": "{count} orders not marked as printed",
-  "summary.seeErrorsFile": "see errors.txt",
+  "summary.seeErrorsFile": "see {fileName}",
   "summary.testFileUploaded": "Test file uploaded",
 
   // errors when starting a job
@@ -186,6 +187,84 @@ export const en = {
     "Test upload started. Press Refresh under Recent jobs in a few seconds.",
   "admin.testUploadAlreadyRunning": "A test upload is already running.",
   "admin.unknownTestUploadError": "Unknown test upload error.",
+
+  // unfulfilled report (page and PDF)
+  "report.heading": "Unfulfilled orders report",
+  "report.intro":
+    "Products still to be fulfilled, added up per variant. Every unfulfilled order is included unless you set an order number interval.",
+  "report.intervalHeading": "Order interval",
+  "report.fromOrder": "From order no.",
+  "report.toOrder": "To order no.",
+  "report.intervalHint": "Leave empty for all unfulfilled orders.",
+  "report.apply": "Apply",
+  "report.showAll": "Show all",
+  "report.refresh": "Refresh",
+  "report.downloadPdf": "Download PDF",
+  "report.loading":
+    "Collecting unfulfilled orders. With many orders this can take up to a minute.",
+  "report.invalidNumber": "Enter a whole order number, e.g. 1250.",
+  "report.invalidInterval":
+    "The first order number must not be greater than the last one.",
+  "report.scopeAll": "All unfulfilled orders",
+  "report.scopeBetween": "Orders #{from} – #{to}",
+  "report.scopeFrom": "Orders from #{from}",
+  "report.scopeTo": "Orders up to #{to}",
+  "report.generatedAt": "Generated {date}",
+  "report.orderCount": { one: "{count} order", other: "{count} orders" },
+  "report.delivery": "Delivery",
+  "report.pickup": "Pickup",
+  "report.sectionContinued": "{section} (cont.)",
+  "report.product": "Product",
+  "report.quantity": "Quantity",
+  "report.total": "Total",
+  "report.orders": "Orders ({count})",
+  "report.ordersContinued": "Orders (cont.)",
+  "report.noOrders": "No unfulfilled orders.",
+  "report.loadFailed": "Could not load the report: {error}",
+  "report.pdfFailed": "Could not create the PDF: {error}",
+  "report.bulkBusy":
+    "Shopify is still busy with another export for this app. Try again in a minute.",
+  "report.bulkNotEnabled":
+    'This app is not allowed to run bulk queries yet. In the Partner Dashboard, open Apps → TrackMe → API access requests and click "Allow bulk queries" under "Run bulk operations". Shopify turns it off again after 31 days without a bulk query.',
+  "report.timedOut":
+    "Shopify took too long to collect the orders. Try again in a minute.",
+
+  // shipping and pickup labels PDF
+  "labelsPdf.totalsTitle": "Label totals",
+  "labelsPdf.deliveryLabels": "Delivery labels",
+  "labelsPdf.pickupLabels": "Pickup labels",
+  "labelsPdf.totalLabels": "Total labels",
+  "labelsPdf.orders": "Orders ({count})",
+  "labelsPdf.ordersContinued": "Orders (cont.)",
+  "labelsPdf.groupTitle": "{labels} -> {productTypes}",
+  "labelsPdf.labelCount": { one: "{count} label", other: "{count} labels" },
+  "labelsPdf.productTypeCount": {
+    one: "{count} product type",
+    other: "{count} product types",
+  },
+  "pickupLabel.title": "PICKUP LABEL",
+  "pickupLabel.order": "Order: {value}",
+  "pickupLabel.confirmationNumber": "Confirmation number: {value}",
+  "pickupLabel.name": "Name: {value}",
+  "pickupLabel.orderDate": "Order date: {value}",
+  "pickupLabel.email": "Email: {value}",
+  "pickupLabel.phone": "Phone: {value}",
+
+  // exported file names: ASCII only, S3 keys turn anything else into "_"
+  "fileName.shippingLabels": "shipping-labels",
+  "fileName.pickupLabels": "pickup-labels",
+  "fileName.labelsZip": "labels",
+  "fileName.printLabelsResults": "print-labels-results",
+  "fileName.addTrackingResults": "add-tracking-results",
+  "fileName.solveZipResults": "solve-zip-results",
+  "fileName.errors": "errors",
+  "fileName.failed": "FAILED_{job}",
+  "fileName.test": "trackme-test",
+  "fileName.unfulfilledReport": "unfulfilled-report",
+  "fileName.job.solve-zip": "solve-zip",
+  "fileName.job.add-tracking": "add-tracking",
+  "fileName.job.print-labels": "print-labels",
+  "fileName.job.test": "test",
 } satisfies Record<string, TranslationEntry>;
 
 export type TranslationKey = keyof typeof en;
@@ -197,6 +276,7 @@ export type TranslationKey = keyof typeof en;
 export const ro: Record<TranslationKey, TranslationEntry> = {
   // navigation
   "nav.orders": "Comenzi",
+  "nav.unfulfilledReport": "Raport neexecutate",
   "nav.adminPanel": "Panou de administrare",
 
   // landing page
@@ -344,7 +424,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "summary.labels": "Etichete: {labels}, comenzi: {count}",
   "summary.ordersFailed": "Comenzi eșuate: {count}",
   "summary.notMarkedPrinted": "Comenzi nemarcate ca printate: {count}",
-  "summary.seeErrorsFile": "vezi errors.txt",
+  "summary.seeErrorsFile": "vezi {fileName}",
   "summary.testFileUploaded": "Fișierul de test a fost încărcat",
 
   // errors when starting a job
@@ -396,4 +476,92 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     "Încărcarea de test a pornit. Apasă Reîmprospătează la Sarcini recente în câteva secunde.",
   "admin.testUploadAlreadyRunning": "O încărcare de test rulează deja.",
   "admin.unknownTestUploadError": "Eroare necunoscută la încărcarea de test.",
+
+  // unfulfilled report (page and PDF)
+  "report.heading": "Raport comenzi neexecutate",
+  "report.intro":
+    "Produsele care mai trebuie onorate, însumate pe variantă. Sunt incluse toate comenzile neexecutate, dacă nu setezi un interval de numere de comandă.",
+  "report.intervalHeading": "Interval de comenzi",
+  "report.fromOrder": "De la comanda nr.",
+  "report.toOrder": "Până la comanda nr.",
+  "report.intervalHint": "Lasă gol pentru toate comenzile neexecutate.",
+  "report.apply": "Aplică",
+  "report.showAll": "Arată toate",
+  "report.refresh": "Reîmprospătează",
+  "report.downloadPdf": "Descarcă PDF",
+  "report.loading":
+    "Se adună comenzile neexecutate. La multe comenzi poate dura până la un minut.",
+  "report.invalidNumber":
+    "Introdu un număr de comandă întreg, de exemplu 1250.",
+  "report.invalidInterval":
+    "Primul număr de comandă nu poate fi mai mare decât ultimul.",
+  "report.scopeAll": "Toate comenzile neexecutate",
+  "report.scopeBetween": "Comenzile #{from} – #{to}",
+  "report.scopeFrom": "Comenzile de la #{from}",
+  "report.scopeTo": "Comenzile până la #{to}",
+  "report.generatedAt": "Generat la {date}",
+  "report.orderCount": {
+    one: "{count} comandă",
+    few: "{count} comenzi",
+    other: "{count} de comenzi",
+  },
+  "report.delivery": "Livrare",
+  "report.pickup": "Ridicare personală",
+  "report.sectionContinued": "{section} (cont.)",
+  "report.product": "Produs",
+  "report.quantity": "Cantitate",
+  "report.total": "Total",
+  "report.orders": "Comenzi ({count})",
+  "report.ordersContinued": "Comenzi (cont.)",
+  "report.noOrders": "Nicio comandă neexecutată.",
+  "report.loadFailed": "Raportul nu a putut fi încărcat: {error}",
+  "report.pdfFailed": "PDF-ul nu a putut fi creat: {error}",
+  "report.bulkBusy":
+    "Shopify lucrează încă la un alt export al aplicației. Încearcă din nou peste un minut.",
+  "report.bulkNotEnabled":
+    "Aplicația nu are încă voie să ruleze interogări în masă (bulk queries). În Partner Dashboard, deschide Apps → TrackMe → API access requests și apasă „Allow bulk queries” la „Run bulk operations”. Shopify o dezactivează din nou după 31 de zile fără nicio interogare în masă.",
+  "report.timedOut":
+    "Shopify a avut nevoie de prea mult timp pentru a aduna comenzile. Încearcă din nou peste un minut.",
+
+  // shipping and pickup labels PDF
+  "labelsPdf.totalsTitle": "Total etichete",
+  "labelsPdf.deliveryLabels": "Etichete livrare",
+  "labelsPdf.pickupLabels": "Etichete ridicare",
+  "labelsPdf.totalLabels": "Nr. total etichete",
+  "labelsPdf.orders": "Comenzi ({count})",
+  "labelsPdf.ordersContinued": "Comenzi (cont.)",
+  "labelsPdf.groupTitle": "{labels} -> {productTypes}",
+  "labelsPdf.labelCount": {
+    one: "{count} etichetă",
+    few: "{count} etichete",
+    other: "{count} de etichete",
+  },
+  "labelsPdf.productTypeCount": {
+    one: "{count} tip de produs",
+    few: "{count} tipuri de produse",
+    other: "{count} de tipuri de produse",
+  },
+  "pickupLabel.title": "ETICHETĂ RIDICARE",
+  "pickupLabel.order": "Comandă: {value}",
+  "pickupLabel.confirmationNumber": "Număr de confirmare: {value}",
+  "pickupLabel.name": "Nume: {value}",
+  "pickupLabel.orderDate": "Dată comandă: {value}",
+  "pickupLabel.email": "Email: {value}",
+  "pickupLabel.phone": "Telefon: {value}",
+
+  // exported file names: ASCII only, S3 keys turn anything else into "_"
+  "fileName.shippingLabels": "etichete-livrare",
+  "fileName.pickupLabels": "etichete-ridicare",
+  "fileName.labelsZip": "etichete",
+  "fileName.printLabelsResults": "rezultate-printare-etichete",
+  "fileName.addTrackingResults": "rezultate-adaugare-tracking",
+  "fileName.solveZipResults": "rezultate-coduri-postale",
+  "fileName.errors": "erori",
+  "fileName.failed": "ESUAT_{job}",
+  "fileName.test": "trackme-test",
+  "fileName.unfulfilledReport": "raport-neexecutate",
+  "fileName.job.solve-zip": "coduri-postale",
+  "fileName.job.add-tracking": "adaugare-tracking",
+  "fileName.job.print-labels": "printare-etichete",
+  "fileName.job.test": "test",
 };

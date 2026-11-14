@@ -1,5 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
+import { createTranslator } from "app/commons/i18n/translate";
 import {
   generateTotalsPDF,
   layoutTotalsPage,
@@ -9,6 +10,8 @@ import {
 // every character 6pt wide, so wrapping is easy to reason about
 const measure = (text: string) => text.length * 6;
 const counts = { delivery: 7, pickup: 2, total: 9 };
+const ro = createTranslator("ro");
+const en = createTranslator("en");
 
 describe("layoutTotalsPage", () => {
   it("shows the counts, then the orders as ranges", () => {
@@ -16,6 +19,7 @@ describe("layoutTotalsPage", () => {
       counts,
       orderNames: ["#5", "#6", "#7", "#9", "#10", "#11", "#12", "#16"],
       measure,
+      t: ro,
     });
 
     expect(rest).toEqual([]);
@@ -30,8 +34,30 @@ describe("layoutTotalsPage", () => {
     ]);
   });
 
+  it("is worded in the language it is given", () => {
+    const [page] = layoutTotalsPage({
+      counts,
+      orderNames: ["#1", "#2"],
+      measure,
+      t: en,
+    });
+
+    expect(page.title?.text).toBe("Label totals");
+    expect(page.countRows.map((row) => row.label)).toEqual([
+      "Delivery labels",
+      "Pickup labels",
+      "Total labels",
+    ]);
+    expect(page.ordersHeader?.text).toBe("Orders (2)");
+  });
+
   it("places the order list below the counts", () => {
-    const [page] = layoutTotalsPage({ counts, orderNames: ["#1"], measure });
+    const [page] = layoutTotalsPage({
+      counts,
+      orderNames: ["#1"],
+      measure,
+      t: ro,
+    });
 
     const lastCountY = page.countRows[2].y;
     expect(page.ordersHeader!.y).toBeLessThan(lastCountY - 12);
@@ -43,13 +69,19 @@ describe("layoutTotalsPage", () => {
       counts,
       orderNames: ["#1", "#1", "#2"],
       measure,
+      t: ro,
     });
 
     expect(page.ordersHeader?.text).toBe("Comenzi (2)");
   });
 
   it("leaves out the order list when there are no orders", () => {
-    const [page] = layoutTotalsPage({ counts, orderNames: [], measure });
+    const [page] = layoutTotalsPage({
+      counts,
+      orderNames: [],
+      measure,
+      t: ro,
+    });
 
     expect(page.ordersHeader).toBeUndefined();
     expect(page.orderLines).toEqual([]);
@@ -62,7 +94,7 @@ describe("layoutTotalsPage", () => {
       (_, i) => `#${1000 + i * 2}`,
     );
 
-    const pages = layoutTotalsPage({ counts, orderNames, measure });
+    const pages = layoutTotalsPage({ counts, orderNames, measure, t: ro });
 
     expect(pages.length).toBeGreaterThan(1);
     expect(pages[1].title).toBeUndefined();
@@ -99,7 +131,7 @@ describe("wrapRanges", () => {
 describe("generateTotalsPDF", () => {
   it("renders a 150×100mm page", async () => {
     const doc = await PDFDocument.load(
-      await generateTotalsPDF(counts, ["#1201", "#1202", "#1210"]),
+      await generateTotalsPDF(counts, ["#1201", "#1202", "#1210"], ro),
     );
 
     expect(doc.getPageCount()).toBe(1);

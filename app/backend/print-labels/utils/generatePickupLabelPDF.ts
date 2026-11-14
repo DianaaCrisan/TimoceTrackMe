@@ -1,3 +1,5 @@
+import { INTL_LOCALE, type Locale } from "app/commons/i18n/Locale";
+import { createTranslator } from "app/commons/i18n/translate";
 import { renderTwoColumnLabel } from "./renderTwoColumnLabel";
 
 type PickupLabelInput = {
@@ -10,6 +12,8 @@ type PickupLabelInput = {
     email?: string | null;
     phone?: string | null;
   };
+  /** The language of whoever printed the labels. */
+  locale: Locale;
 };
 
 export async function generatePickupLabelPDF({
@@ -17,31 +21,35 @@ export async function generatePickupLabelPDF({
   createdAt,
   confirmationNumber,
   customer,
+  locale,
 }: PickupLabelInput): Promise<Uint8Array> {
+  const t = createTranslator(locale);
   const fullName = `${customer.firstName ?? ""} ${customer.lastName ?? ""}`;
-  const formattedDate = new Intl.DateTimeFormat("ro-RO", {
+  const formattedDate = new Intl.DateTimeFormat(INTL_LOCALE[locale], {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   }).format(new Date(createdAt));
 
   const leftCol = [
-    { prefix: null, name: `Comandă: ${orderName}` },
+    { prefix: null, name: t("pickupLabel.order", { value: orderName }) },
     {
       prefix: null,
-      name: `Număr de confirmare: ${confirmationNumber ?? "-"}`,
+      name: t("pickupLabel.confirmationNumber", {
+        value: confirmationNumber ?? "-",
+      }),
     },
-    { prefix: null, name: `Nume: ${fullName}` },
+    { prefix: null, name: t("pickupLabel.name", { value: fullName }) },
   ];
 
   const rightCol = [
-    `Dată comandă: ${formattedDate}`,
-    `Email: ${customer.email ?? "-"}`,
-    `Telefon: ${customer.phone ?? "-"}`,
+    t("pickupLabel.orderDate", { value: formattedDate }),
+    t("pickupLabel.email", { value: customer.email ?? "-" }),
+    t("pickupLabel.phone", { value: customer.phone ?? "-" }),
   ];
 
   return renderTwoColumnLabel({
-    title: "ETICHETĂ RIDICARE",
+    title: t("pickupLabel.title"),
     leftLines: leftCol,
     rightLines: rightCol,
   });

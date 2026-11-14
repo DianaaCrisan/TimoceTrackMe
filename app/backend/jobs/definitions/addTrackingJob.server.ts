@@ -47,6 +47,7 @@ export async function buildAddTrackingArtifact(
     });
   }
 
+  const t = createTranslator(ctx.locale);
   const rows = await completeOrderResultRows({
     admin: ctx.admin,
     shopUrl: ctx.shopUrl,
@@ -63,11 +64,11 @@ export async function buildAddTrackingArtifact(
       rows,
       createdAt: ctx.startedAt,
     }),
-    fileName: "add-tracking-results.xlsx",
+    fileName: `${t("fileName.addTrackingResults")}.xlsx`,
     contentType:
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     hasErrors: countOrderResults(rows).failed > 0,
-    summary: summarizeOrderResults(rows, createTranslator(ctx.locale)),
+    summary: summarizeOrderResults(rows, t),
   };
 }
 

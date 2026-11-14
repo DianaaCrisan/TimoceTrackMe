@@ -63,6 +63,7 @@ export async function buildSolveZipArtifact(
     });
   }
 
+  const t = createTranslator(ctx.locale);
   const rows = await completeOrderResultRows({
     admin: ctx.admin,
     shopUrl: ctx.shopUrl,
@@ -78,10 +79,10 @@ export async function buildSolveZipArtifact(
       rows,
       createdAt: ctx.startedAt,
     }),
-    fileName: "solve-zip-results.xlsx",
+    fileName: `${t("fileName.solveZipResults")}.xlsx`,
     contentType:
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     hasErrors: countOrderResults(rows).failed > 0,
-    summary: summarizeOrderResults(rows, createTranslator(ctx.locale)),
+    summary: summarizeOrderResults(rows, t),
   };
 }

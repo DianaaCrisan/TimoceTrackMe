@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import type { Translate } from "app/commons/i18n/translate";
 import type { LineItem } from "../models/LineItem";
 import {
   embedLabelFonts,
@@ -44,17 +45,20 @@ export type GroupHeaderPageLayout = {
  * The page in front of each group of identical labels: what goes in every
  * parcel, then which orders the group covers. One 150×100mm label when it
  * fits; otherwise items continue on the next page, and orders flow onto
- * "Comenzi (cont.)" pages.
+ * "Orders (cont.)" pages. Worded in the language of whoever printed the labels.
  */
 export async function generateGroupHeaderPDF(
   items: LineItem[],
   labelCount: number,
   orderNames: string[],
+  t: Translate,
 ): Promise<Uint8Array> {
+  const itemRows = toItemRows(items);
   const pages = layoutGroupHeader({
-    title: buildTitle(items, labelCount),
-    itemRows: toItemRows(items),
+    title: formatGroupTitle(labelCount, itemRows.length, t),
+    itemRows,
     orderNames,
+    t,
   });
 
   const doc = await PDFDocument.create();
@@ -71,7 +75,9 @@ export function layoutGroupHeader(args: {
   title: string;
   itemRows: ItemRow[];
   orderNames: string[];
+  t: Translate;
 }): GroupHeaderPageLayout[] {
+  const { t } = args;
   const pages: GroupHeaderPageLayout[] = [];
   const newPage = (): GroupHeaderPageLayout => {
     const page: GroupHeaderPageLayout = { itemRows: [], orderRows: [] };
@@ -109,7 +115,7 @@ export function layoutGroupHeader(args: {
   }
 
   page.ordersHeader = {
-    text: `Comenzi (${names.length})`,
+    text: t("labelsPdf.orders", { count: names.length }),
     y: headerY,
     hasDivider,
   };
@@ -119,7 +125,7 @@ export function layoutGroupHeader(args: {
     if (rowY < BOTTOM_MARGIN) {
       page = newPage();
       page.ordersHeader = {
-        text: "Comenzi (cont.)",
+        text: t("labelsPdf.ordersContinued"),
         y: ORDERS_CONTINUATION_HEADER_Y,
         hasDivider: false,
       };
@@ -139,43 +145,16 @@ function itemRowsPerPage(startY: number): number {
   return Math.max(1, Math.floor((startY - BOTTOM_MARGIN) / ITEM_LINE_GAP));
 }
 
-function buildTitle(items: LineItem[], labelCount: number): string {
-  return formatGroupTitle(labelCount, toItemRows(items).length);
-}
-
-const roPluralRules = new Intl.PluralRules("ro");
-
-/** Romanian count + noun: "1 etichetă", "3 etichete", "20 de etichete". */
-function countRo(
-  count: number,
-  forms: { one: string; few: string; other: string },
-): string {
-  const category = roPluralRules.select(count);
-  const noun =
-    category === "one"
-      ? forms.one
-      : category === "few"
-        ? forms.few
-        : forms.other;
-  return `${count} ${noun}`;
-}
-
-/** e.g. "3 etichete -> 2 tipuri de produse". The label PDFs are always in Romanian. */
+/** e.g. "3 labels -> 2 product types" / "3 etichete -> 2 tipuri de produse". */
 export function formatGroupTitle(
   labelCount: number,
   itemTypeCount: number,
+  t: Translate,
 ): string {
-  const labels = countRo(labelCount, {
-    one: "etichetă",
-    few: "etichete",
-    other: "de etichete",
+  return t("labelsPdf.groupTitle", {
+    labels: t("labelsPdf.labelCount", { count: labelCount }),
+    productTypes: t("labelsPdf.productTypeCount", { count: itemTypeCount }),
   });
-  const itemTypes = countRo(itemTypeCount, {
-    one: "tip de produs",
-    few: "tipuri de produse",
-    other: "de tipuri de produse",
-  });
-  return `${labels} -> ${itemTypes}`;
 }
 
 /** One row per variant, quantities summed, sorted by name. */

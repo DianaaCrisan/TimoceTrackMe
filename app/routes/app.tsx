@@ -11,6 +11,7 @@ import { authenticate } from "../shopify.server";
 import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import { I18nProvider } from "app/frontend/core/i18n/I18nProvider";
+import { UNFULFILLED_REPORT_PATH } from "app/commons/unfulfilled-report/UnfulfilledReport";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -44,6 +45,9 @@ export default function App() {
       <I18nProvider locale={locale}>
         <s-app-nav>
           <s-link href="/app/orders-dashboard">{t("nav.orders")}</s-link>
+          <s-link href={UNFULFILLED_REPORT_PATH}>
+            {t("nav.unfulfilledReport")}
+          </s-link>
           <s-link href="/app/admin-panel">{t("nav.adminPanel")}</s-link>
         </s-app-nav>
         <Outlet />

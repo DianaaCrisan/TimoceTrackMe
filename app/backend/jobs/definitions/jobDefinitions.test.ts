@@ -241,6 +241,37 @@ describe("buildPrintLabelsArtifact", () => {
     expect(artifact.hasErrors).toBe(true);
   });
 
+  it("names every file and the PDFs' language after the user's language", async () => {
+    vi.mocked(buildPrintLabels).mockResolvedValue(
+      printResult({
+        files: [
+          {
+            fileName: "etichete-livrare_1001.pdf",
+            buf: Buffer.from("pdf"),
+          },
+        ],
+        generalErrors: ["Totals page render failed"],
+        timestamp: "13-nov-2026_12-00",
+      }),
+    );
+
+    const artifact = await buildPrintLabelsArtifact({ ...ctx, locale: "ro" });
+    const zip = await JSZip.loadAsync(artifact.buf);
+
+    expect(buildPrintLabels).toHaveBeenCalledWith(ctx.admin, ctx.shopUrl, {
+      orderIds: ctx.orderIds,
+      timeZone: ctx.timeZone,
+      locale: "ro",
+    });
+    expect(artifact.fileName).toBe("etichete_13-nov-2026_12-00.zip");
+    expect(Object.keys(zip.files).sort()).toEqual([
+      "erori.txt",
+      "etichete-livrare_1001.pdf",
+      "rezultate-printare-etichete.xlsx",
+    ]);
+    expect(artifact.summary).toContain("vezi erori.txt");
+  });
+
   it("fails the job when there are errors and no PDF at all, without marking anything", async () => {
     vi.mocked(buildPrintLabels).mockResolvedValue(
       printResult({
