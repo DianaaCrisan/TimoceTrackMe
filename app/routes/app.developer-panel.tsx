@@ -4,6 +4,7 @@ import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import {
+  checkOptimusAwbStatus,
   getOptimusTestCredentialsForDisplay,
   sendOptimusConnectionTest,
 } from "../backend/optimus/optimus-test.server";
@@ -21,6 +22,7 @@ import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 
 const OPTIMUS_TEST_INTENT = "optimusTest";
 const S3_TEST_INTENT = "s3Test";
+const AWB_STATUS_INTENT = "awbStatus";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -66,6 +68,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
   }
 
+  if (intent === AWB_STATUS_INTENT) {
+    const awb = String(formData.get("awb") ?? "").trim();
+    if (!awb) {
+      return {
+        intent,
+        ok: false,
+        data: { message: t("developer.awbStatusMissingAwb") },
+      };
+    }
+
+    try {
+      const result = await checkOptimusAwbStatus(awb);
+      return { intent, ok: result.ok, data: result };
+    } catch (error) {
+      return {
+        intent,
+        ok: false,
+        data: {
+          message:
+            error instanceof Error
+              ? error.message
+              : t("developer.unknownOptimusError"),
+        },
+      };
+    }
+  }
+
   try {
     const result = await sendOptimusConnectionTest();
 
@@ -97,10 +126,16 @@ export default function DeveloperPanelPage() {
   const { credentials, s3Setup, recentJobs } = useLoaderData<typeof loader>();
   const optimusFetcher = useFetcher<typeof action>();
   const s3TestFetcher = useFetcher<typeof action>();
+  const awbStatusFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
   const { locale, t } = useI18n();
 
   const isSendingOptimusTest = optimusFetcher.state !== "idle";
+  const isCheckingAwbStatus = awbStatusFetcher.state !== "idle";
+
+  const awbStatusResponseContent = awbStatusFetcher.data
+    ? JSON.stringify(awbStatusFetcher.data.data, null, 2)
+    : t("developer.awbStatusNoRequestYet");
   const isStartingS3Test = s3TestFetcher.state !== "idle";
   const isS3SetupComplete = s3Setup.envVars.every((envVar) => envVar.isSet);
 
@@ -176,6 +211,35 @@ export default function DeveloperPanelPage() {
         </s-section>
 
         <ResponseViewer content={optimusResponseContent} />
+
+        <s-section heading={t("developer.awbStatusHeading")}>
+          <s-stack direction="block" gap="base">
+            <s-paragraph>{t("developer.awbStatusIntro")}</s-paragraph>
+
+            <awbStatusFetcher.Form method="post">
+              <input type="hidden" name="intent" value={AWB_STATUS_INTENT} />
+              <input type="hidden" name={LOCALE_PARAM} value={locale} />
+              <s-stack direction="block" gap="base">
+                <s-text-field
+                  name="awb"
+                  label={t("developer.awbStatusField")}
+                  required
+                ></s-text-field>
+                <s-button
+                  type="submit"
+                  {...(isCheckingAwbStatus ? { loading: true } : {})}
+                >
+                  {t("developer.awbStatusCheck")}
+                </s-button>
+              </s-stack>
+            </awbStatusFetcher.Form>
+          </s-stack>
+        </s-section>
+
+        <ResponseViewer
+          title={t("developer.awbStatusResponse")}
+          content={awbStatusResponseContent}
+        />
 
         <s-section heading={t("developer.s3Heading")}>
           <s-stack direction="block" gap="base">

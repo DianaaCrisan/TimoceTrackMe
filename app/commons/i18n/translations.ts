@@ -261,6 +261,15 @@ export const en = {
   "developer.optimusTestCompleted": "Optimus test request completed",
   "developer.optimusTestFailed": "Optimus test request failed",
   "developer.unknownOptimusError": "Unknown Optimus test error.",
+  "developer.awbStatusHeading": "AWB status",
+  "developer.awbStatusIntro":
+    "Asks Optimus for the current status of an AWB and shows the full response. Uses the credentials the app ships with (OPTIMUS_USERNAME / OPTIMUS_API_KEY), not the test ones above: Optimus only knows the AWBs of the account that created them. It only reads, nothing changes.",
+  "developer.awbStatusField": "AWB number",
+  "developer.awbStatusCheck": "Check status",
+  "developer.awbStatusResponse": "AWB status response",
+  "developer.awbStatusNoRequestYet":
+    "No AWB checked yet.\n\nThe Optimus response will be displayed here after you check an AWB.",
+  "developer.awbStatusMissingAwb": "Enter an AWB number.",
   "developer.s3Heading": "Bulk jobs: S3 setup",
   "developer.s3Intro":
     "Bulk actions store their result files in S3. Every variable below must be set for them to work.",
@@ -644,6 +653,15 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "developer.optimusTestCompleted": "Cererea de test Optimus s-a încheiat",
   "developer.optimusTestFailed": "Cererea de test Optimus a eșuat",
   "developer.unknownOptimusError": "Eroare necunoscută la testul Optimus.",
+  "developer.awbStatusHeading": "Status AWB",
+  "developer.awbStatusIntro":
+    "Cere de la Optimus statusul actual al unui AWB și afișează răspunsul complet. Folosește datele cu care lucrează aplicația (OPTIMUS_USERNAME / OPTIMUS_API_KEY), nu cele de test de mai sus: Optimus cunoaște doar AWB-urile contului care le-a creat. Doar citește, nu modifică nimic.",
+  "developer.awbStatusField": "Număr AWB",
+  "developer.awbStatusCheck": "Verifică statusul",
+  "developer.awbStatusResponse": "Răspuns status AWB",
+  "developer.awbStatusNoRequestYet":
+    "Niciun AWB verificat încă.\n\nRăspunsul Optimus va apărea aici după ce verifici un AWB.",
+  "developer.awbStatusMissingAwb": "Introdu un număr AWB.",
   "developer.s3Heading": "Sarcini în masă: configurare S3",
   "developer.s3Intro":
     "Acțiunile în masă își salvează fișierele rezultat în S3. Toate variabilele de mai jos trebuie setate pentru ca acestea să funcționeze.",
