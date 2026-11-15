@@ -32,7 +32,7 @@ export function isOverWeightLimit(
 }
 
 /**
- * Reads the limit typed in the admin panel: empty turns the check off,
+ * Reads the limit typed on the Settings page: empty turns the check off,
  * otherwise it must be a positive number of kg (comma or dot decimals).
  * Returns undefined when the value is not valid.
  */

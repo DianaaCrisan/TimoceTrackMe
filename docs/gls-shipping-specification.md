@@ -47,7 +47,7 @@ Parcels are numbered across all of the order's shipping fulfillment orders.
 
 ## Weight limit per parcel
 
-Set in the admin panel, under "Parcel weight". It is stored in the database
+Set on the Settings page, under "Parcel weight". It is stored in the database
 (`AppSettings`).
 
 - **Empty:** no check, every fulfillment ships as one parcel.

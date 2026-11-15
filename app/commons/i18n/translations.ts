@@ -13,7 +13,8 @@ export const en = {
   // navigation
   "nav.orders": "Orders",
   "nav.unfulfilledReport": "Unfulfilled report",
-  "nav.adminPanel": "Admin Panel",
+  "nav.settings": "Settings",
+  "nav.developerPanel": "Developer panel",
 
   // landing page
   "landing.welcome": "Welcome to TrackMe!",
@@ -89,7 +90,8 @@ export const en = {
   "trackingReview.overWeightLimit":
     "Over the {limit} limit per parcel. Automatic split is off, so it will ship as one parcel.",
 
-  // settings in the admin panel
+  // Settings page
+  "settings.heading": "Settings",
   "settings.parcelWeightHeading": "Parcel weight",
   "settings.parcelWeightIntro":
     "Orders heavier than the limit are highlighted on the Orders page. With automatic split on, adding tracking ships them as several parcels, each with its own shipping label marked 1/3, 2/3 and so on.",
@@ -241,42 +243,42 @@ export const en = {
   "startJob.invalidManualZip":
     'ZIP code "{zip}" is not valid: it must have 6 digits.',
 
-  // admin panel
-  "admin.heading": "Admin Panel",
-  "admin.credentialsHeading": "Optimus test credentials",
-  "admin.credentialsIntro":
+  // Developer panel
+  "developer.heading": "Developer panel",
+  "developer.credentialsHeading": "Optimus test credentials",
+  "developer.credentialsIntro":
     "These values are loaded from environment variables. The API key is masked for safety.",
-  "admin.apiUrl": "API URL",
-  "admin.username": "Username",
-  "admin.apiKey": "API Key",
-  "admin.testRequestHeading": "Test request",
-  "admin.testRequestIntro":
+  "developer.apiUrl": "API URL",
+  "developer.username": "Username",
+  "developer.apiKey": "API Key",
+  "developer.testRequestHeading": "Test request",
+  "developer.testRequestIntro":
     "This sends a server-side test request to Optimus using test credentials and a mocked AWB-style payload.",
-  "admin.sendTestRequest": "Send test request",
-  "admin.responseOutput": "Response output",
-  "admin.noRequestYet":
+  "developer.sendTestRequest": "Send test request",
+  "developer.responseOutput": "Response output",
+  "developer.noRequestYet":
     "No request sent yet.\n\nThe Optimus response will be displayed here after you send a test request.",
-  "admin.optimusTestCompleted": "Optimus test request completed",
-  "admin.optimusTestFailed": "Optimus test request failed",
-  "admin.unknownOptimusError": "Unknown Optimus test error.",
-  "admin.s3Heading": "Bulk jobs: S3 setup",
-  "admin.s3Intro":
+  "developer.optimusTestCompleted": "Optimus test request completed",
+  "developer.optimusTestFailed": "Optimus test request failed",
+  "developer.unknownOptimusError": "Unknown Optimus test error.",
+  "developer.s3Heading": "Bulk jobs: S3 setup",
+  "developer.s3Intro":
     "Bulk actions store their result files in S3. Every variable below must be set for them to work.",
-  "admin.s3Bucket": "S3 bucket",
-  "admin.awsRegion": "AWS region",
-  "admin.appFolder": "This app's folder in the bucket",
-  "admin.notSet": "(not set)",
-  "admin.bucketRoot": "(bucket root)",
-  "admin.openAppFolder": "Open this app's folder in the S3 console",
-  "admin.s3TestIntro":
+  "developer.s3Bucket": "S3 bucket",
+  "developer.awsRegion": "AWS region",
+  "developer.appFolder": "This app's folder in the bucket",
+  "developer.notSet": "(not set)",
+  "developer.bucketRoot": "(bucket root)",
+  "developer.openAppFolder": "Open this app's folder in the S3 console",
+  "developer.s3TestIntro":
     "The test uploads a small text file. It then appears under Recent jobs with a link to it in S3.",
-  "admin.uploadTestFile": "Upload test file",
-  "admin.testUploadStarted": "Test upload started",
-  "admin.testUploadCouldNotStart": "Test upload could not start",
-  "admin.testUploadStartedDetails":
+  "developer.uploadTestFile": "Upload test file",
+  "developer.testUploadStarted": "Test upload started",
+  "developer.testUploadCouldNotStart": "Test upload could not start",
+  "developer.testUploadStartedDetails":
     "Test upload started. Press Refresh under Recent jobs in a few seconds.",
-  "admin.testUploadAlreadyRunning": "A test upload is already running.",
-  "admin.unknownTestUploadError": "Unknown test upload error.",
+  "developer.testUploadAlreadyRunning": "A test upload is already running.",
+  "developer.unknownTestUploadError": "Unknown test upload error.",
 
   // unfulfilled report (page and PDF)
   "report.heading": "Unfulfilled orders report",
@@ -365,7 +367,8 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // navigation
   "nav.orders": "Comenzi",
   "nav.unfulfilledReport": "Raport neexecutate",
-  "nav.adminPanel": "Panou de administrare",
+  "nav.settings": "Setări",
+  "nav.developerPanel": "Panou pentru dezvoltatori",
 
   // landing page
   "landing.welcome": "Bun venit în TrackMe!",
@@ -460,7 +463,8 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "trackingReview.overWeightLimit":
     "Peste limita de {limit} pe colet. Împărțirea automată este oprită, așa că va pleca într-un singur colet.",
 
-  // setări în panoul de administrare
+  // pagina Setări
+  "settings.heading": "Setări",
   "settings.parcelWeightHeading": "Greutatea coletelor",
   "settings.parcelWeightIntro":
     "Comenzile mai grele decât limita sunt evidențiate pe pagina Comenzi. Cu împărțirea automată pornită, la adăugarea tracking-ului pleacă în mai multe colete, fiecare cu eticheta lui de expediere, marcată 1/3, 2/3 și așa mai departe.",
@@ -622,42 +626,43 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "startJob.invalidManualZip":
     "Codul poștal „{zip}” nu este valid: trebuie să aibă 6 cifre.",
 
-  // admin panel
-  "admin.heading": "Panou de administrare",
-  "admin.credentialsHeading": "Date de test Optimus",
-  "admin.credentialsIntro":
+  // Developer panel
+  "developer.heading": "Panou pentru dezvoltatori",
+  "developer.credentialsHeading": "Date de test Optimus",
+  "developer.credentialsIntro":
     "Aceste valori sunt încărcate din variabilele de mediu. Cheia API este mascată din motive de securitate.",
-  "admin.apiUrl": "URL API",
-  "admin.username": "Nume utilizator",
-  "admin.apiKey": "Cheie API",
-  "admin.testRequestHeading": "Cerere de test",
-  "admin.testRequestIntro":
+  "developer.apiUrl": "URL API",
+  "developer.username": "Nume utilizator",
+  "developer.apiKey": "Cheie API",
+  "developer.testRequestHeading": "Cerere de test",
+  "developer.testRequestIntro":
     "Trimite din server o cerere de test către Optimus, cu datele de test și un payload AWB simulat.",
-  "admin.sendTestRequest": "Trimite cererea de test",
-  "admin.responseOutput": "Răspuns",
-  "admin.noRequestYet":
+  "developer.sendTestRequest": "Trimite cererea de test",
+  "developer.responseOutput": "Răspuns",
+  "developer.noRequestYet":
     "Nicio cerere trimisă încă.\n\nRăspunsul Optimus va apărea aici după ce trimiți o cerere de test.",
-  "admin.optimusTestCompleted": "Cererea de test Optimus s-a încheiat",
-  "admin.optimusTestFailed": "Cererea de test Optimus a eșuat",
-  "admin.unknownOptimusError": "Eroare necunoscută la testul Optimus.",
-  "admin.s3Heading": "Sarcini în masă: configurare S3",
-  "admin.s3Intro":
+  "developer.optimusTestCompleted": "Cererea de test Optimus s-a încheiat",
+  "developer.optimusTestFailed": "Cererea de test Optimus a eșuat",
+  "developer.unknownOptimusError": "Eroare necunoscută la testul Optimus.",
+  "developer.s3Heading": "Sarcini în masă: configurare S3",
+  "developer.s3Intro":
     "Acțiunile în masă își salvează fișierele rezultat în S3. Toate variabilele de mai jos trebuie setate pentru ca acestea să funcționeze.",
-  "admin.s3Bucket": "Bucket S3",
-  "admin.awsRegion": "Regiune AWS",
-  "admin.appFolder": "Folderul acestei aplicații în bucket",
-  "admin.notSet": "(nesetat)",
-  "admin.bucketRoot": "(rădăcina bucketului)",
-  "admin.openAppFolder": "Deschide folderul aplicației în consola S3",
-  "admin.s3TestIntro":
+  "developer.s3Bucket": "Bucket S3",
+  "developer.awsRegion": "Regiune AWS",
+  "developer.appFolder": "Folderul acestei aplicații în bucket",
+  "developer.notSet": "(nesetat)",
+  "developer.bucketRoot": "(rădăcina bucketului)",
+  "developer.openAppFolder": "Deschide folderul aplicației în consola S3",
+  "developer.s3TestIntro":
     "Testul încarcă un fișier text mic. Acesta apare apoi la Sarcini recente, cu un link către el în S3.",
-  "admin.uploadTestFile": "Încarcă fișierul de test",
-  "admin.testUploadStarted": "Încărcarea de test a pornit",
-  "admin.testUploadCouldNotStart": "Încărcarea de test nu a putut porni",
-  "admin.testUploadStartedDetails":
+  "developer.uploadTestFile": "Încarcă fișierul de test",
+  "developer.testUploadStarted": "Încărcarea de test a pornit",
+  "developer.testUploadCouldNotStart": "Încărcarea de test nu a putut porni",
+  "developer.testUploadStartedDetails":
     "Încărcarea de test a pornit. Apasă Reîmprospătează la Sarcini recente în câteva secunde.",
-  "admin.testUploadAlreadyRunning": "O încărcare de test rulează deja.",
-  "admin.unknownTestUploadError": "Eroare necunoscută la încărcarea de test.",
+  "developer.testUploadAlreadyRunning": "O încărcare de test rulează deja.",
+  "developer.unknownTestUploadError":
+    "Eroare necunoscută la încărcarea de test.",
 
   // unfulfilled report (page and PDF)
   "report.heading": "Raport comenzi neexecutate",
