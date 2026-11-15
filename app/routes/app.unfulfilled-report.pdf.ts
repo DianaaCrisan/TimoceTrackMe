@@ -5,10 +5,8 @@ import { formatFileTimestamp } from "app/backend/exports/formatFileTimestamp";
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { reportCache } from "app/backend/unfulfilled-report/ReportCache";
 import { generateUnfulfilledReportPDF } from "app/backend/unfulfilled-report/generateUnfulfilledReportPDF";
-import {
-  describeReportError,
-  getUnfulfilledReport,
-} from "app/backend/unfulfilled-report/getUnfulfilledReport.server";
+import { describeReportError } from "app/backend/unfulfilled-report/getUnfulfilledReport.server";
+import { loadReport } from "app/backend/unfulfilled-report/loadReport.server";
 import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import {
@@ -16,12 +14,13 @@ import {
   parseOrderInterval,
 } from "app/commons/unfulfilled-report/OrderInterval";
 import {
+  parseReportKind,
+  REPORT_KIND_PARAM,
   REPORT_PACK_PARAM,
   RESULT_ID_PARAM,
   type UnfulfilledReport,
 } from "app/commons/unfulfilled-report/UnfulfilledReport";
 import { RequestError } from "app/backend/core/errors/RequestError";
-import { loadReportPackScope } from "app/backend/unfulfilled-report/loadReportPackScope.server";
 
 const TIME_ZONE_PARAM = "timeZone";
 
@@ -55,13 +54,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return Response.json({ error: t(parsed.error) }, { status: 400 });
       }
 
-      const packId = readString(formData, REPORT_PACK_PARAM);
-      report = await getUnfulfilledReport(
+      report = await loadReport({
         admin,
-        ShopifyUtils.getShopAdminUrl(session.shop),
-        parsed.interval,
-        packId ? await loadReportPackScope(packId, t) : null,
-      );
+        shopUrl: ShopifyUtils.getShopAdminUrl(session.shop),
+        kind: parseReportKind(readString(formData, REPORT_KIND_PARAM)),
+        interval: parsed.interval,
+        packId: readString(formData, REPORT_PACK_PARAM),
+        t,
+      });
     }
 
     const pdf = await generateUnfulfilledReportPDF(report, {
@@ -69,7 +69,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       timeZone,
     });
     const fileName = buildOrderRangesFileName({
-      baseName: t("fileName.unfulfilledReport"),
+      baseName: t(
+        report.kind === "sold"
+          ? "fileName.soldReport"
+          : "fileName.unfulfilledReport",
+      ),
       orderNames: [...report.delivery.orderNames, ...report.pickup.orderNames],
       timestamp: formatFileTimestamp(
         new Date(report.generatedAt),

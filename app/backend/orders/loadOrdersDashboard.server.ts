@@ -41,7 +41,7 @@ export async function loadOrdersDashboard({
     getScopeFilters(scope),
   );
 
-  const [data, ordersCount, recentJobs, parcelWeight, { workingPacks }] =
+  const [data, ordersCount, recentJobs, settings, { workingPacks }] =
     await Promise.all([
       getOrdersDashboardData(admin, {
         after: url.searchParams.get("after"),
@@ -51,10 +51,14 @@ export async function loadOrdersDashboard({
       }),
       getOrdersCount(admin, filter, packTag),
       getRecentJobsSnapshot(),
-      SettingsRepository.getParcelWeight(),
+      SettingsRepository.get(),
       PackRepository.list(),
     ]);
   const shopAdminUrl = ShopifyUtils.getShopAdminUrl(shop);
+  const parcelWeight = {
+    parcelWeightLimitKg: settings.parcelWeightLimitKg,
+    autoSplitHeavyOrders: settings.autoSplitHeavyOrders,
+  };
 
   return {
     ...data,
@@ -76,5 +80,6 @@ export async function loadOrdersDashboard({
     parcelWeight,
     /** Packs that can take orders: for "Add to pack" and "Move to pack". */
     targetPacks: workingPacks.map(toPackView),
+    jobsOnlyInPacks: settings.jobsOnlyInPacks,
   };
 }

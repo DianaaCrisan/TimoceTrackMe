@@ -11,10 +11,13 @@ import {
   parseOrderInterval,
   type OrderInterval,
 } from "app/commons/unfulfilled-report/OrderInterval";
-import { buildPackUrl } from "app/commons/packs/FulfillmentPack";
+import { buildPackUrl, PACKS_PATH } from "app/commons/packs/FulfillmentPack";
 import {
   formatReportScope,
+  formatReportHeading,
+  REPORT_KIND_PARAM,
   REPORT_PACK_PARAM,
+  type ReportKind,
   REPORT_SECTIONS,
   RESULT_ID_PARAM,
   UNFULFILLED_REPORT_DATA_PATH,
@@ -43,7 +46,12 @@ const FALLBACK_PDF_NAME = "report.pdf";
  * With `?packId=` the report covers one pack's orders instead, and the
  * interval form is hidden: it is opened from the pack, before add tracking.
  */
-export function UnfulfilledReportPage() {
+export function UnfulfilledReportPage({
+  kind = "unfulfilled",
+}: {
+  /** `sold`: the sold products report, always for one pack. */
+  kind?: ReportKind;
+}) {
   const { locale, t } = useI18n();
   const shopify = useAppBridge();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -67,10 +75,8 @@ export function UnfulfilledReportPage() {
 
   const packId = searchParams.get(REPORT_PACK_PARAM);
   const intervalQuery = orderIntervalToSearchParams(interval).toString();
-  /** What the report covers, as sent to the server. */
-  const scopeQuery = packId
-    ? new URLSearchParams({ [REPORT_PACK_PARAM]: packId }).toString()
-    : intervalQuery;
+  /** Which report, for what, as sent to the server. */
+  const scopeQuery = buildScopeQuery(kind, packId, intervalQuery);
   const loadReport = () => {
     const params = new URLSearchParams(scopeQuery);
     params.set(LOCALE_PARAM, locale);
@@ -159,13 +165,28 @@ export function UnfulfilledReportPage() {
     }
   }
 
+  if (kind === "sold" && !packId) {
+    return (
+      <s-page heading={formatReportHeading(kind, t)}>
+        <s-section>
+          <s-stack direction="block" gap="small-200">
+            <s-paragraph>{t("report.soldNeedsPack")}</s-paragraph>
+            <Link to={PACKS_PATH}>{t("dashboard.goToPacks")}</Link>
+          </s-stack>
+        </s-section>
+      </s-page>
+    );
+  }
+
   return (
-    <s-page heading={t("report.heading")}>
+    <s-page heading={formatReportHeading(kind, t)}>
       <s-stack direction="block" gap="base">
         {packId ? (
           <s-section>
             <s-stack direction="block" gap="small-200">
-              <s-paragraph>{t("report.packIntro")}</s-paragraph>
+              <s-paragraph>
+                {t(kind === "sold" ? "report.soldPackIntro" : "report.packIntro")}
+              </s-paragraph>
               <Link to={buildPackUrl(packId)}>{t("report.backToPack")}</Link>
             </s-stack>
           </s-section>
@@ -365,6 +386,18 @@ function ReportSectionView({
       </div>
     </s-section>
   );
+}
+
+function buildScopeQuery(
+  kind: ReportKind,
+  packId: string | null,
+  intervalQuery: string,
+): string {
+  if (!packId) return intervalQuery;
+
+  const params = new URLSearchParams({ [REPORT_PACK_PARAM]: packId });
+  if (kind === "sold") params.set(REPORT_KIND_PARAM, kind);
+  return params.toString();
 }
 
 /** The server answers JSON `{ error }`, but a proxy or crash page might not. */

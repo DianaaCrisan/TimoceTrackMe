@@ -38,6 +38,7 @@ export const en = {
   "pack.status.OPEN": "Filling",
   "pack.status.LOCKED": "In progress",
   "pack.status.CLOSED": "Closed",
+  "pack.status.waiting": "Waiting",
   "pack.orderCount": { one: "{count} order", other: "{count} orders" },
   "pack.startedAt": "first order {time}",
   "pack.lockedAt": "started {time}",
@@ -59,6 +60,7 @@ export const en = {
   "pack.action.cancel": "Cancel",
   "pack.action.retryTagging": "Retry tagging",
   "pack.action.report": "Unfulfilled items report",
+  "pack.action.soldReport": "Sold products report",
   "pack.action.addToPack": "Add to pack…",
   "pack.action.moveToPack": "Move to pack…",
   "pack.action.removeFromPack": "Remove from pack",
@@ -177,6 +179,8 @@ export const en = {
     "The list was refreshed and the selection cleared.",
   "dashboard.allInTabSelected": 'All {count} orders in "{tab}" selected',
   "dashboard.selectedCount": "{count} selected",
+  "dashboard.jobsOnlyInPacks": "Add tracking and print labels run from a pack.",
+  "dashboard.goToPacks": "Go to Packs →",
   "dashboard.tabTooLarge":
     "{count} orders in this tab, more than one job takes ({max})",
   "dashboard.selectAllInTab": "Select all {count} orders in this tab",
@@ -229,12 +233,27 @@ export const en = {
     "When adding tracking, an order over the limit is packed into several parcels, each with its own AWB. When off, heavy orders are only highlighted, and listed for a check before adding tracking.",
   "settings.save": "Save",
   "settings.saved": "Settings saved",
+  "settings.packScheduleHeading": "Packs",
+  "settings.jobsOnlyInPacks": "Add tracking and print labels only from a pack",
+  "settings.jobsOnlyInPacksDetails":
+    "The Orders page then only lists orders and adds them to packs. Its add tracking and print labels buttons are replaced by a link to Packs.",
+  "settings.packScheduleIntro":
+    "A new pack always starts when you start working on the filling one. Tick days to also start a new pack at midnight before each of them.",
+  "settings.packScheduleDetails":
+    "The filling pack then waits for you, and that day's orders go into a new pack. A change applies from the next order. Nothing ticked: packs change only when you start working on one.",
+  "weekday.1": "Monday",
+  "weekday.2": "Tuesday",
+  "weekday.3": "Wednesday",
+  "weekday.4": "Thursday",
+  "weekday.5": "Friday",
+  "weekday.6": "Saturday",
+  "weekday.7": "Sunday",
   "settings.invalidWeightLimit":
     "The weight limit must be a number of kg greater than 0, or empty.",
 
   // "ZIP to fix" tab
   "zipFix.intro":
-    "Add tracking stopped on these orders because of their ZIP code. Correct the ZIPs, then add tracking again. Rows you edit are ticked; tick a row without editing it to retry it as it is.",
+    "Rows you edit are ticked; tick a row without editing it to retry it as it is.",
   "zipFix.submit": {
     one: "Save & add tracking for {count} order",
     other: "Save & add tracking for {count} orders",
@@ -323,7 +342,7 @@ export const en = {
   // recent jobs
   "jobs.heading": "Recent jobs",
   "jobs.linksExpire":
-    "Download links work for 1 hour. Press Refresh for new ones.",
+    "Download links work for 1 hour.",
   "jobs.autoUpdates": "This list updates on its own while a job runs.",
   "jobs.refresh": "Refresh",
   "jobs.empty": "No jobs since the app last started.",
@@ -361,6 +380,12 @@ export const en = {
   "startJob.couldNotStart": "Could not start the job: {error}",
   "startJob.invalidOrderIds": "Invalid order IDs: {ids}.",
   "startJob.noOrdersSelected": "No orders were selected.",
+  "startJob.onlyInPacks":
+    "Add tracking and print labels only run from a pack. Open the pack on the Packs page.",
+  "startJob.ordersNotInPack": {
+    one: "{count} selected order is no longer in this pack. Reload the page.",
+    other: "{count} selected orders are no longer in this pack. Reload the page.",
+  },
   "startJob.noOrdersInTab": 'No orders match the "{tab}" tab.',
   "startJob.tooManyOrders":
     "A job can take at most {max} orders. This selection has more.",
@@ -420,6 +445,11 @@ export const en = {
   "report.packIntro":
     "What is left to fulfil for this pack's orders. Print it before adding tracking numbers.",
   "report.backToPack": "← Back to the pack",
+  "report.soldHeading": "Sold products report",
+  "report.soldPackIntro":
+    "Everything this pack's orders sold, per product: cancelled orders and removed items left out. Print it after adding tracking numbers.",
+  "report.soldNeedsPack":
+    "The sold products report is made for one pack. Open it from the pack on the Packs page.",
   "report.intro":
     "Products still to be fulfilled, added up per variant. Every unfulfilled order is included unless you set an order number interval.",
   "report.intervalHeading": "Order interval",
@@ -490,6 +520,7 @@ export const en = {
   "fileName.failed": "FAILED_{job}",
   "fileName.test": "trackme-test",
   "fileName.unfulfilledReport": "unfulfilled-report",
+  "fileName.soldReport": "sold-products-report",
   "fileName.job.add-tracking": "add-tracking",
   "fileName.job.print-labels": "print-labels",
   "fileName.job.test": "test",
@@ -530,6 +561,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "pack.status.OPEN": "Se umple",
   "pack.status.LOCKED": "În lucru",
   "pack.status.CLOSED": "Închis",
+  "pack.status.waiting": "În așteptare",
   "pack.orderCount": {
     one: "{count} comandă",
     few: "{count} comenzi",
@@ -555,6 +587,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "pack.action.cancel": "Anulează",
   "pack.action.retryTagging": "Reîncearcă etichetarea",
   "pack.action.report": "Raport produse neexecutate",
+  "pack.action.soldReport": "Raport produse vândute",
   "pack.action.addToPack": "Adaugă în pachet…",
   "pack.action.moveToPack": "Mută în alt pachet…",
   "pack.action.removeFromPack": "Scoate din pachet",
@@ -697,6 +730,9 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     one: "{count} selectată",
     other: "{count} selectate",
   },
+  "dashboard.jobsOnlyInPacks":
+    "Tracking-ul și printarea etichetelor se fac dintr-un pachet.",
+  "dashboard.goToPacks": "Mergi la Pachete →",
   // only shown past the job limit, so always 20 or more: "de comenzi"
   "dashboard.tabTooLarge":
     "{count} de comenzi în acest tab, mai multe decât poate prelua o sarcină ({max})",
@@ -760,12 +796,28 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     "La adăugarea tracking-ului, o comandă peste limită e împărțită în mai multe colete, fiecare cu AWB-ul lui. Când e oprită, comenzile grele sunt doar evidențiate și afișate pentru verificare înainte de adăugarea tracking-ului.",
   "settings.save": "Salvează",
   "settings.saved": "Setările au fost salvate",
+  "settings.packScheduleHeading": "Pachete",
+  "settings.jobsOnlyInPacks":
+    "Adaugă tracking și printează etichete doar dintr-un pachet",
+  "settings.jobsOnlyInPacksDetails":
+    "Pagina Comenzi doar listează comenzile și le adaugă în pachete. Butoanele de tracking și printare sunt înlocuite de un link către Pachete.",
+  "settings.packScheduleIntro":
+    "Un pachet nou pornește mereu când începi lucrul la cel care se umple. Bifează zile ca să pornească un pachet nou și la miezul nopții dinaintea fiecăreia.",
+  "settings.packScheduleDetails":
+    "Pachetul care se umple te așteaptă atunci, iar comenzile din ziua aceea intră într-un pachet nou. O schimbare se aplică de la următoarea comandă. Nimic bifat: pachetele se schimbă doar când începi lucrul la unul.",
+  "weekday.1": "Luni",
+  "weekday.2": "Marți",
+  "weekday.3": "Miercuri",
+  "weekday.4": "Joi",
+  "weekday.5": "Vineri",
+  "weekday.6": "Sâmbătă",
+  "weekday.7": "Duminică",
   "settings.invalidWeightLimit":
     "Greutatea maximă trebuie să fie un număr de kg mai mare decât 0, sau gol.",
 
   // tabul „Cod poștal de corectat”
   "zipFix.intro":
-    "Adăugarea tracking-ului s-a oprit la aceste comenzi din cauza codului poștal. Corectează codurile, apoi adaugă din nou tracking-ul. Rândurile editate se bifează singure; bifează un rând needitat ca să-l reîncerci așa cum e.",
+    "Rândurile editate se bifează singure; bifează un rând needitat ca să-l reîncerci așa cum e.",
   "zipFix.submit": {
     one: "Salvează și adaugă tracking pentru {count} comandă",
     few: "Salvează și adaugă tracking pentru {count} comenzi",
@@ -863,7 +915,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // recent jobs
   "jobs.heading": "Sarcini recente",
   "jobs.linksExpire":
-    "Linkurile de descărcare sunt valabile 1 oră. Apasă Reîmprospătează pentru linkuri noi.",
+    "Linkurile de descărcare sunt valabile 1 oră.",
   "jobs.autoUpdates":
     "Lista se actualizează singură cât timp rulează o sarcină.",
   "jobs.refresh": "Reîmprospătează",
@@ -902,6 +954,14 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "startJob.couldNotStart": "Sarcina nu a putut porni: {error}",
   "startJob.invalidOrderIds": "ID-uri de comenzi invalide: {ids}.",
   "startJob.noOrdersSelected": "Nu a fost selectată nicio comandă.",
+  "startJob.onlyInPacks":
+    "Tracking-ul și printarea etichetelor se fac doar dintr-un pachet. Deschide pachetul din pagina Pachete.",
+  "startJob.ordersNotInPack": {
+    one: "{count} comandă selectată nu mai este în acest pachet. Reîncarcă pagina.",
+    few: "{count} comenzi selectate nu mai sunt în acest pachet. Reîncarcă pagina.",
+    other:
+      "{count} de comenzi selectate nu mai sunt în acest pachet. Reîncarcă pagina.",
+  },
   "startJob.noOrdersInTab": "Nicio comandă în tabul „{tab}”.",
   "startJob.tooManyOrders":
     "O sarcină poate prelua cel mult {max} de comenzi. Selecția aceasta are mai multe.",
@@ -962,6 +1022,11 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "report.packIntro":
     "Ce mai este de executat pentru comenzile acestui pachet. Printează-l înainte de a adăuga numerele de tracking.",
   "report.backToPack": "← Înapoi la pachet",
+  "report.soldHeading": "Raport produse vândute",
+  "report.soldPackIntro":
+    "Tot ce s-a vândut în comenzile acestui pachet, pe produs: fără comenzile anulate și produsele scoase. Printează-l după ce adaugi numerele de tracking.",
+  "report.soldNeedsPack":
+    "Raportul de produse vândute se face pentru un pachet. Deschide-l din pachet, de pe pagina Pachete.",
   "report.intro":
     "Produsele care mai trebuie onorate, însumate pe variantă. Sunt incluse toate comenzile neexecutate, dacă nu setezi un interval de numere de comandă.",
   "report.intervalHeading": "Interval de comenzi",
@@ -1042,6 +1107,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "fileName.failed": "ESUAT_{job}",
   "fileName.test": "trackme-test",
   "fileName.unfulfilledReport": "raport-neexecutate",
+  "fileName.soldReport": "raport-produse-vandute",
   "fileName.job.add-tracking": "adaugare-tracking",
   "fileName.job.print-labels": "printare-etichete",
   "fileName.job.test": "test",

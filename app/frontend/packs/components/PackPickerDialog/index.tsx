@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   formatPackName,
+  isFillingPack,
   isPackTarget,
   type FulfillmentPackView,
 } from "app/commons/packs/FulfillmentPack";
@@ -41,9 +42,9 @@ export function PackPickerDialog({
   const choices = packs.filter(
     (pack) => isPackTarget(pack) && pack.id !== currentPackId,
   );
-  const hasFillingPack = packs.some((pack) => pack.status === "OPEN");
+  const hasFillingPack = packs.some(isFillingPack);
   const defaultTarget =
-    choices.find((pack) => pack.status === "OPEN")?.id ??
+    choices.find(isFillingPack)?.id ??
     (hasFillingPack ? choices[0]?.id : FILLING_PACK_TARGET) ??
     null;
 
@@ -78,7 +79,12 @@ export function PackPickerDialog({
                 {formatPackName(pack, t)}
               </span>
               <span className="pack-picker__details">
-                {t(`pack.status.${pack.status}`)} ·{" "}
+                {t(
+                  pack.isWaiting
+                    ? "pack.status.waiting"
+                    : `pack.status.${pack.status}`,
+                )}{" "}
+                ·{" "}
                 {t("pack.orderCount", { count: pack.orderCount })}
               </span>
             </label>

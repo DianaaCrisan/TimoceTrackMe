@@ -1,4 +1,5 @@
 import type { Translate } from "../i18n/translate";
+import type { TranslationKey } from "../i18n/translations";
 import {
   formatPackName,
   type FulfillmentPackView,
@@ -25,10 +26,22 @@ export type ReportSection = {
   totalQuantity: number;
 };
 
+/**
+ * - `unfulfilled`: what is still left to fulfil
+ * - `sold`: every item on one pack's orders (current quantities, cancelled
+ *   orders left out), to print once tracking is added
+ */
+export type ReportKind = "unfulfilled" | "sold";
+
 /** The pack a report covers, enough to name it in any language. */
 export type ReportPack = Pick<FulfillmentPackView, "id" | "day" | "daySequence">;
 
+/**
+ * A per-product report, split into delivery and pickup. Named after its
+ * first use, it also carries the sold products report (`kind`).
+ */
 export type UnfulfilledReport = {
+  kind: ReportKind;
   interval: OrderInterval;
   /**
    * Set when the report covers one pack's orders: `interval` is then open
@@ -67,6 +80,25 @@ export function formatReportScope(
 
 /** The URL / form field naming the pack a report covers. */
 export const REPORT_PACK_PARAM = "packId";
+
+/** The URL / form field naming the report kind; unset means unfulfilled. */
+export const REPORT_KIND_PARAM = "kind";
+
+export function parseReportKind(value: unknown): ReportKind {
+  return value === "sold" ? "sold" : "unfulfilled";
+}
+
+const REPORT_HEADINGS: Record<ReportKind, TranslationKey> = {
+  unfulfilled: "report.heading",
+  sold: "report.soldHeading",
+};
+
+export function formatReportHeading(kind: ReportKind, t: Translate): string {
+  return t(REPORT_HEADINGS[kind]);
+}
+
+/** The sold products report page: always for one pack (`?packId=`). */
+export const SOLD_REPORT_PATH = "/app/sold-report";
 
 /** The URL the page loads its data from and the one the PDF is posted to. */
 export const UNFULFILLED_REPORT_PATH = "/app/unfulfilled-report";

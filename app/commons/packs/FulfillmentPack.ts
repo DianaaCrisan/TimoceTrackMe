@@ -12,6 +12,11 @@ export type FulfillmentPackView = {
   /** Its place among that day's packs, from 1. */
   daySequence: number;
   status: FulfillmentPackStatus;
+  /**
+   * Open, but a scheduled day has started since its first order: it takes
+   * no new orders and waits for someone to start working on it.
+   */
+  isWaiting: boolean;
   startedAt: string | null;
   lockedAt: string | null;
   closedAt: string | null;
@@ -109,4 +114,11 @@ export function countLeftInPack(progress: PackProgress): number | null {
 /** Packs an order can be added or moved into: not closed. */
 export function isPackTarget(pack: FulfillmentPackView): boolean {
   return pack.status !== "CLOSED";
+}
+
+/** The pack new orders go into. */
+export function isFillingPack(
+  pack: Pick<FulfillmentPackView, "status" | "isWaiting">,
+): boolean {
+  return pack.status === "OPEN" && !pack.isWaiting;
 }

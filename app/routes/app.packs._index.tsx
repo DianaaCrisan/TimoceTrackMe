@@ -8,6 +8,7 @@ import {
 } from "app/backend/packs/PackRepository.server";
 import { PackService } from "app/backend/packs/PackService.server";
 import { buildScopeTabUrl, ALL_ORDERS_SCOPE } from "app/commons/orders/OrdersScope";
+import { isFillingPack } from "app/commons/packs/FulfillmentPack";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { PackSummary } from "app/frontend/packs/components/PackSummary";
 import { usePackAction } from "app/frontend/packs/hooks/usePackAction";
@@ -37,12 +38,11 @@ export default function PacksRoute() {
   const { workingPacks, closedPacks } = useLoaderData<typeof loader>();
   const { t } = useI18n();
   const { submit, isBusy } = usePackAction();
-  const hasFillingPack = workingPacks.some(
-    ({ pack }) => pack.status === "OPEN",
-  );
+  const hasFillingPack = workingPacks.some(({ pack }) => isFillingPack(pack));
 
   return (
-    <s-page heading={t("packs.heading")}>
+    // full width: the order lists inside the packs have many columns
+    <s-page heading={t("packs.heading")} inlineSize="large">
       <TitleBar title={t("nav.packs")} />
 
       <s-section heading={t("packs.workingHeading")}>

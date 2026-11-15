@@ -18,7 +18,7 @@ vi.mock("../graphql/throttle-handling/helpers/runGraphQL", () => ({
 }));
 
 vi.mock("../packs/PackRepository.server", () => ({
-  PackRepository: { getOrThrow: vi.fn() },
+  PackRepository: { getOrThrow: vi.fn(), getOrderIds: vi.fn() },
 }));
 
 const admin = {} as AdminApiContextWithoutRest;
@@ -68,6 +68,21 @@ describe("parseOrderSelection", () => {
     expect(parseOrderSelection(formData)).toEqual({
       mode: "filter",
       filter: "pending_fulfillment",
+    });
+  });
+
+  it("keeps ticked orders tied to the pack they were picked in", () => {
+    const formData = new FormData();
+    appendOrderSelection(formData, {
+      mode: "ids",
+      orderIds: [orderGid(1)],
+      packId: "pack-1",
+    });
+
+    expect(parseOrderSelection(formData)).toEqual({
+      mode: "ids",
+      orderIds: [orderGid(1)],
+      packId: "pack-1",
     });
   });
 
@@ -142,6 +157,39 @@ describe("resolveOrderIds", () => {
       query: string;
     };
     expect(query.startsWith("tag:pachet-2026-11-14-1 AND (")).toBe(true);
+  });
+
+  it("runs ticked orders picked in a pack when they are all still in it", async () => {
+    vi.mocked(PackRepository.getOrThrow).mockResolvedValueOnce(
+      {} as PackRecord,
+    );
+    vi.mocked(PackRepository.getOrderIds).mockResolvedValueOnce([
+      orderGid(1),
+      orderGid(2),
+    ]);
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "ids",
+        orderIds: [orderGid(2)],
+        packId: "pack-1",
+      }),
+    ).resolves.toEqual([orderGid(2)]);
+  });
+
+  it("refuses ticked orders that have left the pack meanwhile", async () => {
+    vi.mocked(PackRepository.getOrThrow).mockResolvedValueOnce(
+      {} as PackRecord,
+    );
+    vi.mocked(PackRepository.getOrderIds).mockResolvedValueOnce([orderGid(1)]);
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "ids",
+        orderIds: [orderGid(1), orderGid(9)],
+        packId: "pack-1",
+      }),
+    ).rejects.toThrow("1 selected order is no longer in this pack");
   });
 
   it("refuses an empty selection", async () => {

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import {
   REPORT_PACK_PARAM,
+  SOLD_REPORT_PATH,
   UNFULFILLED_REPORT_PATH,
 } from "app/commons/unfulfilled-report/UnfulfilledReport";
 import {
@@ -30,6 +31,12 @@ const STATUS_DISPLAY: Record<
   CLOSED: { label: "pack.status.CLOSED", tone: "success" },
 };
 
+/** An open pack past a scheduled day: no new orders, not started either. */
+const WAITING_DISPLAY: { label: TranslationKey; tone: BadgeTone } = {
+  label: "pack.status.waiting",
+  tone: "warning",
+};
+
 type ConfirmKind = "lock" | "close" | "delete";
 
 type PackSummaryProps = {
@@ -42,12 +49,14 @@ type PackSummaryProps = {
 
 /**
  * One pack: name, state, progress and the actions its state allows.
- * - filling: Start working, or Delete while empty
+ * - filling or waiting: Start working, or Delete while empty
  * - locked: Close, moving orders not done to the next pack
  * - closed: Reopen
  *
- * Filling and locked packs also link to their unfulfilled items report,
- * printed after starting work and before add tracking.
+ * Packs link to their reports:
+ * - unfulfilled items (filling and locked packs): print after starting
+ *   work, before add tracking
+ * - sold products (any pack with orders): print after add tracking
  */
 export function PackSummary({ pack, progress, linksToPack }: PackSummaryProps) {
   const { locale, t } = useI18n();
@@ -55,7 +64,9 @@ export function PackSummary({ pack, progress, linksToPack }: PackSummaryProps) {
   const [confirming, setConfirming] = useState<ConfirmKind | null>(null);
 
   const name = formatPackName(pack, t);
-  const status = STATUS_DISPLAY[pack.status];
+  const status = pack.isWaiting
+    ? WAITING_DISPLAY
+    : STATUS_DISPLAY[pack.status];
   const leftCount = progress ? countLeftInPack(progress) : null;
   const packFields = { [PACK_ACTION_FIELDS.packId]: pack.id };
 
@@ -111,6 +122,14 @@ export function PackSummary({ pack, progress, linksToPack }: PackSummaryProps) {
               className={`pack-summary__button${pack.status === "LOCKED" ? " --emphasis" : ""}`}
             >
               {t("pack.action.report")}
+            </Link>
+          ) : null}
+          {pack.orderCount > 0 ? (
+            <Link
+              to={`${SOLD_REPORT_PATH}?${REPORT_PACK_PARAM}=${encodeURIComponent(pack.id)}`}
+              className="pack-summary__button"
+            >
+              {t("pack.action.soldReport")}
             </Link>
           ) : null}
           {pack.status === "OPEN" && pack.orderCount === 0 ? (

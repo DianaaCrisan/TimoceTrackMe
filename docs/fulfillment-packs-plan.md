@@ -224,19 +224,45 @@ still need, per product, for delivery and for pickup.
   highlighted once the pack is locked; the "Start working" confirmation names
   it as the next step.
 
-### Phase 3: start packs on chosen days
+### Phase 3: start packs on chosen days (done)
 
-- Settings page: "Also start a new pack at midnight before: Mon … Sun". None
-  ticked = only locking starts a new pack.
-- Filling pack rule: the newest `OPEN` pack, unless midnight (Europe/Bucharest)
-  before a chosen weekday has passed since its `startedAt`. Then it is
-  Waiting, and the order starts a new pack.
-- The cut is checked when the order arrives (no cron). A webhook retried after
-  midnight lands in the new day's pack.
-- A schedule change applies from the next order. No guards needed: packs do
-  not store date ranges.
-- Day arithmetic with luxon in Europe/Bucharest (`plus({ days: 1 })`, never
-  milliseconds: two days a year are 23 or 25 hours long).
+- Settings → Packs: "also start a new pack at midnight before" Monday …
+  Sunday, stored as `AppSettings.packStartWeekdays` (ISO weekdays). None
+  ticked: only locking starts a new pack.
+- The filling pack is the newest `OPEN` pack, unless one of those days has
+  started (Europe/Bucharest) since its first order (`startedAt`). Then it is
+  **Waiting**: no new orders, shown with its own badge, and it can still be
+  started, closed or filled by hand. The next order starts a new pack.
+- `PackSchedule.hasScheduledCutSince` compares calendar days in the shop's
+  time zone, not instants, so the 23- and 25-hour days of a daylight-saving
+  change cannot move a cut.
+- An empty pack (made with "New pack") never waits: with no first order,
+  nothing has been cut.
+- Checked when an order arrives or a pack is listed; no cron. A schedule
+  change applies from the next order.
+
+### Jobs only in packs (done)
+
+- Settings → Packs: "Add tracking and print labels only from a pack"
+  (`AppSettings.jobsOnlyInPacks`, off by default).
+- On, the Orders page keeps listing orders and adding them to packs, but its
+  job buttons (and the ZIP to fix tab's submit) give way to "Go to Packs".
+- Enforced by `handleStartOrdersJob`, not only by hiding buttons: a job
+  whose selection carries no `packId` is refused with 409.
+- Every selection made inside a pack now carries its `packId`, ticked orders
+  too; `resolveOrderIds` refuses ticked orders that have left the pack.
+
+### Sold products report per pack (done)
+
+- `/app/sold-report?packId=`: the unfulfilled report's page, data route and
+  PDF, with `kind: "sold"`.
+- Counts every item on the pack's orders at its current quantity: cancelled
+  orders and removed or refunded items left out, fulfilled or not. So it
+  reads the same before and after add tracking, and is printed after it.
+- Orders read by ID from the database (`nodes(ids:)`, 3 orders per query for
+  up to 250 line items each). An order with more line items is logged with
+  `AppError[SoldReport]`.
+- Linked from every pack with orders, closed ones included.
 
 ## Tests
 

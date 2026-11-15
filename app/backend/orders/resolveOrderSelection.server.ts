@@ -44,16 +44,20 @@ export function parseOrderSelection(
   t: Translate = translateEn,
 ): OrderSelection {
   const mode = formData.get(ORDER_SELECTION_FIELDS.mode);
+  const packIdValue = formData.get(ORDER_SELECTION_FIELDS.packId);
+  const inPack =
+    typeof packIdValue === "string" && packIdValue
+      ? { packId: packIdValue }
+      : {};
 
   if (mode === "filter") {
     const filter = formData.get(ORDER_SELECTION_FIELDS.filter);
-    const packId = formData.get(ORDER_SELECTION_FIELDS.packId);
     return {
       mode: "filter",
       filter: parseOrdersDashboardFilter(
         typeof filter === "string" ? filter : null,
       ),
-      ...(typeof packId === "string" && packId ? { packId } : {}),
+      ...inPack,
     };
   }
 
@@ -70,7 +74,7 @@ export function parseOrderSelection(
     );
   }
 
-  return { mode: "ids", orderIds: Array.from(new Set(orderIds)) };
+  return { mode: "ids", orderIds: Array.from(new Set(orderIds)), ...inPack };
 }
 
 /** The order IDs a job should run on. Refuses an empty or oversized selection. */
@@ -80,6 +84,10 @@ export async function resolveOrderIds(
   selection: OrderSelection,
   t: Translate = translateEn,
 ): Promise<string[]> {
+  if (selection.mode === "ids" && selection.packId) {
+    await refuseOrdersOutsidePack(selection.orderIds, selection.packId, t);
+  }
+
   const orderIds =
     selection.mode === "ids"
       ? selection.orderIds
@@ -114,6 +122,27 @@ export async function resolveOrderIds(
   }
 
   return orderIds;
+}
+
+/**
+ * Ticked inside a pack, so they must all still be in it: one moved out
+ * meanwhile (from another tab, or by another user) would otherwise run as
+ * if it were part of the pack.
+ */
+async function refuseOrdersOutsidePack(
+  orderIds: string[],
+  packId: string,
+  t: Translate,
+): Promise<void> {
+  await PackRepository.getOrThrow(packId, t);
+  const inPack = new Set(await PackRepository.getOrderIds(packId));
+  const outside = orderIds.filter((orderId) => !inPack.has(orderId));
+  if (outside.length > 0) {
+    throw new RequestError(
+      409,
+      t("startJob.ordersNotInPack", { count: outside.length }),
+    );
+  }
 }
 
 /**

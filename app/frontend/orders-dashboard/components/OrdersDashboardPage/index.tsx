@@ -30,7 +30,10 @@ import {
   getScopeFilters,
   type OrdersScope,
 } from "app/commons/orders/OrdersScope";
-import type { FulfillmentPackView } from "app/commons/packs/FulfillmentPack";
+import {
+  PACKS_PATH,
+  type FulfillmentPackView,
+} from "app/commons/packs/FulfillmentPack";
 import { PACK_ACTION_FIELDS } from "app/commons/packs/PackAction";
 import { ConfirmDialog } from "app/frontend/core/components/ConfirmDialog";
 import { PackPickerDialog } from "app/frontend/packs/components/PackPickerDialog";
@@ -158,6 +161,11 @@ type OrdersDashboardPageProps = {
   header?: ReactNode;
   /** Packs orders can be added or moved to. */
   targetPacks: FulfillmentPackView[];
+  /**
+   * Add tracking and print labels only run inside a pack. On the Orders
+   * page their buttons give way to a link to the Packs page.
+   */
+  jobsOnlyInPacks: boolean;
   orders: OrdersDashboardOrder[];
   pageInfo: PageInfo;
   shopAdminUrl: string;
@@ -172,6 +180,7 @@ export function OrdersDashboardPage({
   scope,
   header,
   targetPacks,
+  jobsOnlyInPacks,
   orders,
   pageInfo,
   shopAdminUrl,
@@ -406,12 +415,15 @@ export function OrdersDashboardPage({
     );
   }
 
+  /** Says which pack a selection was made in, for the server to check. */
+  const inPack = packId ? { packId } : {};
+  const areJobsBlockedHere = jobsOnlyInPacks && scope.kind === "all";
+
   /** The selection as sent to the server; "all in this tab" stays in the pack. */
   function buildSelection(): OrderSelection {
-    if (!isFilterSelected) return { mode: "ids", orderIds: selectedOrderIds };
-    return packId
-      ? { mode: "filter", filter: activeFilter, packId }
-      : { mode: "filter", filter: activeFilter };
+    return isFilterSelected
+      ? { mode: "filter", filter: activeFilter, ...inPack }
+      : { mode: "ids", orderIds: selectedOrderIds, ...inPack };
   }
 
   function handleStartJob(action: BulkJobAction) {
@@ -512,6 +524,7 @@ export function OrdersDashboardPage({
             orderIds: pending.orderIds.filter(
               (id) => !leftOutOrderIds.includes(id),
             ),
+            ...inPack,
           }
         : pending.selection,
     );
@@ -519,7 +532,11 @@ export function OrdersDashboardPage({
 
   /** Add tracking for the orders ticked on the ZIP to fix tab. */
   function handleFixZips(orderIds: string[], manualZips: ManualZips) {
-    return startJob(ADD_TRACKING_ACTION, { mode: "ids", orderIds }, manualZips);
+    return startJob(
+      ADD_TRACKING_ACTION,
+      { mode: "ids", orderIds, ...inPack },
+      manualZips,
+    );
   }
 
   /** Adds or moves the selected orders to `target` (a pack ID or a new pack). */
@@ -696,7 +713,10 @@ export function OrdersDashboardPage({
                 </button>
 
                 <div className="orders-dashboard-page__bulk-actions">
-                  {BULK_JOB_ACTIONS.map((action) => (
+                  {areJobsBlockedHere ? (
+                    <JobsOnlyInPacksNotice />
+                  ) : null}
+                  {(areJobsBlockedHere ? [] : BULK_JOB_ACTIONS).map((action) => (
                     <button
                       key={action.key}
                       type="button"
@@ -764,6 +784,9 @@ export function OrdersDashboardPage({
             isStarting={startingActionKey === ADD_TRACKING_ACTION.key}
             onSubmit={handleFixZips}
             scrollRef={tableScrollRef}
+            blockedNotice={
+              areJobsBlockedHere ? <JobsOnlyInPacksNotice /> : undefined
+            }
           />
         ) : (
           <div
@@ -847,6 +870,17 @@ export function OrdersDashboardPage({
         />
       </div>
     </div>
+  );
+}
+
+/** In place of the job buttons on the Orders page, with "jobs only in packs" on. */
+function JobsOnlyInPacksNotice() {
+  const { t } = useI18n();
+  return (
+    <span className="orders-dashboard-page__bulk-bar-hint">
+      {t("dashboard.jobsOnlyInPacks")}{" "}
+      <Link to={PACKS_PATH}>{t("dashboard.goToPacks")}</Link>
+    </span>
   );
 }
 

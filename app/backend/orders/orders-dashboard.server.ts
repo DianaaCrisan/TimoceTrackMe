@@ -146,39 +146,9 @@ export async function getOrdersDashboardData(
   }
 
   return {
-    orders: ordersConnection.edges.map((edge) => ({
-      id: edge.node.id,
-      name: edge.node.name,
-      createdAt: edge.node.createdAt,
-      displayFinancialStatus: edge.node.displayFinancialStatus,
-      displayFulfillmentStatus: edge.node.displayFulfillmentStatus,
-      currentSubtotalLineItemsQuantity:
-        edge.node.currentSubtotalLineItemsQuantity,
-      cancelledAt: edge.node.cancelledAt,
-      weightKg: toOrderWeightKg(edge.node.currentTotalWeight),
-      shippedParcelCount: null,
-      // cleaned up here, so the table never shows hidden app attributes
-      ...toCustomerNote(edge.node.note, edge.node.customAttributes),
-      shippingAddress: edge.node.shippingAddress
-        ? {
-            zip: edge.node.shippingAddress.zip,
-            address1: edge.node.shippingAddress.address1,
-            address2: edge.node.shippingAddress.address2,
-            city: edge.node.shippingAddress.city,
-            province: edge.node.shippingAddress.province,
-          }
-        : null,
-      fulfillmentOrders: edge.node.fulfillmentOrders,
-      customer: {
-        displayName: edge.node.customer?.displayName ?? "",
-      },
-      netPaymentSet: {
-        presentmentMoney: {
-          amount: edge.node.netPaymentSet.presentmentMoney.amount,
-          currencyCode: edge.node.netPaymentSet.presentmentMoney.currencyCode,
-        },
-      },
-    })),
+    orders: ordersConnection.edges.map((edge) =>
+      toOrdersDashboardOrder(edge.node),
+    ),
     pageInfo: {
       hasNextPage: ordersConnection.pageInfo.hasNextPage,
       hasPreviousPage: ordersConnection.pageInfo.hasPreviousPage,
@@ -189,6 +159,47 @@ export async function getOrdersDashboardData(
 }
 
 export { ORDER_PAGE_SIZE };
+
+type OrdersDashboardNode =
+  OrdersDashboardQuery["orders"]["edges"][number]["node"];
+
+/** One table row from an order read with the dashboard's fields. */
+export function toOrdersDashboardOrder(
+  node: OrdersDashboardNode,
+): OrdersDashboardOrder {
+  return {
+    id: node.id,
+    name: node.name,
+    createdAt: node.createdAt,
+    displayFinancialStatus: node.displayFinancialStatus,
+    displayFulfillmentStatus: node.displayFulfillmentStatus,
+    currentSubtotalLineItemsQuantity: node.currentSubtotalLineItemsQuantity,
+    cancelledAt: node.cancelledAt,
+    weightKg: toOrderWeightKg(node.currentTotalWeight),
+    shippedParcelCount: null,
+    // cleaned up here, so the table never shows hidden app attributes
+    ...toCustomerNote(node.note, node.customAttributes),
+    shippingAddress: node.shippingAddress
+      ? {
+          zip: node.shippingAddress.zip,
+          address1: node.shippingAddress.address1,
+          address2: node.shippingAddress.address2,
+          city: node.shippingAddress.city,
+          province: node.shippingAddress.province,
+        }
+      : null,
+    fulfillmentOrders: node.fulfillmentOrders,
+    customer: {
+      displayName: node.customer?.displayName ?? "",
+    },
+    netPaymentSet: {
+      presentmentMoney: {
+        amount: node.netPaymentSet.presentmentMoney.amount,
+        currencyCode: node.netPaymentSet.presentmentMoney.currencyCode,
+      },
+    },
+  };
+}
 
 /**
  * Shopify gives the order's weight in grams, as a string. Null when no

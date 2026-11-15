@@ -3,10 +3,13 @@ import prisma from "app/db.server";
 import type { Translate } from "app/commons/i18n/translate";
 import {
   buildPackTag,
+  isFillingPack,
   toShopDay,
   type FulfillmentPackView,
 } from "app/commons/packs/FulfillmentPack";
+import { hasScheduledCutSince } from "app/commons/packs/PackSchedule";
 import { RequestError } from "../core/errors/RequestError";
+import { SETTINGS_SINGLETON_ID } from "../settings/SettingsRepository.server";
 import {
   planAddToPack,
   planRemoveFromPack,
@@ -72,9 +75,10 @@ export class PackRepository {
     ]);
 
     const records = await toRecords([...working, ...closed]);
+    // the filling pack first, then the rest newest first
     const workingPacks = records
       .slice(0, working.length)
-      .sort((a, b) => Number(b.status === "OPEN") - Number(a.status === "OPEN"));
+      .sort((a, b) => Number(isFillingPack(b)) - Number(isFillingPack(a)));
 
     return { workingPacks, closedPacks: records.slice(working.length) };
   }
@@ -338,12 +342,43 @@ export class PackRepository {
   }
 }
 
-/** The pack taking new orders: the one OPEN pack, if any. */
+/**
+ * The pack taking new orders: the newest OPEN pack, unless a scheduled cut
+ * has happened since its first order. Then it is waiting, and the next
+ * order starts a new pack.
+ *
+ * An empty pack never waits: with no first order, nothing has been cut.
+ */
 async function findFillingPack(tx: Tx): Promise<FulfillmentPack | null> {
-  return tx.fulfillmentPack.findFirst({
+  const newestOpen = await tx.fulfillmentPack.findFirst({
     where: { status: "OPEN" },
     orderBy: NEWEST_FIRST,
   });
+  if (!newestOpen) return null;
+
+  const startWeekdays = await readPackStartWeekdays(tx);
+  return isWaiting(newestOpen, startWeekdays, new Date()) ? null : newestOpen;
+}
+
+function isWaiting(
+  pack: Pick<FulfillmentPack, "status" | "startedAt">,
+  startWeekdays: readonly number[],
+  now: Date,
+): boolean {
+  return (
+    pack.status === "OPEN" &&
+    pack.startedAt !== null &&
+    hasScheduledCutSince(pack.startedAt, now, startWeekdays)
+  );
+}
+
+/** Read here, not through SettingsRepository, so it joins the transaction. */
+async function readPackStartWeekdays(db: Tx): Promise<number[]> {
+  const settings = await db.appSettings.findUnique({
+    where: { id: SETTINGS_SINGLETON_ID },
+    select: { packStartWeekdays: true },
+  });
+  return settings?.packStartWeekdays ?? [];
 }
 
 /**
@@ -434,7 +469,8 @@ async function toRecords(
   if (packs.length === 0) return [];
 
   const packIds = packs.map((pack) => pack.id);
-  const [orderCounts, untaggedCounts] = await Promise.all([
+  const now = new Date();
+  const [orderCounts, untaggedCounts, startWeekdays] = await Promise.all([
     db.fulfillmentPackOrder.groupBy({
       by: ["packId"],
       where: { packId: { in: packIds } },
@@ -445,6 +481,7 @@ async function toRecords(
       where: { packId: { in: packIds }, taggedAt: null },
       _count: { _all: true },
     }),
+    readPackStartWeekdays(db),
   ]);
   const countFor = (
     counts: { packId: string; _count: { _all: number } }[],
@@ -456,6 +493,7 @@ async function toRecords(
     day: pack.day.toISOString().slice(0, 10),
     daySequence: pack.daySequence,
     status: pack.status,
+    isWaiting: isWaiting(pack, startWeekdays, now),
     startedAt: pack.startedAt?.toISOString() ?? null,
     lockedAt: pack.lockedAt?.toISOString() ?? null,
     closedAt: pack.closedAt?.toISOString() ?? null,
