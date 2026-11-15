@@ -1,4 +1,4 @@
-export type JobKind = "solve-zip" | "add-tracking" | "print-labels" | "test";
+export type JobKind = "add-tracking" | "print-labels" | "test";
 
 const SHOP_TIME_ZONE = "Europe/Bucharest";
 

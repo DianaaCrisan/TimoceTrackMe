@@ -6,7 +6,9 @@ import { SolveZipService } from "../zip-solver/SolveZipService";
 export type ZipChange = {
   previousZip: string | null;
   newZip: string;
-  confidence: string;
+  /** How sure the ZIP solver was. Unset for a ZIP the admin entered. */
+  confidence?: string;
+  isEnteredByHand?: boolean;
 };
 
 /** The part of an order ZipRecovery reads and patches. */

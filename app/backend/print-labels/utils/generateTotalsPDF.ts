@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import type { Translate } from "app/commons/i18n/translate";
 import { formatOrderRanges } from "./formatOrderRanges";
 import {
   embedLabelFonts,
@@ -46,12 +47,13 @@ export type MeasureText = (text: string) => number;
 /**
  * The first page of a labels PDF: how many labels it holds, then every order
  * in it as a compact list of ranges ("#1201-1206, #1209"), so the packer can
- * check the batch at a glance. A long list continues on "Comenzi (cont.)"
- * pages.
+ * check the batch at a glance. A long list continues on "Orders (cont.)"
+ * pages. Worded in the language of whoever printed the labels.
  */
 export async function generateTotalsPDF(
   counts: LabelCounts,
   orderNames: string[],
+  t: Translate,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const fonts = await embedLabelFonts(doc);
@@ -60,6 +62,7 @@ export async function generateTotalsPDF(
     counts,
     orderNames,
     measure: (text) => fonts.font.widthOfTextAtSize(text, ORDERS_FONT_SIZE),
+    t,
   });
 
   for (const pageLayout of pages) {
@@ -73,14 +76,15 @@ export function layoutTotalsPage(args: {
   counts: LabelCounts;
   orderNames: string[];
   measure: MeasureText;
+  t: Translate;
 }): TotalsPageLayout[] {
-  const { counts } = args;
+  const { counts, t } = args;
   let page: TotalsPageLayout = {
-    title: { text: "Total etichete", y: TITLE_Y },
+    title: { text: t("labelsPdf.totalsTitle"), y: TITLE_Y },
     countRows: [
-      ["Etichete livrare", counts.delivery],
-      ["Etichete pickup", counts.pickup],
-      ["Nr. total etichete", counts.total],
+      [t("labelsPdf.deliveryLabels"), counts.delivery],
+      [t("labelsPdf.pickupLabels"), counts.pickup],
+      [t("labelsPdf.totalLabels"), counts.total],
     ].map(([label, value], index) => ({
       label: String(label),
       value: String(value),
@@ -97,7 +101,7 @@ export function layoutTotalsPage(args: {
   const lastCountY = page.countRows[page.countRows.length - 1].y;
   const headerY = lastCountY - COUNT_ROW_GAP - ORDERS_HEADER_GAP;
   page.ordersHeader = {
-    text: `Comenzi (${orderCount})`,
+    text: t("labelsPdf.orders", { count: orderCount }),
     y: headerY,
     hasDivider: true,
   };
@@ -108,7 +112,7 @@ export function layoutTotalsPage(args: {
       page = {
         countRows: [],
         ordersHeader: {
-          text: "Comenzi (cont.)",
+          text: t("labelsPdf.ordersContinued"),
           y: ORDERS_CONTINUATION_HEADER_Y,
           hasDivider: false,
         },

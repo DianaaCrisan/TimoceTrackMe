@@ -1,17 +1,27 @@
 import { PageInfo } from "app/types/admin.types";
 import { Link } from "react-router";
+import {
+  formatPageNumbers,
+  PAGE_PARAM,
+  type PageNumbers,
+} from "app/commons/pagination/PageNumbers";
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 
 type CursorPaginationProps = {
   basePath: string;
   pageInfo: PageInfo;
   queryParams?: Record<string, string>;
+  pageNumbers?: PageNumbers;
 };
 
 export function CursorPagination({
   basePath,
   pageInfo,
   queryParams = {},
+  pageNumbers,
 }: CursorPaginationProps) {
+  const { t } = useI18n();
+
   const buildUrl = (
     cursorParam: "before" | "after",
     cursorValue: string | null,
@@ -22,6 +32,14 @@ export function CursorPagination({
     searchParams.delete("before");
     searchParams.delete("after");
     searchParams.set(cursorParam, cursorValue);
+
+    if (pageNumbers) {
+      const targetPage =
+        cursorParam === "after"
+          ? pageNumbers.currentPage + 1
+          : Math.max(1, pageNumbers.currentPage - 1);
+      searchParams.set(PAGE_PARAM, String(targetPage));
+    }
 
     return `${basePath}?${searchParams.toString()}`;
   };
@@ -37,24 +55,28 @@ export function CursorPagination({
       : null;
 
   return (
-    <s-stack direction="inline" gap="base">
+    <s-stack direction="inline" gap="base" alignItems="center">
       <div>
         {previousUrl ? (
           <Link to={previousUrl}>
-            <s-button>Previous</s-button>
+            <s-button>{t("pagination.previous")}</s-button>
           </Link>
         ) : (
-          <s-button disabled>Previous</s-button>
+          <s-button disabled>{t("pagination.previous")}</s-button>
         )}
       </div>
+
+      {pageNumbers ? (
+        <s-text>{formatPageNumbers(pageNumbers, t)}</s-text>
+      ) : null}
 
       <div>
         {nextUrl ? (
           <Link to={nextUrl}>
-            <s-button>Next</s-button>
+            <s-button>{t("pagination.next")}</s-button>
           </Link>
         ) : (
-          <s-button disabled>Next</s-button>
+          <s-button disabled>{t("pagination.next")}</s-button>
         )}
       </div>
     </s-stack>

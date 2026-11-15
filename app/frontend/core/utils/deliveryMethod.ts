@@ -1,3 +1,9 @@
+import {
+  translateEn,
+  translateShopifyEnum,
+  type Translate,
+} from "app/commons/i18n/translate";
+
 export enum DeliveryMethodTypeDTO {
   LOCAL = "LOCAL",
   NONE = "NONE",
@@ -7,8 +13,10 @@ export enum DeliveryMethodTypeDTO {
   SHIPPING = "SHIPPING",
 }
 
-export function formatDeliveryMethodType(methodType?: string | null): string {
+export function formatDeliveryMethodType(
+  methodType?: string | null,
+  t: Translate = translateEn,
+): string {
   if (!methodType) return "—";
-  const formatted = methodType.toLowerCase().replace(/_/g, " ");
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  return translateShopifyEnum(t, "deliveryMethod", methodType);
 }

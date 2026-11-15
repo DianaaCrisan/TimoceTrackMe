@@ -9,7 +9,7 @@ export type GetOrdersTrackingInputDataQueryVariables = AdminTypes.Exact<{
 
 
 export type GetOrdersTrackingInputDataQuery = { nodes: Array<AdminTypes.Maybe<(
-    Pick<AdminTypes.Order, 'id' | 'name' | 'email' | 'phone' | 'createdAt'>
+    Pick<AdminTypes.Order, 'id' | 'name' | 'email' | 'phone' | 'createdAt' | 'tags'>
     & { shippingAddress?: AdminTypes.Maybe<Pick<AdminTypes.MailingAddress, 'address1' | 'address2' | 'city' | 'province' | 'country' | 'zip' | 'formatted' | 'name' | 'phone'>>, fulfillmentOrders: { edges: Array<{ node: (
           Pick<AdminTypes.FulfillmentOrder, 'id' | 'status'>
           & { deliveryMethod?: AdminTypes.Maybe<Pick<AdminTypes.DeliveryMethod, 'methodType'>>, lineItems: { edges: Array<{ node: (
@@ -18,7 +18,7 @@ export type GetOrdersTrackingInputDataQuery = { nodes: Array<AdminTypes.Maybe<(
                   Pick<AdminTypes.LineItem, 'id' | 'name'>
                   & { variant?: AdminTypes.Maybe<(
                     Pick<AdminTypes.ProductVariant, 'id'>
-                    & { inventoryItem: { measurement: { weight?: AdminTypes.Maybe<Pick<AdminTypes.Weight, 'value'>> } } }
+                    & { inventoryItem: { measurement: { weight?: AdminTypes.Maybe<Pick<AdminTypes.Weight, 'value' | 'unit'>> } } }
                   )> }
                 ) }
               ) }> } }
@@ -35,6 +35,41 @@ export type FulfillmentCreateWithTrackingMutation = { fulfillmentCreate?: AdminT
       & { trackingInfo: Array<Pick<AdminTypes.FulfillmentTrackingInfo, 'company' | 'number' | 'url'>> }
     )>, userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
 
+export type AddZipToFixTagMutationVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+  tags: Array<AdminTypes.Scalars['String']['input']> | AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type AddZipToFixTagMutation = { tagsAdd?: AdminTypes.Maybe<{ userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
+
+export type RemoveZipToFixTagMutationVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+  tags: Array<AdminTypes.Scalars['String']['input']> | AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type RemoveZipToFixTagMutation = { tagsRemove?: AdminTypes.Maybe<{ userErrors: Array<Pick<AdminTypes.UserError, 'field' | 'message'>> }> };
+
+export type RunBulkQueryMutationVariables = AdminTypes.Exact<{
+  query: AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type RunBulkQueryMutation = { bulkOperationRunQuery?: AdminTypes.Maybe<{ bulkOperation?: AdminTypes.Maybe<Pick<AdminTypes.BulkOperation, 'id' | 'status'>>, userErrors: Array<Pick<AdminTypes.BulkOperationUserError, 'code' | 'field' | 'message'>> }> };
+
+export type BulkOperationStatusQueryVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type BulkOperationStatusQuery = { node?: AdminTypes.Maybe<Pick<AdminTypes.BulkOperation, 'id' | 'status' | 'errorCode' | 'objectCount' | 'url'>> };
+
+export type CurrentBulkQueryOperationQueryVariables = AdminTypes.Exact<{ [key: string]: never; }>;
+
+
+export type CurrentBulkQueryOperationQuery = { currentBulkOperation?: AdminTypes.Maybe<Pick<AdminTypes.BulkOperation, 'id' | 'status' | 'query'>> };
+
 export type GetOrderNamesQueryVariables = AdminTypes.Exact<{
   ids: Array<AdminTypes.Scalars['ID']['input']> | AdminTypes.Scalars['ID']['input'];
 }>;
@@ -49,6 +84,29 @@ export type OrdersCountForFilterQueryVariables = AdminTypes.Exact<{
 
 export type OrdersCountForFilterQuery = { ordersCount?: AdminTypes.Maybe<Pick<AdminTypes.Count, 'count' | 'precision'>> };
 
+export type OrderToReviewQueryVariables = AdminTypes.Exact<{
+  ids: Array<AdminTypes.Scalars['ID']['input']> | AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type OrderToReviewQuery = { nodes: Array<AdminTypes.Maybe<(
+    Pick<AdminTypes.Order, 'id' | 'name' | 'note' | 'currentTotalWeight'>
+    & { customAttributes: Array<Pick<AdminTypes.Attribute, 'key' | 'value'>>, fulfillmentOrders: { nodes: Array<{ deliveryMethod?: AdminTypes.Maybe<Pick<AdminTypes.DeliveryMethod, 'methodType'>> }> }, customer?: AdminTypes.Maybe<Pick<AdminTypes.Customer, 'displayName'>> }
+  )>> };
+
+export type ShippedParcelCountsQueryVariables = AdminTypes.Exact<{
+  ids: Array<AdminTypes.Scalars['ID']['input']> | AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type ShippedParcelCountsQuery = { nodes: Array<AdminTypes.Maybe<(
+    Pick<AdminTypes.Order, 'id'>
+    & { fulfillments: Array<(
+      Pick<AdminTypes.Fulfillment, 'status'>
+      & { trackingInfo: Array<Pick<AdminTypes.FulfillmentTrackingInfo, 'number'>> }
+    )> }
+  )>> };
+
 export type OrdersDashboardQueryVariables = AdminTypes.Exact<{
   first?: AdminTypes.InputMaybe<AdminTypes.Scalars['Int']['input']>;
   last?: AdminTypes.InputMaybe<AdminTypes.Scalars['Int']['input']>;
@@ -61,8 +119,8 @@ export type OrdersDashboardQueryVariables = AdminTypes.Exact<{
 export type OrdersDashboardQuery = { orders: { edges: Array<(
       Pick<AdminTypes.OrderEdge, 'cursor'>
       & { node: (
-        Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt' | 'displayFinancialStatus' | 'displayFulfillmentStatus' | 'currentSubtotalLineItemsQuantity' | 'cancelledAt'>
-        & { shippingAddress?: AdminTypes.Maybe<Pick<AdminTypes.MailingAddress, 'zip'>>, fulfillmentOrders: { edges: Array<{ node: { deliveryMethod?: AdminTypes.Maybe<Pick<AdminTypes.DeliveryMethod, 'methodType'>> } }> }, customer?: AdminTypes.Maybe<Pick<AdminTypes.Customer, 'displayName'>>, netPaymentSet: { presentmentMoney: Pick<AdminTypes.MoneyV2, 'amount' | 'currencyCode'> } }
+        Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt' | 'displayFinancialStatus' | 'displayFulfillmentStatus' | 'currentSubtotalLineItemsQuantity' | 'cancelledAt' | 'currentTotalWeight' | 'note'>
+        & { customAttributes: Array<Pick<AdminTypes.Attribute, 'key' | 'value'>>, shippingAddress?: AdminTypes.Maybe<Pick<AdminTypes.MailingAddress, 'zip' | 'address1' | 'address2' | 'city' | 'province'>>, fulfillmentOrders: { edges: Array<{ node: { deliveryMethod?: AdminTypes.Maybe<Pick<AdminTypes.DeliveryMethod, 'methodType'>> } }> }, customer?: AdminTypes.Maybe<Pick<AdminTypes.Customer, 'displayName'>>, netPaymentSet: { presentmentMoney: Pick<AdminTypes.MoneyV2, 'amount' | 'currencyCode'> } }
       ) }
     )>, pageInfo: Pick<AdminTypes.PageInfo, 'hasNextPage' | 'hasPreviousPage' | 'startCursor' | 'endCursor'> } };
 
@@ -74,6 +132,22 @@ export type OrderIdsForSelectionQueryVariables = AdminTypes.Exact<{
 
 
 export type OrderIdsForSelectionQuery = { orders: { nodes: Array<Pick<AdminTypes.Order, 'id'>>, pageInfo: Pick<AdminTypes.PageInfo, 'hasNextPage' | 'endCursor'> } };
+
+export type AddPackTagsMutationVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+  tags: Array<AdminTypes.Scalars['String']['input']> | AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type AddPackTagsMutation = { tagsAdd?: AdminTypes.Maybe<{ userErrors: Array<Pick<AdminTypes.UserError, 'message'>> }> };
+
+export type RemovePackTagsMutationVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+  tags: Array<AdminTypes.Scalars['String']['input']> | AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type RemovePackTagsMutation = { tagsRemove?: AdminTypes.Maybe<{ userErrors: Array<Pick<AdminTypes.UserError, 'message'>> }> };
 
 export type MarkFulfillmentLabelPrintedMutationVariables = AdminTypes.Exact<{
   fulfillmentEvent: AdminTypes.FulfillmentEventInput;
@@ -97,10 +171,7 @@ export type GetOrdersPrintLabelsInputQueryVariables = AdminTypes.Exact<{
 
 export type GetOrdersPrintLabelsInputQuery = { nodes: Array<AdminTypes.Maybe<(
     Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt' | 'email' | 'phone' | 'confirmationNumber'>
-    & { billingAddress?: AdminTypes.Maybe<Pick<AdminTypes.MailingAddress, 'firstName' | 'lastName' | 'phone'>>, shippingLines: { edges: Array<{ node: (
-          Pick<AdminTypes.ShippingLine, 'title'>
-          & { taxLines: Array<Pick<AdminTypes.TaxLine, 'title' | 'ratePercentage'>> }
-        ) }> }, fulfillmentOrders: { edges: Array<{ node: (
+    & { billingAddress?: AdminTypes.Maybe<Pick<AdminTypes.MailingAddress, 'firstName' | 'lastName' | 'phone'>>, fulfillmentOrders: { edges: Array<{ node: (
           Pick<AdminTypes.FulfillmentOrder, 'id' | 'status'>
           & { deliveryMethod?: AdminTypes.Maybe<Pick<AdminTypes.DeliveryMethod, 'methodType'>>, lineItems: { edges: Array<{ node: (
                 Pick<AdminTypes.FulfillmentOrderLineItem, 'id' | 'remainingQuantity'>
@@ -119,6 +190,19 @@ export type GetOrdersPrintLabelsInputQuery = { nodes: Array<AdminTypes.Maybe<(
             ) }
           ) }> } }
     )> }
+  )>> };
+
+export type SoldOrdersQueryVariables = AdminTypes.Exact<{
+  ids: Array<AdminTypes.Scalars['ID']['input']> | AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type SoldOrdersQuery = { nodes: Array<AdminTypes.Maybe<(
+    Pick<AdminTypes.Order, 'id' | 'name' | 'cancelledAt'>
+    & { fulfillmentOrders: { nodes: Array<{ deliveryMethod?: AdminTypes.Maybe<Pick<AdminTypes.DeliveryMethod, 'methodType'>> }> }, lineItems: { nodes: Array<(
+        Pick<AdminTypes.LineItem, 'name' | 'currentQuantity'>
+        & { variant?: AdminTypes.Maybe<Pick<AdminTypes.ProductVariant, 'id'>> }
+      )>, pageInfo: Pick<AdminTypes.PageInfo, 'hasNextPage'> } }
   )>> };
 
 export type AddZipCodeToOrderMutationVariables = AdminTypes.Exact<{
@@ -146,17 +230,27 @@ export type GetOrdersShippingInfoBatchQuery = { nodes: Array<AdminTypes.Maybe<{ 
   )>> };
 
 interface GeneratedQueryTypes {
-  "#graphql\n  query GetOrdersTrackingInputData($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        email\n        phone\n        createdAt\n        shippingAddress {\n          address1\n          address2\n          city\n          province\n          country\n          zip\n          formatted\n          name\n          phone\n        }\n        fulfillmentOrders(first: 50) {\n          edges {\n            node {\n              id\n              status\n              deliveryMethod {\n                methodType\n              }\n              lineItems(first: 250) {\n                edges {\n                  node {\n                    id\n                    remainingQuantity\n                    lineItem {\n                      id\n                      name\n                      variant {\n                        id\n                        inventoryItem{\n                          measurement {\n                            weight {\n                              value \n                            }\n                          }\n                        }\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersTrackingInputDataQuery, variables: GetOrdersTrackingInputDataQueryVariables},
+  "#graphql\n  query GetOrdersTrackingInputData($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        email\n        phone\n        createdAt\n        tags\n        shippingAddress {\n          address1\n          address2\n          city\n          province\n          country\n          zip\n          formatted\n          name\n          phone\n        }\n        fulfillmentOrders(first: 50) {\n          edges {\n            node {\n              id\n              status\n              deliveryMethod {\n                methodType\n              }\n              lineItems(first: 250) {\n                edges {\n                  node {\n                    id\n                    remainingQuantity\n                    lineItem {\n                      id\n                      name\n                      variant {\n                        id\n                        inventoryItem{\n                          measurement {\n                            weight {\n                              value\n                              unit\n                            }\n                          }\n                        }\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersTrackingInputDataQuery, variables: GetOrdersTrackingInputDataQueryVariables},
+  "#graphql\n  query BulkOperationStatus($id: ID!) {\n    node(id: $id) {\n      ... on BulkOperation {\n        id\n        status\n        errorCode\n        objectCount\n        url\n      }\n    }\n  }\n": {return: BulkOperationStatusQuery, variables: BulkOperationStatusQueryVariables},
+  "#graphql\n  query CurrentBulkQueryOperation {\n    currentBulkOperation(type: QUERY) {\n      id\n      status\n      query\n    }\n  }\n": {return: CurrentBulkQueryOperationQuery, variables: CurrentBulkQueryOperationQueryVariables},
   "#graphql\n  query GetOrderNames($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n      }\n    }\n  }\n": {return: GetOrderNamesQuery, variables: GetOrderNamesQueryVariables},
   "#graphql\n  query OrdersCountForFilter($query: String) {\n    ordersCount(query: $query) {\n      count\n      precision\n    }\n  }\n": {return: OrdersCountForFilterQuery, variables: OrdersCountForFilterQueryVariables},
-  "#graphql\n  query OrdersDashboard(\n    $first: Int\n    $last: Int\n    $after: String\n    $before: String\n    $query: String\n  ) {\n    orders(\n      first: $first\n      last: $last\n      after: $after\n      before: $before\n      query: $query\n      sortKey: CREATED_AT\n      reverse: true\n    ) {\n      edges {\n        cursor\n        node {\n          id\n          name\n          createdAt\n          displayFinancialStatus\n          displayFulfillmentStatus\n          currentSubtotalLineItemsQuantity\n          cancelledAt\n\n          shippingAddress {\n            zip\n          }\n          \n          fulfillmentOrders(first: 1) {\n            edges {\n              node {\n                deliveryMethod {\n                  methodType\n                }\n              }\n            }\n          }\n          \n          customer {\n            displayName\n          }\n          \n          netPaymentSet {\n            presentmentMoney {\n              amount\n              currencyCode\n            }\n          }\n        }\n      }\n      pageInfo {\n        hasNextPage\n        hasPreviousPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n": {return: OrdersDashboardQuery, variables: OrdersDashboardQueryVariables},
+  "#graphql\n  query OrderToReview($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        note\n        customAttributes {\n          key\n          value\n        }\n        currentTotalWeight\n        fulfillmentOrders(first: 1) {\n          nodes {\n            deliveryMethod {\n              methodType\n            }\n          }\n        }\n        customer {\n          displayName\n        }\n      }\n    }\n  }\n": {return: OrderToReviewQuery, variables: OrderToReviewQueryVariables},
+  "#graphql\n  query ShippedParcelCounts($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        fulfillments(first: 20) {\n          status\n          trackingInfo(first: 1) {\n            number\n          }\n        }\n      }\n    }\n  }\n": {return: ShippedParcelCountsQuery, variables: ShippedParcelCountsQueryVariables},
+  "#graphql\n  query OrdersDashboard(\n    $first: Int\n    $last: Int\n    $after: String\n    $before: String\n    $query: String\n  ) {\n    orders(\n      first: $first\n      last: $last\n      after: $after\n      before: $before\n      query: $query\n      sortKey: CREATED_AT\n      reverse: true\n    ) {\n      edges {\n        cursor\n        node {\n          id\n          name\n          createdAt\n          displayFinancialStatus\n          displayFulfillmentStatus\n          currentSubtotalLineItemsQuantity\n          cancelledAt\n          currentTotalWeight\n          note\n          customAttributes {\n            key\n            value\n          }\n\n          shippingAddress {\n            zip\n            address1\n            address2\n            city\n            province\n          }\n          \n          fulfillmentOrders(first: 1) {\n            edges {\n              node {\n                deliveryMethod {\n                  methodType\n                }\n              }\n            }\n          }\n          \n          customer {\n            displayName\n          }\n          \n          netPaymentSet {\n            presentmentMoney {\n              amount\n              currencyCode\n            }\n          }\n        }\n      }\n      pageInfo {\n        hasNextPage\n        hasPreviousPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n": {return: OrdersDashboardQuery, variables: OrdersDashboardQueryVariables},
   "#graphql\n  query OrderIdsForSelection($first: Int!, $after: String, $query: String) {\n    orders(\n      first: $first\n      after: $after\n      query: $query\n      sortKey: CREATED_AT\n      reverse: true\n    ) {\n      nodes {\n        id\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n": {return: OrderIdsForSelectionQuery, variables: OrderIdsForSelectionQueryVariables},
-  "#graphql\n  query GetOrdersPrintLabelsInput($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        createdAt\n        email\n        phone\n        confirmationNumber\n        billingAddress {\n          firstName\n          lastName\n          phone\n        }\n        shippingLines(first: 10) {\n          edges {\n            node {\n              title\n              taxLines {\n                title\n                ratePercentage\n              }\n            }\n          }\n        }\n\n        fulfillmentOrders(first: 50) {\n          edges {\n            node {\n              id\n              status\n              deliveryMethod {\n                methodType\n              }\n              lineItems(first: 250) {\n                edges {\n                  node {\n                    id\n                    remainingQuantity\n                    lineItem {\n                      id\n                      name\n                      sku\n                      variant {\n                        id\n                        displayName\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n\n        fulfillments(first: 50) {\n          id\n          name\n          displayStatus\n          trackingInfo {\n            number\n            company\n            url\n          }\n          fulfillmentLineItems(first: 250) {\n            edges {\n              node {\n                quantity\n                lineItem {\n                  id\n                  name\n                  sku\n                  variant {\n                    id\n                    displayName\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersPrintLabelsInputQuery, variables: GetOrdersPrintLabelsInputQueryVariables},
+  "#graphql\n  query GetOrdersPrintLabelsInput($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        createdAt\n        email\n        phone\n        confirmationNumber\n        billingAddress {\n          firstName\n          lastName\n          phone\n        }\n        fulfillmentOrders(first: 50) {\n          edges {\n            node {\n              id\n              status\n              deliveryMethod {\n                methodType\n              }\n              lineItems(first: 250) {\n                edges {\n                  node {\n                    id\n                    remainingQuantity\n                    lineItem {\n                      id\n                      name\n                      sku\n                      variant {\n                        id\n                        displayName\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n\n        fulfillments(first: 50) {\n          id\n          name\n          displayStatus\n          trackingInfo {\n            number\n            company\n            url\n          }\n          fulfillmentLineItems(first: 250) {\n            edges {\n              node {\n                quantity\n                lineItem {\n                  id\n                  name\n                  sku\n                  variant {\n                    id\n                    displayName\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersPrintLabelsInputQuery, variables: GetOrdersPrintLabelsInputQueryVariables},
+  "#graphql\n  query SoldOrders($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        cancelledAt\n        fulfillmentOrders(first: 1) {\n          nodes {\n            deliveryMethod {\n              methodType\n            }\n          }\n        }\n        lineItems(first: 250) {\n          nodes {\n            name\n            currentQuantity\n            variant {\n              id\n            }\n          }\n          pageInfo {\n            hasNextPage\n          }\n        }\n      }\n    }\n  }\n": {return: SoldOrdersQuery, variables: SoldOrdersQueryVariables},
   "#graphql\n  query GetOrdersShippingInfoBatch($orderIds: [ID!]!) {\n    nodes(ids: $orderIds) {\n      __typename\n      ... on Order {\n        id\n        name\n        shippingAddress {\n          zip\n          address1\n          city\n          provinceCode\n        }\n        shippingLines(first: 2) {\n          edges {\n            node {\n              title\n              taxLines {\n                title\n                ratePercentage\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersShippingInfoBatchQuery, variables: GetOrdersShippingInfoBatchQueryVariables},
 }
 
 interface GeneratedMutationTypes {
   "#graphql\n  mutation FulfillmentCreateWithTracking($fulfillment: FulfillmentInput!) {\n    fulfillmentCreate(fulfillment: $fulfillment) {\n      fulfillment {\n        id\n        status\n        trackingInfo(first: 10) {\n          company\n          number\n          url\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: FulfillmentCreateWithTrackingMutation, variables: FulfillmentCreateWithTrackingMutationVariables},
+  "#graphql\n  mutation AddZipToFixTag($id: ID!, $tags: [String!]!) {\n    tagsAdd(id: $id, tags: $tags) {\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: AddZipToFixTagMutation, variables: AddZipToFixTagMutationVariables},
+  "#graphql\n  mutation RemoveZipToFixTag($id: ID!, $tags: [String!]!) {\n    tagsRemove(id: $id, tags: $tags) {\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: RemoveZipToFixTagMutation, variables: RemoveZipToFixTagMutationVariables},
+  "#graphql\n  mutation RunBulkQuery($query: String!) {\n    bulkOperationRunQuery(query: $query, groupObjects: false) {\n      bulkOperation {\n        id\n        status\n      }\n      userErrors {\n        code\n        field\n        message\n      }\n    }\n  }\n": {return: RunBulkQueryMutation, variables: RunBulkQueryMutationVariables},
+  "#graphql\n  mutation AddPackTags($id: ID!, $tags: [String!]!) {\n    tagsAdd(id: $id, tags: $tags) {\n      userErrors {\n        message\n      }\n    }\n  }\n": {return: AddPackTagsMutation, variables: AddPackTagsMutationVariables},
+  "#graphql\n  mutation RemovePackTags($id: ID!, $tags: [String!]!) {\n    tagsRemove(id: $id, tags: $tags) {\n      userErrors {\n        message\n      }\n    }\n  }\n": {return: RemovePackTagsMutation, variables: RemovePackTagsMutationVariables},
   "#graphql\n  mutation MarkFulfillmentLabelPrinted(\n    $fulfillmentEvent: FulfillmentEventInput!\n  ) {\n    fulfillmentEventCreate(fulfillmentEvent: $fulfillmentEvent) {\n      fulfillmentEvent {\n        id\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: MarkFulfillmentLabelPrintedMutation, variables: MarkFulfillmentLabelPrintedMutationVariables},
   "#graphql\n  mutation AddPrintedOrderTag($id: ID!, $tags: [String!]!) {\n    tagsAdd(id: $id, tags: $tags) {\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: AddPrintedOrderTagMutation, variables: AddPrintedOrderTagMutationVariables},
   "#graphql\n  mutation AddZipCodeToOrder($input: OrderInput!) {\n    orderUpdate(input: $input) {\n      order {\n        id\n        shippingAddress {\n          address1\n          city\n          provinceCode\n          zip\n          countryCodeV2\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: AddZipCodeToOrderMutation, variables: AddZipCodeToOrderMutationVariables},

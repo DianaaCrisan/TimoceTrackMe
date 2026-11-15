@@ -1,3 +1,8 @@
+import {
+  translateEn,
+  translateShopifyEnum,
+  type Translate,
+} from "app/commons/i18n/translate";
 import { BadgeTone } from "../components/Badge";
 
 export enum OrderDisplayFulfillmentStatusDTO {
@@ -13,10 +18,11 @@ export enum OrderDisplayFulfillmentStatusDTO {
   UNFULFILLED = "UNFULFILLED",
 }
 
-export function formatFulfillmentStatus(status?: string | null): string {
-  if (!status) return "";
-  const formatted = status.toLowerCase().replace(/_/g, " ");
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+export function formatFulfillmentStatus(
+  status?: string | null,
+  t: Translate = translateEn,
+): string {
+  return translateShopifyEnum(t, "fulfillmentStatus", status);
 }
 
 export function fulfillmentStatusToTone(status?: string | null): BadgeTone {
@@ -43,12 +49,15 @@ export function fulfillmentStatusToTone(status?: string | null): BadgeTone {
   }
 }
 
-export function formatFulfillmentStatusWithTone(status?: string | null): {
+export function formatFulfillmentStatusWithTone(
+  status?: string | null,
+  t: Translate = translateEn,
+): {
   label: string;
   tone: BadgeTone;
 } {
   return {
-    label: formatFulfillmentStatus(status),
+    label: formatFulfillmentStatus(status, t),
     tone: fulfillmentStatusToTone(status),
   };
 }

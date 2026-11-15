@@ -8,21 +8,103 @@ datasource db {
 }
 
 model Session {
-  id            String    @id
-  shop          String
-  state         String
-  isOnline      Boolean   @default(false)
-  scope         String?
-  expires       DateTime?
-  accessToken   String
-  userId        BigInt?
-  firstName     String?
-  lastName      String?
-  email         String?
-  accountOwner  Boolean   @default(false)
-  locale        String?
-  collaborator  Boolean?  @default(false)
-  emailVerified Boolean?  @default(false)
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
   refreshToken        String?
   refreshTokenExpires DateTime?
+}
+
+/// The app's settings. One row, created with these defaults on first read.
+/// See `SettingsRepository`.
+model AppSettings {
+  id String @id @default("singleton")
+
+  /// Heaviest parcel to ship, in kg. NULL turns the weight check off.
+  /// Set it some kg below the courier's maximum: products sold by weight
+  /// often weigh more than their listed weight.
+  parcelWeightLimitKg Float?
+
+  /// When true, add tracking splits a fulfillment over `parcelWeightLimitKg`
+  /// into several parcels, one AWB each. When false, heavy orders are only
+  /// highlighted.
+  autoSplitHeavyOrders Boolean @default(false)
+
+  /// ISO weekdays (1 = Monday … 7 = Sunday) whose start, at midnight
+  /// Europe/Bucharest, also starts a new pack. Empty: a new pack only starts
+  /// when the filling one is locked. See `PackSchedule`.
+  packStartWeekdays Int[] @default([])
+
+  /// When true, add tracking and print labels run only from inside a pack
+  /// (TrackMe → Packs), never from the Orders page. Enforced by the server,
+  /// not only by hiding buttons.
+  jobsOnlyInPacks Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+}
+
+/// A group of orders worked on together. See docs/fulfillment-packs-plan.md.
+///
+/// - OPEN: filling. At most one pack is OPEN; `PackRepository` enforces it.
+/// - LOCKED: being worked on. New orders go to a new pack.
+/// - CLOSED: done, hidden from the working list.
+model FulfillmentPack {
+  id     String                @id @default(cuid())
+  status FulfillmentPackStatus @default(OPEN)
+
+  /// The pack's name is `<day>/<daySequence>`, e.g. 14.11.2026/2: the
+  /// calendar day it was created (Europe/Bucharest) and its place among that
+  /// day's packs.
+  day         DateTime @db.Date
+  daySequence Int
+
+  /// The tag on every order of the pack, `pachet-2026-11-14-2`. Set once at
+  /// creation and read back from here: never rebuilt, so the search for a
+  /// pack's orders always matches what is really on them.
+  orderTag String @unique
+
+  /// When the first order entered the pack, shown next to its name. NULL
+  /// while empty.
+  startedAt DateTime?
+  createdAt DateTime  @default(now())
+  lockedAt  DateTime?
+  closedAt  DateTime?
+
+  orders FulfillmentPackOrder[]
+
+  @@unique([day, daySequence])
+}
+
+enum FulfillmentPackStatus {
+  OPEN
+  LOCKED
+  CLOSED
+}
+
+/// An order's place in a pack. The order ID is the key: an order is in one
+/// pack at most.
+model FulfillmentPackOrder {
+  /// Shopify order GID.
+  orderId String          @id
+  pack    FulfillmentPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  packId  String
+  addedAt DateTime        @default(now())
+
+  /// When the pack's tags were confirmed on the order. NULL while tagging is
+  /// pending or after it failed: the pack's tabs only find tagged orders.
+  taggedAt DateTime?
+
+  @@index([packId])
 }

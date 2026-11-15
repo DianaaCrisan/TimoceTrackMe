@@ -4,6 +4,7 @@ import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import {
+  checkOptimusAwbStatus,
   getOptimusTestCredentialsForDisplay,
   sendOptimusConnectionTest,
 } from "../backend/optimus/optimus-test.server";
@@ -15,9 +16,13 @@ import {
 import { ReadOnlyField } from "app/frontend/core/components/ReadOnlyField";
 import { ResponseViewer } from "app/frontend/core/components/ResponseViewer";
 import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
+import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
+import { createTranslator } from "app/commons/i18n/translate";
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 
 const OPTIMUS_TEST_INTENT = "optimusTest";
 const S3_TEST_INTENT = "s3Test";
+const AWB_STATUS_INTENT = "awbStatus";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -34,18 +39,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const formData = await request.formData();
   const intent = formData.get("intent");
+  const t = createTranslator(resolveLocale(formData.get(LOCALE_PARAM)));
 
   if (intent === S3_TEST_INTENT) {
     try {
-      const result = startTestJob();
+      const result = startTestJob(t);
 
       return {
         intent,
         ok: result.isStarted,
         data: {
           message: result.isStarted
-            ? "Test upload started. Press Refresh under Recent jobs in a few seconds."
-            : "A test upload is already running.",
+            ? t("developer.testUploadStartedDetails")
+            : t("developer.testUploadAlreadyRunning"),
         },
       };
     } catch (error) {
@@ -56,7 +62,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           message:
             error instanceof Error
               ? error.message
-              : "Unknown test upload error.",
+              : t("developer.unknownTestUploadError"),
+        },
+      };
+    }
+  }
+
+  if (intent === AWB_STATUS_INTENT) {
+    const awb = String(formData.get("awb") ?? "").trim();
+    if (!awb) {
+      return {
+        intent,
+        ok: false,
+        data: { message: t("developer.awbStatusMissingAwb") },
+      };
+    }
+
+    try {
+      const result = await checkOptimusAwbStatus(awb);
+      return { intent, ok: result.ok, data: result };
+    } catch (error) {
+      return {
+        intent,
+        ok: false,
+        data: {
+          message:
+            error instanceof Error
+              ? error.message
+              : t("developer.unknownOptimusError"),
         },
       };
     }
@@ -78,40 +111,53 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         message:
           error instanceof Error
             ? error.message
-            : "Unknown Optimus test error.",
+            : t("developer.unknownOptimusError"),
       },
     };
   }
 };
 
-export default function AdminPanelPage() {
+/**
+ * Tools for whoever runs the app: test the Optimus and S3 connections, and
+ * follow the background jobs. Nothing here changes how the shop works; that
+ * is the Settings page.
+ */
+export default function DeveloperPanelPage() {
   const { credentials, s3Setup, recentJobs } = useLoaderData<typeof loader>();
   const optimusFetcher = useFetcher<typeof action>();
   const s3TestFetcher = useFetcher<typeof action>();
+  const awbStatusFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
+  const { locale, t } = useI18n();
 
   const isSendingOptimusTest = optimusFetcher.state !== "idle";
+  const isCheckingAwbStatus = awbStatusFetcher.state !== "idle";
+
+  const awbStatusResponseContent = awbStatusFetcher.data
+    ? JSON.stringify(awbStatusFetcher.data.data, null, 2)
+    : t("developer.awbStatusNoRequestYet");
   const isStartingS3Test = s3TestFetcher.state !== "idle";
   const isS3SetupComplete = s3Setup.envVars.every((envVar) => envVar.isSet);
 
   const optimusResponseContent = useMemo(() => {
     if (!optimusFetcher.data) {
-      return `No request sent yet.
-
-The Optimus response will be displayed here after you send a test request.`;
+      return t("developer.noRequestYet");
     }
 
     return JSON.stringify(optimusFetcher.data.data, null, 2);
-  }, [optimusFetcher.data]);
+  }, [optimusFetcher.data, t]);
 
   useEffect(() => {
     if (!optimusFetcher.data) return;
 
     shopify.toast.show(
       optimusFetcher.data.ok
-        ? "Optimus test request completed"
-        : "Optimus test request failed",
+        ? t("developer.optimusTestCompleted")
+        : t("developer.optimusTestFailed"),
     );
+    // `t` is left out: a language change reloads the app, and the toast must
+    // only show when a response arrives
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optimusFetcher.data, shopify]);
 
   useEffect(() => {
@@ -119,41 +165,46 @@ The Optimus response will be displayed here after you send a test request.`;
 
     shopify.toast.show(
       s3TestFetcher.data.ok
-        ? "Test upload started"
-        : "Test upload could not start",
+        ? t("developer.testUploadStarted")
+        : t("developer.testUploadCouldNotStart"),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s3TestFetcher.data, shopify]);
 
   return (
-    <s-page heading="Admin Panel">
+    <s-page heading={t("developer.heading")}>
       <s-stack direction="block" gap="large">
-        <s-section heading="Optimus test credentials">
+        <s-section heading={t("developer.credentialsHeading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>
-              These values are loaded from environment variables. The API key is
-              masked for safety.
-            </s-paragraph>
+            <s-paragraph>{t("developer.credentialsIntro")}</s-paragraph>
 
-            <ReadOnlyField label="API URL" value={credentials.apiUrl} />
-            <ReadOnlyField label="Username" value={credentials.username} />
-            <ReadOnlyField label="API Key" value={credentials.maskedApiKey} />
+            <ReadOnlyField
+              label={t("developer.apiUrl")}
+              value={credentials.apiUrl}
+            />
+            <ReadOnlyField
+              label={t("developer.username")}
+              value={credentials.username}
+            />
+            <ReadOnlyField
+              label={t("developer.apiKey")}
+              value={credentials.maskedApiKey}
+            />
           </s-stack>
         </s-section>
 
-        <s-section heading="Test request">
+        <s-section heading={t("developer.testRequestHeading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>
-              This sends a server-side test request to Optimus using test
-              credentials and a mocked AWB-style payload.
-            </s-paragraph>
+            <s-paragraph>{t("developer.testRequestIntro")}</s-paragraph>
 
             <optimusFetcher.Form method="post">
               <input type="hidden" name="intent" value={OPTIMUS_TEST_INTENT} />
+              <input type="hidden" name={LOCALE_PARAM} value={locale} />
               <s-button
                 type="submit"
                 {...(isSendingOptimusTest ? { loading: true } : {})}
               >
-                Send test request
+                {t("developer.sendTestRequest")}
               </s-button>
             </optimusFetcher.Form>
           </s-stack>
@@ -161,12 +212,38 @@ The Optimus response will be displayed here after you send a test request.`;
 
         <ResponseViewer content={optimusResponseContent} />
 
-        <s-section heading="Bulk jobs: S3 setup">
+        <s-section heading={t("developer.awbStatusHeading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>
-              Bulk actions store their result files in S3. Every variable below
-              must be set for them to work.
-            </s-paragraph>
+            <s-paragraph>{t("developer.awbStatusIntro")}</s-paragraph>
+
+            <awbStatusFetcher.Form method="post">
+              <input type="hidden" name="intent" value={AWB_STATUS_INTENT} />
+              <input type="hidden" name={LOCALE_PARAM} value={locale} />
+              <s-stack direction="block" gap="base">
+                <s-text-field
+                  name="awb"
+                  label={t("developer.awbStatusField")}
+                  required
+                ></s-text-field>
+                <s-button
+                  type="submit"
+                  {...(isCheckingAwbStatus ? { loading: true } : {})}
+                >
+                  {t("developer.awbStatusCheck")}
+                </s-button>
+              </s-stack>
+            </awbStatusFetcher.Form>
+          </s-stack>
+        </s-section>
+
+        <ResponseViewer
+          title={t("developer.awbStatusResponse")}
+          content={awbStatusResponseContent}
+        />
+
+        <s-section heading={t("developer.s3Heading")}>
+          <s-stack direction="block" gap="base">
+            <s-paragraph>{t("developer.s3Intro")}</s-paragraph>
 
             <s-stack direction="block" gap="small-200">
               {s3Setup.envVars.map((envVar) => (
@@ -177,37 +254,35 @@ The Optimus response will be displayed here after you send a test request.`;
             </s-stack>
 
             <ReadOnlyField
-              label="S3 bucket"
-              value={s3Setup.bucket ?? "(not set)"}
+              label={t("developer.s3Bucket")}
+              value={s3Setup.bucket ?? t("developer.notSet")}
             />
             <ReadOnlyField
-              label="AWS region"
-              value={s3Setup.region ?? "(not set)"}
+              label={t("developer.awsRegion")}
+              value={s3Setup.region ?? t("developer.notSet")}
             />
             <ReadOnlyField
-              label="This app's folder in the bucket"
-              value={s3Setup.appFolderKey || "(bucket root)"}
+              label={t("developer.appFolder")}
+              value={s3Setup.appFolderKey || t("developer.bucketRoot")}
             />
 
             {s3Setup.appFolderConsoleUrl ? (
               <s-link href={s3Setup.appFolderConsoleUrl} target="_blank">
-                Open this app&apos;s folder in the S3 console
+                {t("developer.openAppFolder")}
               </s-link>
             ) : null}
 
-            <s-paragraph>
-              The test uploads a small text file. It then appears under Recent
-              jobs with a link to it in S3.
-            </s-paragraph>
+            <s-paragraph>{t("developer.s3TestIntro")}</s-paragraph>
 
             <s3TestFetcher.Form method="post">
               <input type="hidden" name="intent" value={S3_TEST_INTENT} />
+              <input type="hidden" name={LOCALE_PARAM} value={locale} />
               <s-button
                 type="submit"
                 {...(isStartingS3Test ? { loading: true } : {})}
                 {...(!isS3SetupComplete ? { disabled: true } : {})}
               >
-                Upload test file
+                {t("developer.uploadTestFile")}
               </s-button>
             </s3TestFetcher.Form>
 

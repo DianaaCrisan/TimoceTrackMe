@@ -1,3 +1,4 @@
+import type { Locale } from "app/commons/i18n/Locale";
 import { getOptimusLabelPDF } from "../optimus/getOptimusLabelPDF.server";
 import type { PrintLabelsOrder } from "./getOrdersPrintLabelsInputData.server";
 import { LabelUnitDetails } from "./models/LabelUnitDetails";
@@ -19,12 +20,14 @@ export class LabelUnitFactory {
     },
   ) {}
 
+  /** `locale`: the language of whoever printed the labels. */
   async buildForOrder(
     order: PrintLabelsOrder,
+    locale: Locale,
   ): Promise<{ units: LabelUnitDetails[]; labelUnitKind: LabelUnitKind }> {
     if (order.isPickup) {
       return {
-        units: await this.buildPickupUnits(order),
+        units: await this.buildPickupUnits(order, locale),
         labelUnitKind: LabelUnitKind.PICKUP,
       };
     }
@@ -37,6 +40,7 @@ export class LabelUnitFactory {
 
   private async buildPickupUnits(
     order: PrintLabelsOrder,
+    locale: Locale,
   ): Promise<LabelUnitDetails[]> {
     const pdfBytes = await this.deps.generatePickupLabelPDF({
       orderName: order.name,
@@ -48,6 +52,7 @@ export class LabelUnitFactory {
         email: order.pickupData?.email,
         phone: order.pickupData?.phone,
       },
+      locale,
     });
 
     const pickupPdf = Buffer.from(pdfBytes);

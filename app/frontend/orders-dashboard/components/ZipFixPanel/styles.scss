@@ -1,0 +1,139 @@
+$font-color: rgb(48, 48, 48);
+$muted-color: #6d7175;
+
+// Fills the orders panel like the normal table does: the header stays put and
+// the rows scroll under it.
+.zip-fix-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  color: $font-color;
+  font-size: 12px;
+}
+
+.zip-fix-panel__header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: #fff8e6;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.zip-fix-panel__intro {
+  margin: 0;
+  flex: 1 1 360px;
+  line-height: 18px;
+}
+
+.zip-fix-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.zip-fix-panel__invalid-hint {
+  color: #8e0b21;
+  white-space: nowrap;
+}
+
+.zip-fix-panel__submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #303030;
+  border-radius: 10px;
+  background: #303030;
+  color: white;
+  padding: 6px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  img {
+    filter: invert(1);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.zip-fix-panel__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.zip-fix-panel__empty {
+  padding: 24px 16px;
+  color: $muted-color;
+  font-size: 13px;
+}
+
+.zip-fix-panel__address {
+  min-width: 220px;
+  max-width: 360px;
+  white-space: normal;
+}
+
+.zip-fix-panel__zip-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zip-fix-panel__zip-input {
+  width: 84px;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border: 1px solid #c9cccf;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  background: white;
+
+  &:focus {
+    outline: 2px solid #005bd3;
+    outline-offset: 0;
+    border-color: #005bd3;
+  }
+
+  &.--edited {
+    border-color: #0c5132;
+    background: #f1fdf5;
+  }
+
+  &.--invalid {
+    border-color: #8e0b21;
+    background: #fff4f4;
+  }
+}
+
+.zip-fix-panel__search-link {
+  color: #005bd3;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.zip-fix-panel__pending {
+  color: $muted-color;
+  font-style: italic;
+}
+
+.zip-fix-panel__row--pending {
+  opacity: 0.6;
+}
