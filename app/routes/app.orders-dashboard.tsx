@@ -3,86 +3,39 @@ import { useLoaderData } from "react-router";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { authenticate } from "../shopify.server";
-import {
-  getOrdersDashboardData,
-  ORDER_PAGE_SIZE,
-} from "../backend/orders/orders-dashboard.server";
-import { getOrdersCount } from "../backend/orders/getOrdersCount.server";
-import { getRecentJobsSnapshot } from "../backend/jobs/jobsSetup.server";
-import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
-import { parseOrdersDashboardFilter } from "app/commons/orders/OrdersDashboardFilter";
-import {
-  buildPageNumbers,
-  PAGE_PARAM,
-} from "app/commons/pagination/PageNumbers";
+import { loadOrdersDashboard } from "app/backend/orders/loadOrdersDashboard.server";
+import { ALL_ORDERS_SCOPE } from "app/commons/orders/OrdersScope";
 import { OrdersDashboardPage } from "app/frontend/orders-dashboard/components/OrdersDashboardPage";
-import { SettingsRepository } from "app/backend/settings/SettingsRepository.server";
-import { withShippedParcelCounts } from "app/backend/orders/getShippedParcelCounts.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
 
-  const url = new URL(request.url);
-  const filter = parseOrdersDashboardFilter(url.searchParams.get("filter"));
-
-  const [data, ordersCount, recentJobs, parcelWeight] = await Promise.all([
-    getOrdersDashboardData(admin, {
-      after: url.searchParams.get("after"),
-      before: url.searchParams.get("before"),
-      filter,
-    }),
-    getOrdersCount(admin, filter),
-    getRecentJobsSnapshot(),
-    SettingsRepository.getParcelWeight(),
-  ]);
-  const shopAdminUrl = ShopifyUtils.getShopAdminUrl(session.shop);
-
-  return {
-    ...data,
-    orders: await withShippedParcelCounts(
-      admin,
-      shopAdminUrl,
-      data.orders,
-      parcelWeight,
-    ),
-    filter,
-    ordersCount,
-    pageNumbers: buildPageNumbers({
-      pageParam: url.searchParams.get(PAGE_PARAM),
-      pageSize: ORDER_PAGE_SIZE,
-      count: ordersCount,
-    }),
-    recentJobs,
-    shopAdminUrl,
-    parcelWeight,
-  };
+  return loadOrdersDashboard({
+    admin,
+    shop: session.shop,
+    url: new URL(request.url),
+    scope: ALL_ORDERS_SCOPE,
+  });
 };
 
 export default function OrdersDashboardRoute() {
-  const {
-    orders,
-    pageInfo,
-    shopAdminUrl,
-    filter,
-    ordersCount,
-    pageNumbers,
-    recentJobs,
-    parcelWeight,
-  } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
   const { t } = useI18n();
 
   return (
     <>
       <TitleBar title={t("nav.orders")} />
       <OrdersDashboardPage
-        orders={orders}
-        pageInfo={pageInfo}
-        shopAdminUrl={shopAdminUrl}
-        activeFilter={filter}
-        ordersCount={ordersCount}
-        pageNumbers={pageNumbers}
-        recentJobs={recentJobs}
-        parcelWeight={parcelWeight}
+        scope={ALL_ORDERS_SCOPE}
+        orders={data.orders}
+        pageInfo={data.pageInfo}
+        shopAdminUrl={data.shopAdminUrl}
+        activeFilter={data.filter}
+        ordersCount={data.ordersCount}
+        pageNumbers={data.pageNumbers}
+        recentJobs={data.recentJobs}
+        parcelWeight={data.parcelWeight}
+        targetPacks={data.targetPacks}
       />
     </>
   );

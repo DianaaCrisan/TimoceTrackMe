@@ -19,13 +19,21 @@ const ORDERS_COUNT_FOR_FILTER_QUERY = `#graphql
 
 export type { OrdersCount };
 
+/** How many orders a tab holds; with `packTag`, only that pack's. */
 export async function getOrdersCount(
   admin: AdminApiContextWithoutRest,
   filter: OrdersDashboardFilter,
+  packTag: string | null = null,
 ): Promise<OrdersCount | null> {
-  const variables: OrdersCountForFilterQueryVariables = {
-    query: buildOrdersSearchQuery(filter),
-  };
+  return countOrdersMatching(admin, buildOrdersSearchQuery(filter, packTag));
+}
+
+/** How many orders a Shopify search query matches. */
+export async function countOrdersMatching(
+  admin: AdminApiContextWithoutRest,
+  query: string | null,
+): Promise<OrdersCount | null> {
+  const variables: OrdersCountForFilterQueryVariables = { query };
 
   const response = await admin.graphql(ORDERS_COUNT_FOR_FILTER_QUERY, {
     variables,

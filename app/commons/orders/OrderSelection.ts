@@ -4,16 +4,18 @@ import type { OrdersDashboardFilter } from "./OrdersDashboardFilter";
  * What the user picked on the dashboard:
  * - `ids`: orders ticked by hand
  * - `filter`: "Select all N orders in this filter". The server finds the IDs
- *   itself, so the browser never has to load every page.
+ *   itself, so the browser never has to load every page. With `packId`, only
+ *   that pack's orders in the tab.
  */
 export type OrderSelection =
   | { mode: "ids"; orderIds: string[] }
-  | { mode: "filter"; filter: OrdersDashboardFilter };
+  | { mode: "filter"; filter: OrdersDashboardFilter; packId?: string };
 
 export const ORDER_SELECTION_FIELDS = {
   mode: "selectionMode",
   orderIds: "selectedOrderIds",
   filter: "filter",
+  packId: "packId",
 } as const;
 
 export function appendOrderSelection(
@@ -24,6 +26,9 @@ export function appendOrderSelection(
 
   if (selection.mode === "filter") {
     formData.append(ORDER_SELECTION_FIELDS.filter, selection.filter);
+    if (selection.packId) {
+      formData.append(ORDER_SELECTION_FIELDS.packId, selection.packId);
+    }
     return;
   }
 

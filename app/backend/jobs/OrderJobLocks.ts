@@ -23,6 +23,11 @@ export class OrderJobLocks {
     return { isLocked: true };
   }
 
+  /** The orders among these that a running job is working on. */
+  findBusy(orderIds: string[]): string[] {
+    return orderIds.filter((id) => this.lockedOrderIds.has(id));
+  }
+
   release(orderIds: string[]): void {
     orderIds.forEach((id) => this.lockedOrderIds.delete(id));
   }

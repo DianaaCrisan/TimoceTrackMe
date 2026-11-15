@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useFetcher, useSearchParams } from "react-router";
+import { Link, useFetcher, useSearchParams } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import "app/frontend/unfulfilled-report/components/UnfulfilledReportPage/styles.scss";
 import { INTL_LOCALE, LOCALE_PARAM } from "app/commons/i18n/Locale";
@@ -11,7 +11,10 @@ import {
   parseOrderInterval,
   type OrderInterval,
 } from "app/commons/unfulfilled-report/OrderInterval";
+import { buildPackUrl } from "app/commons/packs/FulfillmentPack";
 import {
+  formatReportScope,
+  REPORT_PACK_PARAM,
   REPORT_SECTIONS,
   RESULT_ID_PARAM,
   UNFULFILLED_REPORT_DATA_PATH,
@@ -36,6 +39,9 @@ const FALLBACK_PDF_NAME = "report.pdf";
  * The interval lives in the URL (`?from=&to=`), so a reload keeps it. The
  * data loads after the page renders: reading every open order from Shopify
  * can take a while.
+ *
+ * With `?packId=` the report covers one pack's orders instead, and the
+ * interval form is hidden: it is opened from the pack, before add tracking.
  */
 export function UnfulfilledReportPage() {
   const { locale, t } = useI18n();
@@ -59,9 +65,14 @@ export function UnfulfilledReportPage() {
   const loadRef = useRef(dataFetcher.load);
   loadRef.current = dataFetcher.load;
 
+  const packId = searchParams.get(REPORT_PACK_PARAM);
   const intervalQuery = orderIntervalToSearchParams(interval).toString();
+  /** What the report covers, as sent to the server. */
+  const scopeQuery = packId
+    ? new URLSearchParams({ [REPORT_PACK_PARAM]: packId }).toString()
+    : intervalQuery;
   const loadReport = () => {
-    const params = new URLSearchParams(intervalQuery);
+    const params = new URLSearchParams(scopeQuery);
     params.set(LOCALE_PARAM, locale);
     loadRef.current(`${UNFULFILLED_REPORT_DATA_PATH}?${params}`);
   };
@@ -69,9 +80,9 @@ export function UnfulfilledReportPage() {
   useEffect(() => {
     setDownloadError(null);
     loadReport();
-    // reload only when the interval changes
+    // reload only when the interval or the pack changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [intervalQuery]);
+  }, [scopeQuery]);
 
   const isLoading = dataFetcher.state !== "idle" || !dataFetcher.data;
   const response = isLoading ? null : dataFetcher.data;
@@ -115,7 +126,7 @@ export function UnfulfilledReportPage() {
     try {
       const formData = new FormData();
       formData.append(RESULT_ID_PARAM, response.resultId);
-      for (const [name, value] of new URLSearchParams(intervalQuery)) {
+      for (const [name, value] of new URLSearchParams(scopeQuery)) {
         formData.append(name, value);
       }
       formData.append(LOCALE_PARAM, locale);
@@ -151,64 +162,77 @@ export function UnfulfilledReportPage() {
   return (
     <s-page heading={t("report.heading")}>
       <s-stack direction="block" gap="base">
-        <s-section heading={t("report.intervalHeading")}>
-          <s-stack direction="block" gap="base">
-            <s-paragraph>{t("report.intro")}</s-paragraph>
+        {packId ? (
+          <s-section>
+            <s-stack direction="block" gap="small-200">
+              <s-paragraph>{t("report.packIntro")}</s-paragraph>
+              <Link to={buildPackUrl(packId)}>{t("report.backToPack")}</Link>
+            </s-stack>
+          </s-section>
+        ) : (
+          <s-section heading={t("report.intervalHeading")}>
+            <s-stack direction="block" gap="base">
+              <s-paragraph>{t("report.intro")}</s-paragraph>
 
-            <form
-              key={`${formKey}:${intervalQuery}`}
-              className="report-page__interval-form"
-              onSubmit={handleApply}
-              noValidate
-            >
-              <div className="report-page__interval-fields">
-                <s-number-field
-                  label={t("report.fromOrder")}
-                  name={ORDER_INTERVAL_PARAMS.from}
-                  value={fromParam ?? ""}
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                />
-                <s-number-field
-                  label={t("report.toOrder")}
-                  name={ORDER_INTERVAL_PARAMS.to}
-                  value={toParam ?? ""}
-                  inputMode="numeric"
-                  min={1}
-                  step={1}
-                />
-              </div>
+              <form
+                key={`${formKey}:${intervalQuery}`}
+                className="report-page__interval-form"
+                onSubmit={handleApply}
+                noValidate
+              >
+                <div className="report-page__interval-fields">
+                  <s-number-field
+                    label={t("report.fromOrder")}
+                    name={ORDER_INTERVAL_PARAMS.from}
+                    value={fromParam ?? ""}
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                  />
+                  <s-number-field
+                    label={t("report.toOrder")}
+                    name={ORDER_INTERVAL_PARAMS.to}
+                    value={toParam ?? ""}
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                  />
+                </div>
 
-              <s-text color="subdued">{t("report.intervalHint")}</s-text>
+                <s-text color="subdued">{t("report.intervalHint")}</s-text>
 
-              {formError || !parsedInterval.ok ? (
-                <s-banner tone="critical">
-                  {formError ??
-                    (!parsedInterval.ok ? t(parsedInterval.error) : null)}
-                </s-banner>
-              ) : null}
+                {formError || !parsedInterval.ok ? (
+                  <s-banner tone="critical">
+                    {formError ??
+                      (!parsedInterval.ok ? t(parsedInterval.error) : null)}
+                  </s-banner>
+                ) : null}
 
-              <div className="report-page__actions">
-                <s-button type="submit" variant="secondary">
-                  {t("report.apply")}
-                </s-button>
-                <s-button
-                  variant="tertiary"
-                  onClick={handleShowAll}
-                  {...(isLoading ? { disabled: true } : {})}
-                >
-                  {t("report.showAll")}
-                </s-button>
-              </div>
-            </form>
-          </s-stack>
-        </s-section>
+                <div className="report-page__actions">
+                  <s-button type="submit" variant="secondary">
+                    {t("report.apply")}
+                  </s-button>
+                  <s-button
+                    variant="tertiary"
+                    onClick={handleShowAll}
+                    {...(isLoading ? { disabled: true } : {})}
+                  >
+                    {t("report.showAll")}
+                  </s-button>
+                </div>
+              </form>
+            </s-stack>
+          </s-section>
+        )}
 
         <div className="report-page__toolbar">
           <div className="report-page__scope">
             <s-text type="strong">
-              {formatOrderIntervalScope(interval, t)}
+              {report
+                ? formatReportScope(report, t)
+                : packId
+                  ? "…"
+                  : formatOrderIntervalScope(interval, t)}
             </s-text>
             {report ? (
               <s-text color="subdued">

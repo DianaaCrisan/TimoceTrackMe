@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parseOrdersDashboardFilter } from "app/commons/orders/OrdersDashboardFilter";
-import { buildOrdersSearchQuery } from "./buildOrdersSearchQuery";
+import {
+  PACK_DASHBOARD_FILTERS,
+  parseOrdersDashboardFilter,
+} from "app/commons/orders/OrdersDashboardFilter";
+import {
+  buildOrdersSearchQuery,
+  buildPackDoneQuery,
+} from "./buildOrdersSearchQuery";
 
 describe("buildOrdersSearchQuery", () => {
   it("finds orders ready to print and not printed yet", () => {
@@ -25,7 +31,50 @@ describe("buildOrdersSearchQuery", () => {
   });
 });
 
+describe("buildOrdersSearchQuery: Not in a pack", () => {
+  it("finds unpacked orders that still need shipping or a printed label", () => {
+    expect(buildOrdersSearchQuery("not_in_pack")).toBe(
+      "tag_not:in-pachet AND NOT status:cancelled AND " +
+        "(fulfillment_status:unfulfilled OR fulfillment_status:partial OR " +
+        "tag_not:eticheta-printata)",
+    );
+  });
+});
+
+describe("buildOrdersSearchQuery: inside a pack", () => {
+  const PACK_TAG = "pachet-2026-11-14-2";
+
+  it("limits a tab to the pack's orders", () => {
+    expect(buildOrdersSearchQuery("pending_fulfillment", PACK_TAG)).toBe(
+      "tag:pachet-2026-11-14-2 AND (fulfillment_status:unfulfilled)",
+    );
+  });
+
+  it("makes All the pack's orders", () => {
+    expect(buildOrdersSearchQuery("all", PACK_TAG)).toBe(
+      "tag:pachet-2026-11-14-2",
+    );
+  });
+});
+
+describe("buildPackDoneQuery", () => {
+  it("counts cancelled orders, and fulfilled ones printed or picked up", () => {
+    expect(buildPackDoneQuery("pachet-2026-11-14-2")).toBe(
+      "tag:pachet-2026-11-14-2 AND (status:cancelled OR " +
+        "(fulfillment_status:fulfilled AND " +
+        "(tag:eticheta-printata OR delivery_method:pick-up)))",
+    );
+  });
+});
+
 describe("parseOrdersDashboardFilter", () => {
+  it("falls back to the default for a tab the scope does not show", () => {
+    expect(
+      parseOrdersDashboardFilter("not_in_pack", PACK_DASHBOARD_FILTERS),
+    ).toBe("pending_fulfillment");
+    expect(parseOrdersDashboardFilter("not_in_pack")).toBe("not_in_pack");
+  });
+
   it("accepts every tab and falls back to Pending fulfillment", () => {
     expect(parseOrdersDashboardFilter("unprinted")).toBe("unprinted");
     expect(parseOrdersDashboardFilter("zip_to_fix")).toBe("zip_to_fix");

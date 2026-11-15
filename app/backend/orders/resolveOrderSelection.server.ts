@@ -6,13 +6,13 @@ import {
 import {
   formatOrdersDashboardFilter,
   parseOrdersDashboardFilter,
-  type OrdersDashboardFilter,
 } from "app/commons/orders/OrdersDashboardFilter";
 import { translateEn, type Translate } from "app/commons/i18n/translate";
 import type { OrderIdsForSelectionQuery } from "app/types/admin.generated";
 import { RequestError } from "../core/errors/RequestError";
 import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
+import { PackRepository } from "../packs/PackRepository.server";
 import { buildOrdersSearchQuery } from "./buildOrdersSearchQuery";
 
 const ORDER_GID_PATTERN = /^gid:\/\/shopify\/Order\/\d+$/;
@@ -47,11 +47,13 @@ export function parseOrderSelection(
 
   if (mode === "filter") {
     const filter = formData.get(ORDER_SELECTION_FIELDS.filter);
+    const packId = formData.get(ORDER_SELECTION_FIELDS.packId);
     return {
       mode: "filter",
       filter: parseOrdersDashboardFilter(
         typeof filter === "string" ? filter : null,
       ),
+      ...(typeof packId === "string" && packId ? { packId } : {}),
     };
   }
 
@@ -81,7 +83,17 @@ export async function resolveOrderIds(
   const orderIds =
     selection.mode === "ids"
       ? selection.orderIds
-      : await fetchOrderIdsForFilter(admin, shopUrl, selection.filter);
+      : await fetchOrderIdsMatching(
+          admin,
+          shopUrl,
+          buildOrdersSearchQuery(
+            selection.filter,
+            selection.packId
+              ? (await PackRepository.getOrThrow(selection.packId, t)).orderTag
+              : null,
+          ),
+          MAX_ORDERS_PER_JOB,
+        );
 
   if (orderIds.length === 0) {
     throw new RequestError(
@@ -104,11 +116,15 @@ export async function resolveOrderIds(
   return orderIds;
 }
 
-/** Stops one order past the cap: enough to know the selection is too big. */
-async function fetchOrderIdsForFilter(
+/**
+ * Every order ID a Shopify search query matches. With `stopPast`, stops once
+ * past that many: enough to know a selection is too big.
+ */
+export async function fetchOrderIdsMatching(
   admin: AdminApiContextWithoutRest,
   shopUrl: string,
-  filter: OrdersDashboardFilter,
+  query: string | null,
+  stopPast = Infinity,
 ): Promise<string[]> {
   const orderIds: string[] = [];
   let after: string | null = null;
@@ -120,11 +136,7 @@ async function fetchOrderIdsForFilter(
         shopUrl,
         "OrderIdsForSelection",
         ORDER_IDS_FOR_SELECTION_QUERY,
-        {
-          first: ORDERS_PAGE_SIZE,
-          after,
-          query: buildOrdersSearchQuery(filter),
-        },
+        { first: ORDERS_PAGE_SIZE, after, query },
         INITIAL_EXPECTED_COST,
       );
 
@@ -132,7 +144,7 @@ async function fetchOrderIdsForFilter(
     after = data.orders.pageInfo.hasNextPage
       ? (data.orders.pageInfo.endCursor ?? null)
       : null;
-  } while (after && orderIds.length <= MAX_ORDERS_PER_JOB);
+  } while (after && orderIds.length <= stopPast);
 
   return orderIds;
 }

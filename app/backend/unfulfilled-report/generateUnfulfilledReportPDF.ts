@@ -1,8 +1,8 @@
 import { PDFDocument, rgb, type PDFFont, type RGB } from "pdf-lib";
 import { INTL_LOCALE, type Locale } from "app/commons/i18n/Locale";
 import { createTranslator, type Translate } from "app/commons/i18n/translate";
-import { formatOrderIntervalScope } from "app/commons/unfulfilled-report/OrderInterval";
 import {
+  formatReportScope,
   REPORT_SECTIONS,
   type ReportSection,
   type ReportSectionKey,
@@ -214,7 +214,7 @@ export function layoutReportPdf(args: {
   });
   flow.advance(TITLE_SIZE + 4);
   flow.text(
-    `${formatOrderIntervalScope(report.interval, t)} · ${t(
+    `${formatReportScope(report, t)} · ${t(
       "report.generatedAt",
       { date: args.formatDate(report.generatedAt) },
     )}`,
@@ -235,7 +235,7 @@ export function layoutReportPdf(args: {
   });
 
   // 3. footer on every page, now that the page count is known
-  const footerLeft = `${t("report.heading")} · ${formatOrderIntervalScope(report.interval, t)}`;
+  const footerLeft = `${t("report.heading")} · ${formatReportScope(report, t)}`;
   flow.pages.forEach((page, index) => {
     page.ops.push(
       textOp(footerLeft, {

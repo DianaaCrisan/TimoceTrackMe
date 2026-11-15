@@ -5,6 +5,7 @@ import {
   type OrderInterval,
 } from "app/commons/unfulfilled-report/OrderInterval";
 import type {
+  ReportPack,
   ReportRow,
   ReportSection,
   UnfulfilledReport,
@@ -12,11 +13,17 @@ import type {
 import { formatOrderRanges } from "../print-labels/utils/formatOrderRanges";
 import type { OpenFulfillmentOrder } from "./fetchOpenFulfillmentOrders.server";
 
+/** Limits a report to one pack's orders. */
+export type ReportPackScope = {
+  pack: ReportPack;
+  orderIds: ReadonlySet<string>;
+};
+
 /**
  * Adds up what is left to fulfil, per product variant, separately for
  * delivery and pickup (by Shopify's delivery method, per fulfillment order).
  *
- * - Only orders in `interval` count.
+ * - Only orders in `interval` count, and with `packScope`, only that pack's.
  * - An order split into a delivery and a pickup fulfillment order shows up in
  *   both sections, each with its own items.
  * - Items without a variant (custom items) are grouped by name.
@@ -25,6 +32,7 @@ export function buildUnfulfilledReport(
   fulfillmentOrders: OpenFulfillmentOrder[],
   interval: OrderInterval,
   generatedAt: Date,
+  packScope: ReportPackScope | null = null,
 ): UnfulfilledReport {
   const delivery = new SectionBuilder();
   const pickup = new SectionBuilder();
@@ -32,6 +40,9 @@ export function buildUnfulfilledReport(
   for (const fulfillmentOrder of fulfillmentOrders) {
     if (fulfillmentOrder.lineItems.length === 0) continue;
     if (!isOrderInInterval(fulfillmentOrder.orderName, interval)) continue;
+    if (packScope && !packScope.orderIds.has(fulfillmentOrder.orderId)) {
+      continue;
+    }
 
     const section = isPickupDeliveryMethod(fulfillmentOrder.methodType)
       ? pickup
@@ -41,6 +52,7 @@ export function buildUnfulfilledReport(
 
   return {
     interval,
+    pack: packScope?.pack ?? null,
     generatedAt: generatedAt.toISOString(),
     delivery: delivery.build(),
     pickup: pickup.build(),

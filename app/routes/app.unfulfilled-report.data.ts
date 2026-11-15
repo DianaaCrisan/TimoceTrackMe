@@ -12,12 +12,19 @@ import {
   ORDER_INTERVAL_PARAMS,
   parseOrderInterval,
 } from "app/commons/unfulfilled-report/OrderInterval";
-import type { UnfulfilledReportResponse } from "app/commons/unfulfilled-report/UnfulfilledReport";
+import {
+  REPORT_PACK_PARAM,
+  type UnfulfilledReportResponse,
+} from "app/commons/unfulfilled-report/UnfulfilledReport";
+import { RequestError } from "app/backend/core/errors/RequestError";
+import { loadReportPackScope } from "app/backend/unfulfilled-report/loadReportPackScope.server";
 
 /**
  * Loaded by the report page after it renders: reading every open
  * fulfillment order can take a while with many orders, and the page shows a
  * spinner meanwhile instead of a blank screen.
+ *
+ * With `?packId=`, only that pack's orders, whatever their numbers.
  */
 export const loader = async ({
   request,
@@ -34,10 +41,12 @@ export const loader = async ({
   if (!parsed.ok) return { ok: false, error: t(parsed.error) };
 
   try {
+    const packId = url.searchParams.get(REPORT_PACK_PARAM);
     const report = await getUnfulfilledReport(
       admin,
       ShopifyUtils.getShopAdminUrl(session.shop),
       parsed.interval,
+      packId ? await loadReportPackScope(packId, t) : null,
     );
 
     return {
@@ -46,6 +55,9 @@ export const loader = async ({
       report,
     };
   } catch (error) {
+    if (error instanceof RequestError) {
+      return { ok: false, error: error.message };
+    }
     console.error(
       "AppError[UnfulfilledReport] could not load the report.",
       error,

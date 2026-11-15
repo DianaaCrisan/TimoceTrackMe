@@ -22,6 +22,8 @@ type OrdersDashboardPaginationInput = {
   after: string | null;
   before: string | null;
   filter: OrdersDashboardFilter;
+  /** Only this pack's orders. */
+  packTag?: string | null;
 };
 
 const ORDERS_DASHBOARD_QUERY = `#graphql
@@ -102,7 +104,10 @@ export async function getOrdersDashboardData(
   admin: AdminApiContextWithoutRest,
   pagination: OrdersDashboardPaginationInput,
 ): Promise<OrdersDashboardData> {
-  const searchQuery = buildOrdersSearchQuery(pagination.filter);
+  const searchQuery = buildOrdersSearchQuery(
+    pagination.filter,
+    pagination.packTag ?? null,
+  );
 
   const variables: OrdersDashboardQueryVariables =
     pagination.before != null

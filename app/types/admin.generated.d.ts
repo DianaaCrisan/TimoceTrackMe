@@ -133,6 +133,22 @@ export type OrderIdsForSelectionQueryVariables = AdminTypes.Exact<{
 
 export type OrderIdsForSelectionQuery = { orders: { nodes: Array<Pick<AdminTypes.Order, 'id'>>, pageInfo: Pick<AdminTypes.PageInfo, 'hasNextPage' | 'endCursor'> } };
 
+export type AddPackTagsMutationVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+  tags: Array<AdminTypes.Scalars['String']['input']> | AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type AddPackTagsMutation = { tagsAdd?: AdminTypes.Maybe<{ userErrors: Array<Pick<AdminTypes.UserError, 'message'>> }> };
+
+export type RemovePackTagsMutationVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+  tags: Array<AdminTypes.Scalars['String']['input']> | AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type RemovePackTagsMutation = { tagsRemove?: AdminTypes.Maybe<{ userErrors: Array<Pick<AdminTypes.UserError, 'message'>> }> };
+
 export type MarkFulfillmentLabelPrintedMutationVariables = AdminTypes.Exact<{
   fulfillmentEvent: AdminTypes.FulfillmentEventInput;
 }>;
@@ -219,6 +235,8 @@ interface GeneratedMutationTypes {
   "#graphql\n  mutation AddZipToFixTag($id: ID!, $tags: [String!]!) {\n    tagsAdd(id: $id, tags: $tags) {\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: AddZipToFixTagMutation, variables: AddZipToFixTagMutationVariables},
   "#graphql\n  mutation RemoveZipToFixTag($id: ID!, $tags: [String!]!) {\n    tagsRemove(id: $id, tags: $tags) {\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: RemoveZipToFixTagMutation, variables: RemoveZipToFixTagMutationVariables},
   "#graphql\n  mutation RunBulkQuery($query: String!) {\n    bulkOperationRunQuery(query: $query, groupObjects: false) {\n      bulkOperation {\n        id\n        status\n      }\n      userErrors {\n        code\n        field\n        message\n      }\n    }\n  }\n": {return: RunBulkQueryMutation, variables: RunBulkQueryMutationVariables},
+  "#graphql\n  mutation AddPackTags($id: ID!, $tags: [String!]!) {\n    tagsAdd(id: $id, tags: $tags) {\n      userErrors {\n        message\n      }\n    }\n  }\n": {return: AddPackTagsMutation, variables: AddPackTagsMutationVariables},
+  "#graphql\n  mutation RemovePackTags($id: ID!, $tags: [String!]!) {\n    tagsRemove(id: $id, tags: $tags) {\n      userErrors {\n        message\n      }\n    }\n  }\n": {return: RemovePackTagsMutation, variables: RemovePackTagsMutationVariables},
   "#graphql\n  mutation MarkFulfillmentLabelPrinted(\n    $fulfillmentEvent: FulfillmentEventInput!\n  ) {\n    fulfillmentEventCreate(fulfillmentEvent: $fulfillmentEvent) {\n      fulfillmentEvent {\n        id\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: MarkFulfillmentLabelPrintedMutation, variables: MarkFulfillmentLabelPrintedMutationVariables},
   "#graphql\n  mutation AddPrintedOrderTag($id: ID!, $tags: [String!]!) {\n    tagsAdd(id: $id, tags: $tags) {\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: AddPrintedOrderTagMutation, variables: AddPrintedOrderTagMutationVariables},
   "#graphql\n  mutation AddZipCodeToOrder($input: OrderInput!) {\n    orderUpdate(input: $input) {\n      order {\n        id\n        shippingAddress {\n          address1\n          city\n          provinceCode\n          zip\n          countryCodeV2\n        }\n      }\n      userErrors {\n        field\n        message\n      }\n    }\n  }\n": {return: AddZipCodeToOrderMutation, variables: AddZipCodeToOrderMutationVariables},

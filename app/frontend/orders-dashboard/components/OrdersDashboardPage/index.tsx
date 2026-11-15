@@ -1,5 +1,5 @@
 import type { OrdersDashboardOrder } from "app/commons/orders/OrdersDashboardOrder";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CursorPagination } from "app/frontend/core/components/CursorPagination";
 import { OrdersDashboardTable } from "app/frontend/orders-dashboard/components/OrdersDashboardTable";
 import { LoadingBar } from "app/frontend/core/components/LoadingBar";
@@ -19,13 +19,22 @@ import {
   useRevalidator,
 } from "react-router";
 import {
-  buildOrdersDashboardUrl,
   COUNTED_ORDERS_DASHBOARD_FILTERS,
   formatOrdersDashboardFilter,
-  ORDERS_DASHBOARD_FILTERS,
   ORDERS_DASHBOARD_PATH,
   type OrdersDashboardFilter,
 } from "app/commons/orders/OrdersDashboardFilter";
+import {
+  buildScopeTabUrl,
+  getScopeBasePath,
+  getScopeFilters,
+  type OrdersScope,
+} from "app/commons/orders/OrdersScope";
+import type { FulfillmentPackView } from "app/commons/packs/FulfillmentPack";
+import { PACK_ACTION_FIELDS } from "app/commons/packs/PackAction";
+import { ConfirmDialog } from "app/frontend/core/components/ConfirmDialog";
+import { PackPickerDialog } from "app/frontend/packs/components/PackPickerDialog";
+import { usePackAction } from "app/frontend/packs/hooks/usePackAction";
 import {
   formatTabCount,
   type CountedOrdersDashboardFilter,
@@ -117,7 +126,6 @@ const SEARCH_INDEX_CATCH_UP_MS = 5000;
  */
 const SUCCESS_NOTICE_DISMISS_MS = 8000;
 
-const TAB_COUNTS_URL = `${ORDERS_DASHBOARD_PATH}/tab-counts`;
 const TRACKING_REVIEW_URL = `${ORDERS_DASHBOARD_PATH}/tracking-review`;
 
 /** A job waiting on the admin to look at the orders it would run on. */
@@ -140,7 +148,16 @@ function isCountedFilter(
   );
 }
 
+/** What the selection's pack buttons open. */
+type PackDialog = "add" | "move" | "remove";
+
 type OrdersDashboardPageProps = {
+  /** All orders, or one pack's: the tabs, links and "Select all" follow it. */
+  scope: OrdersScope;
+  /** Shown above the tabs, e.g. the pack's summary. */
+  header?: ReactNode;
+  /** Packs orders can be added or moved to. */
+  targetPacks: FulfillmentPackView[];
   orders: OrdersDashboardOrder[];
   pageInfo: PageInfo;
   shopAdminUrl: string;
@@ -152,6 +169,9 @@ type OrdersDashboardPageProps = {
 };
 
 export function OrdersDashboardPage({
+  scope,
+  header,
+  targetPacks,
   orders,
   pageInfo,
   shopAdminUrl,
@@ -180,6 +200,14 @@ export function OrdersDashboardPage({
   const [pendingTrackingReview, setPendingTrackingReview] =
     useState<PendingTrackingReview | null>(null);
   const [jobsRefreshSignal, setJobsRefreshSignal] = useState(0);
+  const [openPackDialog, setOpenPackDialog] = useState<PackDialog | null>(
+    null,
+  );
+  const packAction = usePackAction(() => {
+    setOpenPackDialog(null);
+    setSelectedOrderIds([]);
+    setIsFilterSelected(false);
+  });
 
   // Counted after the page renders, so the order list never waits on them.
   // Reloaded whenever the list is: a job or a page change can move orders
@@ -187,9 +215,14 @@ export function OrdersDashboardPage({
   const tabCountsFetcher = useFetcher<TabCounts>();
   const loadTabCountsRef = useRef(tabCountsFetcher.load);
   loadTabCountsRef.current = tabCountsFetcher.load;
+  const packId = scope.kind === "pack" ? scope.packId : null;
   useEffect(() => {
-    loadTabCountsRef.current(TAB_COUNTS_URL);
-  }, [orders]);
+    loadTabCountsRef.current(
+      `${ORDERS_DASHBOARD_PATH}/tab-counts${
+        packId ? `?packId=${encodeURIComponent(packId)}` : ""
+      }`,
+    );
+  }, [orders, packId]);
 
   const renderTabCount = (filter: OrdersDashboardFilter) => {
     if (!isCountedFilter(filter)) return null;
@@ -199,7 +232,7 @@ export function OrdersDashboardPage({
       return <span className="orders-dashboard-page__tab-count">…</span>;
     }
 
-    const count = tabCounts[filter];
+    const count = tabCounts[filter] ?? null;
     // orders waiting on the admin stand out
     const needsAttention =
       filter === ZIP_TO_FIX_FILTER && (count?.count ?? 0) > 0;
@@ -247,7 +280,8 @@ export function OrdersDashboardPage({
       !hasMoreOrdersThanVisible &&
       selectedOrderIds.length === orders.length);
 
-  const isAnyActionBlocked = startingActionKey !== null || isRefreshingOrders;
+  const isAnyActionBlocked =
+    startingActionKey !== null || isRefreshingOrders || packAction.isBusy;
   const isLoading = isAnyActionBlocked || isNavigating;
   const isZipToFixTab = activeFilter === ZIP_TO_FIX_FILTER;
 
@@ -342,7 +376,7 @@ export function OrdersDashboardPage({
         zipToFixCount > 0 && activeFilter !== ZIP_TO_FIX_FILTER
           ? {
               label: t("dashboard.fixZips", { count: zipToFixCount }),
-              to: buildOrdersDashboardUrl(ZIP_TO_FIX_FILTER),
+              to: buildScopeTabUrl(scope, ZIP_TO_FIX_FILTER),
             }
           : undefined,
       tone: finishedJobs.some((job) => job.status === "failed" || job.hasErrors)
@@ -363,7 +397,7 @@ export function OrdersDashboardPage({
         .join(" · ")}. ${t("dashboard.listRefreshed")}`,
     });
 
-    navigate(buildOrdersDashboardUrl(activeFilter), { replace: true });
+    navigate(buildScopeTabUrl(scope, activeFilter), { replace: true });
 
     clearTimeout(catchUpTimerRef.current);
     catchUpTimerRef.current = setTimeout(
@@ -372,10 +406,16 @@ export function OrdersDashboardPage({
     );
   }
 
+  /** The selection as sent to the server; "all in this tab" stays in the pack. */
+  function buildSelection(): OrderSelection {
+    if (!isFilterSelected) return { mode: "ids", orderIds: selectedOrderIds };
+    return packId
+      ? { mode: "filter", filter: activeFilter, packId }
+      : { mode: "filter", filter: activeFilter };
+  }
+
   function handleStartJob(action: BulkJobAction) {
-    const selection: OrderSelection = isFilterSelected
-      ? { mode: "filter", filter: activeFilter }
-      : { mode: "ids", orderIds: selectedOrderIds };
+    const selection = buildSelection();
 
     return action.reviewsOrdersFirst
       ? reviewOrdersThenStart(action, selection)
@@ -482,6 +522,21 @@ export function OrdersDashboardPage({
     return startJob(ADD_TRACKING_ACTION, { mode: "ids", orderIds }, manualZips);
   }
 
+  /** Adds or moves the selected orders to `target` (a pack ID or a new pack). */
+  function handleAddToPack(target: string) {
+    packAction.submit(
+      "addOrders",
+      { [PACK_ACTION_FIELDS.target]: target },
+      (formData) => appendOrderSelection(formData, buildSelection()),
+    );
+  }
+
+  function handleRemoveFromPack() {
+    packAction.submit("removeOrders", {}, (formData) =>
+      appendOrderSelection(formData, buildSelection()),
+    );
+  }
+
   /** Resolves to whether the job started. */
   async function startJob(
     action: BulkJobAction,
@@ -545,6 +600,10 @@ export function OrdersDashboardPage({
 
   return (
     <div className="orders-dashboard-page">
+      {header ? (
+        <div className="orders-dashboard-page__header">{header}</div>
+      ) : null}
+
       {notice ? (
         <div className={`orders-dashboard-page__notice --${notice.tone}`}>
           <span>
@@ -575,10 +634,10 @@ export function OrdersDashboardPage({
       <div className="orders-dashboard-page__surface">
         <div className="orders-dashboard-page__toolbar">
           <div className="orders-dashboard-page__tabs">
-            {ORDERS_DASHBOARD_FILTERS.map((filter) => (
+            {getScopeFilters(scope).map((filter) => (
               <Link
                 key={filter}
-                to={buildOrdersDashboardUrl(filter)}
+                to={buildScopeTabUrl(scope, filter)}
                 className={`orders-dashboard-page__tab${
                   activeFilter === filter ? " --active" : ""
                 }`}
@@ -660,6 +719,35 @@ export function OrdersDashboardPage({
                         : t(action.title)}
                     </button>
                   ))}
+                  {scope.kind === "all" ? (
+                    <button
+                      type="button"
+                      className="orders-dashboard-page__bulk-action-button"
+                      disabled={isAnyActionBlocked}
+                      onClick={() => setOpenPackDialog("add")}
+                    >
+                      {t("pack.action.addToPack")}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="orders-dashboard-page__bulk-action-button"
+                        disabled={isAnyActionBlocked}
+                        onClick={() => setOpenPackDialog("move")}
+                      >
+                        {t("pack.action.moveToPack")}
+                      </button>
+                      <button
+                        type="button"
+                        className="orders-dashboard-page__bulk-action-button"
+                        disabled={isAnyActionBlocked}
+                        onClick={() => setOpenPackDialog("remove")}
+                      >
+                        {t("pack.action.removeFromPack")}
+                      </button>
+                    </>
+                  )}
                 </div>
               </>
             ) : null}
@@ -700,7 +788,7 @@ export function OrdersDashboardPage({
 
       <div className="orders-dashboard-page__pagination">
         <CursorPagination
-          basePath={ORDERS_DASHBOARD_PATH}
+          basePath={getScopeBasePath(scope)}
           pageInfo={pageInfo}
           queryParams={{ filter: activeFilter }}
           pageNumbers={pageNumbers}
@@ -709,6 +797,39 @@ export function OrdersDashboardPage({
           {formatShownRange(pageNumbers, orders.length, t)}
         </span>
       </div>
+
+      <PackPickerDialog
+        isOpen={openPackDialog === "add" || openPackDialog === "move"}
+        title={t(
+          openPackDialog === "move"
+            ? "pack.picker.moveTitle"
+            : "pack.picker.addTitle",
+          { count: selectedCount },
+        )}
+        confirmLabel={t(
+          openPackDialog === "move"
+            ? "pack.action.moveConfirm"
+            : "pack.action.addConfirm",
+          { count: selectedCount },
+        )}
+        packs={targetPacks}
+        currentPackId={packId ?? undefined}
+        isBusy={packAction.isBusy}
+        onConfirm={handleAddToPack}
+        onCancel={() => setOpenPackDialog(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={openPackDialog === "remove"}
+        title={t("pack.confirm.removeTitle", { count: selectedCount })}
+        confirmLabel={t("pack.action.removeFromPack")}
+        cancelLabel={t("pack.action.cancel")}
+        isConfirmDisabled={packAction.isBusy}
+        onConfirm={handleRemoveFromPack}
+        onCancel={() => setOpenPackDialog(null)}
+      >
+        <p>{t("pack.confirm.removeBody")}</p>
+      </ConfirmDialog>
 
       <TrackingReviewDialog
         review={pendingTrackingReview?.review ?? null}

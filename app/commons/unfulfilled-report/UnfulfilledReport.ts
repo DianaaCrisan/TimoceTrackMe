@@ -1,4 +1,9 @@
-import type { OrderInterval } from "./OrderInterval";
+import type { Translate } from "../i18n/translate";
+import {
+  formatPackName,
+  type FulfillmentPackView,
+} from "../packs/FulfillmentPack";
+import { formatOrderIntervalScope, type OrderInterval } from "./OrderInterval";
 
 /** One product variant still to fulfil, summed over every order in the section. */
 export type ReportRow = {
@@ -20,8 +25,16 @@ export type ReportSection = {
   totalQuantity: number;
 };
 
+/** The pack a report covers, enough to name it in any language. */
+export type ReportPack = Pick<FulfillmentPackView, "id" | "day" | "daySequence">;
+
 export type UnfulfilledReport = {
   interval: OrderInterval;
+  /**
+   * Set when the report covers one pack's orders: `interval` is then open
+   * (every order number), and the pack is what limits it.
+   */
+  pack: ReportPack | null;
   /** ISO time the orders were read from Shopify. */
   generatedAt: string;
   delivery: ReportSection;
@@ -41,6 +54,19 @@ export type UnfulfilledReportResponse =
       report: UnfulfilledReport;
     }
   | { ok: false; error: string };
+
+/** "Pachet 14.11.2026/2", or which order numbers it covers. */
+export function formatReportScope(
+  report: Pick<UnfulfilledReport, "interval" | "pack">,
+  t: Translate,
+): string {
+  return report.pack
+    ? formatPackName(report.pack, t)
+    : formatOrderIntervalScope(report.interval, t);
+}
+
+/** The URL / form field naming the pack a report covers. */
+export const REPORT_PACK_PARAM = "packId";
 
 /** The URL the page loads its data from and the one the PDF is posted to. */
 export const UNFULFILLED_REPORT_PATH = "/app/unfulfilled-report";

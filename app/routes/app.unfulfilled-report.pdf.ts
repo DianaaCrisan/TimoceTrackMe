@@ -16,9 +16,12 @@ import {
   parseOrderInterval,
 } from "app/commons/unfulfilled-report/OrderInterval";
 import {
+  REPORT_PACK_PARAM,
   RESULT_ID_PARAM,
   type UnfulfilledReport,
 } from "app/commons/unfulfilled-report/UnfulfilledReport";
+import { RequestError } from "app/backend/core/errors/RequestError";
+import { loadReportPackScope } from "app/backend/unfulfilled-report/loadReportPackScope.server";
 
 const TIME_ZONE_PARAM = "timeZone";
 
@@ -27,7 +30,7 @@ const TIME_ZONE_PARAM = "timeZone";
  *
  * Prints the report the page shows (by `resultId`) while it is kept;
  * after that, or after a restart, it reads the orders again for the same
- * interval. Answers JSON `{ error }` when it cannot make the PDF.
+ * interval or pack. Answers JSON `{ error }` when it cannot make the PDF.
  */
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -52,10 +55,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return Response.json({ error: t(parsed.error) }, { status: 400 });
       }
 
+      const packId = readString(formData, REPORT_PACK_PARAM);
       report = await getUnfulfilledReport(
         admin,
         ShopifyUtils.getShopAdminUrl(session.shop),
         parsed.interval,
+        packId ? await loadReportPackScope(packId, t) : null,
       );
     }
 
@@ -83,6 +88,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
   } catch (error) {
+    if (error instanceof RequestError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
     console.error(
       "AppError[UnfulfilledReport] could not create the PDF.",
       error,

@@ -5,12 +5,20 @@ import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWi
 import { RequestError } from "../core/errors/RequestError";
 import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
 import {
+  PackRepository,
+  type PackRecord,
+} from "../packs/PackRepository.server";
+import {
   parseOrderSelection,
   resolveOrderIds,
 } from "./resolveOrderSelection.server";
 
 vi.mock("../graphql/throttle-handling/helpers/runGraphQL", () => ({
   runGraphQL: vi.fn(),
+}));
+
+vi.mock("../packs/PackRepository.server", () => ({
+  PackRepository: { getOrThrow: vi.fn() },
 }));
 
 const admin = {} as AdminApiContextWithoutRest;
@@ -62,6 +70,21 @@ describe("parseOrderSelection", () => {
       filter: "pending_fulfillment",
     });
   });
+
+  it("keeps a whole-tab selection inside its pack", () => {
+    const formData = new FormData();
+    appendOrderSelection(formData, {
+      mode: "filter",
+      filter: "unprinted",
+      packId: "pack-1",
+    });
+
+    expect(parseOrderSelection(formData)).toEqual({
+      mode: "filter",
+      filter: "unprinted",
+      packId: "pack-1",
+    });
+  });
 });
 
 describe("resolveOrderIds", () => {
@@ -99,6 +122,26 @@ describe("resolveOrderIds", () => {
         query: "fulfillment_status:unfulfilled",
       },
     ]);
+  });
+
+  it("searches only the pack's orders, by the tag stored on the pack", async () => {
+    vi.mocked(PackRepository.getOrThrow).mockResolvedValueOnce({
+      orderTag: "pachet-2026-11-14-1",
+    } as PackRecord);
+    vi.mocked(runGraphQL).mockResolvedValueOnce(ordersPage([7], null));
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "filter",
+        filter: "unprinted",
+        packId: "pack-1",
+      }),
+    ).resolves.toEqual([orderGid(7)]);
+
+    const { query } = vi.mocked(runGraphQL).mock.calls[0][4] as {
+      query: string;
+    };
+    expect(query.startsWith("tag:pachet-2026-11-14-1 AND (")).toBe(true);
   });
 
   it("refuses an empty selection", async () => {
