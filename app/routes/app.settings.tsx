@@ -11,13 +11,31 @@ import {
   PARCEL_WEIGHT_LIMIT_FIELD,
   parseWeightLimitKg,
 } from "app/commons/settings/ParcelWeightSettings";
+import {
+  ISO_WEEKDAYS,
+  PACK_START_WEEKDAYS_FIELD,
+  parsePackStartWeekdays,
+} from "app/commons/packs/PackSchedule";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
+
+/** Which form was saved: each section saves on its own. */
+const INTENT_FIELD = "intent";
+const PACK_SCHEDULE_INTENT = "packSchedule";
+const JOBS_ONLY_IN_PACKS_FIELD = "jobsOnlyInPacks";
 
 /** How the shop works with the app, set by the shop's admin. */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  return { parcelWeight: await SettingsRepository.getParcelWeight() };
+  const settings = await SettingsRepository.get();
+  return {
+    parcelWeight: {
+      parcelWeightLimitKg: settings.parcelWeightLimitKg,
+      autoSplitHeavyOrders: settings.autoSplitHeavyOrders,
+    },
+    packStartWeekdays: settings.packStartWeekdays,
+    jobsOnlyInPacks: settings.jobsOnlyInPacks,
+  };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -25,6 +43,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const formData = await request.formData();
   const t = createTranslator(resolveLocale(formData.get(LOCALE_PARAM)));
+
+  if (formData.get(INTENT_FIELD) === PACK_SCHEDULE_INTENT) {
+    await SettingsRepository.update({
+      packStartWeekdays: parsePackStartWeekdays(
+        formData.getAll(PACK_START_WEEKDAYS_FIELD),
+      ),
+      jobsOnlyInPacks: formData.get(JOBS_ONLY_IN_PACKS_FIELD) === "true",
+    });
+    return { ok: true };
+  }
 
   const parcelWeightLimitKg = parseWeightLimitKg(
     formData.get(PARCEL_WEIGHT_LIMIT_FIELD),
@@ -42,8 +70,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
-  const { parcelWeight } = useLoaderData<typeof loader>();
+  const { parcelWeight, packStartWeekdays, jobsOnlyInPacks } =
+    useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const scheduleFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
   const { locale, t } = useI18n();
 
@@ -53,6 +83,11 @@ export default function SettingsPage() {
     // only show when a response arrives
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data, shopify]);
+
+  useEffect(() => {
+    if (scheduleFetcher.data?.ok) shopify.toast.show(t("settings.saved"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduleFetcher.data, shopify]);
 
   return (
     <s-page heading={t("settings.heading")}>
@@ -101,6 +136,50 @@ export default function SettingsPage() {
             </div>
           </s-stack>
         </fetcher.Form>
+      </s-section>
+
+      <s-section heading={t("settings.packScheduleHeading")}>
+        <scheduleFetcher.Form method="post">
+          <input type="hidden" name={LOCALE_PARAM} value={locale} />
+          <input
+            type="hidden"
+            name={INTENT_FIELD}
+            value={PACK_SCHEDULE_INTENT}
+          />
+          <s-stack direction="block" gap="base">
+            <s-paragraph>{t("settings.packScheduleIntro")}</s-paragraph>
+            <s-stack direction="inline" gap="base">
+              {ISO_WEEKDAYS.map((weekday) => (
+                <s-checkbox
+                  key={weekday}
+                  label={t(`weekday.${weekday}`)}
+                  name={PACK_START_WEEKDAYS_FIELD}
+                  value={String(weekday)}
+                  defaultChecked={packStartWeekdays.includes(weekday)}
+                />
+              ))}
+            </s-stack>
+            <s-text color="subdued">{t("settings.packScheduleDetails")}</s-text>
+            <s-checkbox
+              label={t("settings.jobsOnlyInPacks")}
+              name={JOBS_ONLY_IN_PACKS_FIELD}
+              value="true"
+              defaultChecked={jobsOnlyInPacks}
+              details={t("settings.jobsOnlyInPacksDetails")}
+            />
+            <div>
+              <s-button
+                type="submit"
+                variant="primary"
+                {...(scheduleFetcher.state !== "idle"
+                  ? { loading: true }
+                  : {})}
+              >
+                {t("settings.save")}
+              </s-button>
+            </div>
+          </s-stack>
+        </scheduleFetcher.Form>
       </s-section>
     </s-page>
   );

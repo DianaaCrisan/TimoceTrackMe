@@ -6,13 +6,13 @@ import {
 import {
   formatOrdersDashboardFilter,
   parseOrdersDashboardFilter,
-  type OrdersDashboardFilter,
 } from "app/commons/orders/OrdersDashboardFilter";
 import { translateEn, type Translate } from "app/commons/i18n/translate";
 import type { OrderIdsForSelectionQuery } from "app/types/admin.generated";
 import { RequestError } from "../core/errors/RequestError";
 import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
+import { PackRepository } from "../packs/PackRepository.server";
 import { buildOrdersSearchQuery } from "./buildOrdersSearchQuery";
 
 const ORDER_GID_PATTERN = /^gid:\/\/shopify\/Order\/\d+$/;
@@ -44,6 +44,11 @@ export function parseOrderSelection(
   t: Translate = translateEn,
 ): OrderSelection {
   const mode = formData.get(ORDER_SELECTION_FIELDS.mode);
+  const packIdValue = formData.get(ORDER_SELECTION_FIELDS.packId);
+  const inPack =
+    typeof packIdValue === "string" && packIdValue
+      ? { packId: packIdValue }
+      : {};
 
   if (mode === "filter") {
     const filter = formData.get(ORDER_SELECTION_FIELDS.filter);
@@ -52,6 +57,7 @@ export function parseOrderSelection(
       filter: parseOrdersDashboardFilter(
         typeof filter === "string" ? filter : null,
       ),
+      ...inPack,
     };
   }
 
@@ -68,7 +74,7 @@ export function parseOrderSelection(
     );
   }
 
-  return { mode: "ids", orderIds: Array.from(new Set(orderIds)) };
+  return { mode: "ids", orderIds: Array.from(new Set(orderIds)), ...inPack };
 }
 
 /** The order IDs a job should run on. Refuses an empty or oversized selection. */
@@ -78,10 +84,24 @@ export async function resolveOrderIds(
   selection: OrderSelection,
   t: Translate = translateEn,
 ): Promise<string[]> {
+  if (selection.mode === "ids" && selection.packId) {
+    await refuseOrdersOutsidePack(selection.orderIds, selection.packId, t);
+  }
+
   const orderIds =
     selection.mode === "ids"
       ? selection.orderIds
-      : await fetchOrderIdsForFilter(admin, shopUrl, selection.filter);
+      : await fetchOrderIdsMatching(
+          admin,
+          shopUrl,
+          buildOrdersSearchQuery(
+            selection.filter,
+            selection.packId
+              ? (await PackRepository.getOrThrow(selection.packId, t)).orderTag
+              : null,
+          ),
+          MAX_ORDERS_PER_JOB,
+        );
 
   if (orderIds.length === 0) {
     throw new RequestError(
@@ -104,11 +124,36 @@ export async function resolveOrderIds(
   return orderIds;
 }
 
-/** Stops one order past the cap: enough to know the selection is too big. */
-async function fetchOrderIdsForFilter(
+/**
+ * Ticked inside a pack, so they must all still be in it: one moved out
+ * meanwhile (from another tab, or by another user) would otherwise run as
+ * if it were part of the pack.
+ */
+async function refuseOrdersOutsidePack(
+  orderIds: string[],
+  packId: string,
+  t: Translate,
+): Promise<void> {
+  await PackRepository.getOrThrow(packId, t);
+  const inPack = new Set(await PackRepository.getOrderIds(packId));
+  const outside = orderIds.filter((orderId) => !inPack.has(orderId));
+  if (outside.length > 0) {
+    throw new RequestError(
+      409,
+      t("startJob.ordersNotInPack", { count: outside.length }),
+    );
+  }
+}
+
+/**
+ * Every order ID a Shopify search query matches. With `stopPast`, stops once
+ * past that many: enough to know a selection is too big.
+ */
+export async function fetchOrderIdsMatching(
   admin: AdminApiContextWithoutRest,
   shopUrl: string,
-  filter: OrdersDashboardFilter,
+  query: string | null,
+  stopPast = Infinity,
 ): Promise<string[]> {
   const orderIds: string[] = [];
   let after: string | null = null;
@@ -120,11 +165,7 @@ async function fetchOrderIdsForFilter(
         shopUrl,
         "OrderIdsForSelection",
         ORDER_IDS_FOR_SELECTION_QUERY,
-        {
-          first: ORDERS_PAGE_SIZE,
-          after,
-          query: buildOrdersSearchQuery(filter),
-        },
+        { first: ORDERS_PAGE_SIZE, after, query },
         INITIAL_EXPECTED_COST,
       );
 
@@ -132,7 +173,7 @@ async function fetchOrderIdsForFilter(
     after = data.orders.pageInfo.hasNextPage
       ? (data.orders.pageInfo.endCursor ?? null)
       : null;
-  } while (after && orderIds.length <= MAX_ORDERS_PER_JOB);
+  } while (after && orderIds.length <= stopPast);
 
   return orderIds;
 }

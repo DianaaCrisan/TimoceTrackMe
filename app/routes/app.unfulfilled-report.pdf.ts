@@ -5,10 +5,8 @@ import { formatFileTimestamp } from "app/backend/exports/formatFileTimestamp";
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
 import { reportCache } from "app/backend/unfulfilled-report/ReportCache";
 import { generateUnfulfilledReportPDF } from "app/backend/unfulfilled-report/generateUnfulfilledReportPDF";
-import {
-  describeReportError,
-  getUnfulfilledReport,
-} from "app/backend/unfulfilled-report/getUnfulfilledReport.server";
+import { describeReportError } from "app/backend/unfulfilled-report/getUnfulfilledReport.server";
+import { loadReport } from "app/backend/unfulfilled-report/loadReport.server";
 import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import {
@@ -16,9 +14,13 @@ import {
   parseOrderInterval,
 } from "app/commons/unfulfilled-report/OrderInterval";
 import {
+  parseReportKind,
+  REPORT_KIND_PARAM,
+  REPORT_PACK_PARAM,
   RESULT_ID_PARAM,
   type UnfulfilledReport,
 } from "app/commons/unfulfilled-report/UnfulfilledReport";
+import { RequestError } from "app/backend/core/errors/RequestError";
 
 const TIME_ZONE_PARAM = "timeZone";
 
@@ -27,7 +29,7 @@ const TIME_ZONE_PARAM = "timeZone";
  *
  * Prints the report the page shows (by `resultId`) while it is kept;
  * after that, or after a restart, it reads the orders again for the same
- * interval. Answers JSON `{ error }` when it cannot make the PDF.
+ * interval or pack. Answers JSON `{ error }` when it cannot make the PDF.
  */
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -52,11 +54,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return Response.json({ error: t(parsed.error) }, { status: 400 });
       }
 
-      report = await getUnfulfilledReport(
+      report = await loadReport({
         admin,
-        ShopifyUtils.getShopAdminUrl(session.shop),
-        parsed.interval,
-      );
+        shopUrl: ShopifyUtils.getShopAdminUrl(session.shop),
+        kind: parseReportKind(readString(formData, REPORT_KIND_PARAM)),
+        interval: parsed.interval,
+        packId: readString(formData, REPORT_PACK_PARAM),
+        t,
+      });
     }
 
     const pdf = await generateUnfulfilledReportPDF(report, {
@@ -64,7 +69,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       timeZone,
     });
     const fileName = buildOrderRangesFileName({
-      baseName: t("fileName.unfulfilledReport"),
+      baseName: t(
+        report.kind === "sold"
+          ? "fileName.soldReport"
+          : "fileName.unfulfilledReport",
+      ),
       orderNames: [...report.delivery.orderNames, ...report.pickup.orderNames],
       timestamp: formatFileTimestamp(
         new Date(report.generatedAt),
@@ -83,6 +92,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
   } catch (error) {
+    if (error instanceof RequestError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
     console.error(
       "AppError[UnfulfilledReport] could not create the PDF.",
       error,

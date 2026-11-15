@@ -10,6 +10,8 @@ const emptySection = {
 };
 const report: UnfulfilledReport = {
   interval: { from: null, to: null },
+  kind: "unfulfilled",
+  pack: null,
   generatedAt: "2026-11-14T10:00:00.000Z",
   delivery: emptySection,
   pickup: emptySection,

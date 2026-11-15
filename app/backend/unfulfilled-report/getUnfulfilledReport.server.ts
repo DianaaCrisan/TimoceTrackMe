@@ -3,7 +3,10 @@ import type { OrderInterval } from "app/commons/unfulfilled-report/OrderInterval
 import type { UnfulfilledReport } from "app/commons/unfulfilled-report/UnfulfilledReport";
 import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { BulkQueryError } from "../graphql/bulk/runBulkQuery.server";
-import { buildUnfulfilledReport } from "./buildUnfulfilledReport";
+import {
+  buildUnfulfilledReport,
+  type ReportPackScope,
+} from "./buildUnfulfilledReport";
 import {
   fetchOpenFulfillmentOrders,
   type OpenFulfillmentOrder,
@@ -16,10 +19,16 @@ import {
  */
 const inFlightByShop = new Map<string, Promise<OpenFulfillmentOrder[]>>();
 
+/**
+ * The report for an interval of order numbers, or with `packScope` for one
+ * pack's orders. Both read every open fulfillment order and filter after, so
+ * a pack's report shares the read with the shop-wide one.
+ */
 export async function getUnfulfilledReport(
   admin: AdminApiContextWithoutRest,
   shopUrl: string,
   interval: OrderInterval,
+  packScope: ReportPackScope | null = null,
 ): Promise<UnfulfilledReport> {
   let pending = inFlightByShop.get(shopUrl);
   if (!pending) {
@@ -29,7 +38,12 @@ export async function getUnfulfilledReport(
     inFlightByShop.set(shopUrl, pending);
   }
 
-  return buildUnfulfilledReport(await pending, interval, new Date());
+  return buildUnfulfilledReport(
+    await pending,
+    interval,
+    new Date(),
+    packScope,
+  );
 }
 
 /** A message for the user, in their language where the cause is known. */

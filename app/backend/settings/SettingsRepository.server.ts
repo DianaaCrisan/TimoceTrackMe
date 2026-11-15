@@ -3,10 +3,16 @@ import prisma from "app/db.server";
 import type { ParcelWeightSettings } from "app/commons/settings/ParcelWeightSettings";
 
 /** The AppSettings table holds exactly one row, under this id. */
-const SETTINGS_SINGLETON_ID = "singleton";
+export const SETTINGS_SINGLETON_ID = "singleton";
 
 export type SettingsPatch = Partial<
-  Pick<AppSettings, "parcelWeightLimitKg" | "autoSplitHeavyOrders">
+  Pick<
+    AppSettings,
+    | "parcelWeightLimitKg"
+    | "autoSplitHeavyOrders"
+    | "packStartWeekdays"
+    | "jobsOnlyInPacks"
+  >
 >;
 
 export class SettingsRepository {

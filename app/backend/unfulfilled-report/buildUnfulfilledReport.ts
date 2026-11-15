@@ -5,6 +5,7 @@ import {
   type OrderInterval,
 } from "app/commons/unfulfilled-report/OrderInterval";
 import type {
+  ReportPack,
   ReportRow,
   ReportSection,
   UnfulfilledReport,
@@ -12,11 +13,17 @@ import type {
 import { formatOrderRanges } from "../print-labels/utils/formatOrderRanges";
 import type { OpenFulfillmentOrder } from "./fetchOpenFulfillmentOrders.server";
 
+/** Limits a report to one pack's orders. */
+export type ReportPackScope = {
+  pack: ReportPack;
+  orderIds: ReadonlySet<string>;
+};
+
 /**
  * Adds up what is left to fulfil, per product variant, separately for
  * delivery and pickup (by Shopify's delivery method, per fulfillment order).
  *
- * - Only orders in `interval` count.
+ * - Only orders in `interval` count, and with `packScope`, only that pack's.
  * - An order split into a delivery and a pickup fulfillment order shows up in
  *   both sections, each with its own items.
  * - Items without a variant (custom items) are grouped by name.
@@ -25,6 +32,7 @@ export function buildUnfulfilledReport(
   fulfillmentOrders: OpenFulfillmentOrder[],
   interval: OrderInterval,
   generatedAt: Date,
+  packScope: ReportPackScope | null = null,
 ): UnfulfilledReport {
   const delivery = new SectionBuilder();
   const pickup = new SectionBuilder();
@@ -32,39 +40,62 @@ export function buildUnfulfilledReport(
   for (const fulfillmentOrder of fulfillmentOrders) {
     if (fulfillmentOrder.lineItems.length === 0) continue;
     if (!isOrderInInterval(fulfillmentOrder.orderName, interval)) continue;
+    if (packScope && !packScope.orderIds.has(fulfillmentOrder.orderId)) {
+      continue;
+    }
 
     const section = isPickupDeliveryMethod(fulfillmentOrder.methodType)
       ? pickup
       : delivery;
-    section.add(fulfillmentOrder);
+    section.add(
+      fulfillmentOrder.orderName,
+      fulfillmentOrder.lineItems.map((item) => ({
+        variantId: item.variantId,
+        name: item.name,
+        quantity: item.remainingQuantity,
+      })),
+    );
   }
 
   return {
+    kind: "unfulfilled",
     interval,
+    pack: packScope?.pack ?? null,
     generatedAt: generatedAt.toISOString(),
     delivery: delivery.build(),
     pickup: pickup.build(),
   };
 }
 
-class SectionBuilder {
+/** An item counted in a report: what is left, or what was sold. */
+export type ReportItem = {
+  variantId: string | null;
+  name: string;
+  quantity: number;
+};
+
+/**
+ * One section of a report: quantities added up per variant (items without
+ * a variant by name), and the orders they came from.
+ */
+export class SectionBuilder {
   private orderNames = new Set<string>();
   private rowsByKey = new Map<string, ReportRow>();
 
-  add(fulfillmentOrder: OpenFulfillmentOrder): void {
-    this.orderNames.add(fulfillmentOrder.orderName);
+  add(orderName: string, items: ReportItem[]): void {
+    this.orderNames.add(orderName);
 
-    for (const item of fulfillmentOrder.lineItems) {
+    for (const item of items) {
       const key = item.variantId ?? `name:${item.name}`;
       const row = this.rowsByKey.get(key);
 
       if (row) {
-        row.quantity += item.remainingQuantity;
+        row.quantity += item.quantity;
       } else {
         this.rowsByKey.set(key, {
           key,
           name: item.name,
-          quantity: item.remainingQuantity,
+          quantity: item.quantity,
         });
       }
     }

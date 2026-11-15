@@ -147,3 +147,34 @@ describe("buildUnfulfilledReport", () => {
     expect(report.delivery.orderRanges).toEqual(["#999-1000"]);
   });
 });
+
+describe("buildUnfulfilledReport: one pack", () => {
+  it("counts only the pack's orders, whatever their numbers", () => {
+    const pack = { id: "pack-1", day: "2026-11-14", daySequence: 2 };
+    const report = buildUnfulfilledReport(
+      [
+        fulfillmentOrder("#1001", "SHIPPING", [["v1", "Mici - 1 kg", 2]]),
+        fulfillmentOrder("#1002", "SHIPPING", [["v1", "Mici - 1 kg", 5]]),
+        fulfillmentOrder("#1007", "PICK_UP", [["v2", "Antricot", 1]]),
+      ],
+      ALL,
+      NOW,
+      {
+        pack,
+        orderIds: new Set([
+          "gid://shopify/Order/1001",
+          "gid://shopify/Order/1007",
+        ]),
+      },
+    );
+
+    expect(report.pack).toEqual(pack);
+    expect(report.delivery.orderNames).toEqual(["#1001"]);
+    expect(report.delivery.totalQuantity).toBe(2);
+    expect(report.pickup.orderNames).toEqual(["#1007"]);
+  });
+
+  it("is not limited to a pack without one", () => {
+    expect(buildUnfulfilledReport([], ALL, NOW).pack).toBeNull();
+  });
+});

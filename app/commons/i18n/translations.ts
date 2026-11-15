@@ -11,6 +11,7 @@ export type TranslationEntry = string | PluralForms;
 
 export const en = {
   // navigation
+  "nav.packs": "Packs",
   "nav.orders": "Orders",
   "nav.unfulfilledReport": "Unfulfilled report",
   "nav.settings": "Settings",
@@ -30,6 +31,133 @@ export const en = {
   "filter.pending_fulfillment": "Pending fulfillment",
   "filter.zip_to_fix": "ZIP to fix",
   "filter.unprinted": "Unprinted",
+  "filter.not_in_pack": "Not in a pack",
+
+  // fulfillment packs
+  "pack.name": "Pack {date}/{sequence}",
+  "pack.status.OPEN": "Filling",
+  "pack.status.LOCKED": "In progress",
+  "pack.status.CLOSED": "Closed",
+  "pack.status.waiting": "Waiting",
+  "pack.orderCount": { one: "{count} order", other: "{count} orders" },
+  "pack.startedAt": "first order {time}",
+  "pack.lockedAt": "started {time}",
+  "pack.closedAt": "closed {time}",
+  "pack.progress": "{done} of {total} done · {left} left",
+  "pack.progressAllDone": "All {total} done",
+  "pack.progressUnavailable": "Progress could not be loaded.",
+  "pack.untagged": {
+    one: "{count} order is not tagged yet, so the pack's tabs do not show it.",
+    other:
+      "{count} orders are not tagged yet, so the pack's tabs do not show them.",
+  },
+  "pack.newPack": "New pack",
+  "pack.action.lock": "Start working",
+  "pack.action.close": "Close pack",
+  "pack.action.closeAndMove": "Close and move {count} left",
+  "pack.action.reopen": "Reopen",
+  "pack.action.delete": "Delete",
+  "pack.action.cancel": "Cancel",
+  "pack.action.retryTagging": "Retry tagging",
+  "pack.action.report": "Unfulfilled items report",
+  "pack.action.soldReport": "Sold products report",
+  "pack.action.addToPack": "Add to pack…",
+  "pack.action.moveToPack": "Move to pack…",
+  "pack.action.removeFromPack": "Remove from pack",
+  "pack.action.addConfirm": {
+    one: "Add {count} order",
+    other: "Add {count} orders",
+  },
+  "pack.action.moveConfirm": {
+    one: "Move {count} order",
+    other: "Move {count} orders",
+  },
+  "pack.picker.addTitle": {
+    one: "Add {count} order to a pack",
+    other: "Add {count} orders to a pack",
+  },
+  "pack.picker.moveTitle": {
+    one: "Move {count} order to another pack",
+    other: "Move {count} orders to another pack",
+  },
+  "pack.picker.noOtherPack": "There is no other pack to move to.",
+  "pack.confirm.lockTitle": "Start working on {name}?",
+  "pack.confirm.lockBody":
+    "The pack stops taking new orders: the next order starts a new pack. You can still add orders by hand. Next, print its unfulfilled items report, then add tracking.",
+  "pack.confirm.closeTitle": "Close {name}?",
+  "pack.confirm.closeBody":
+    "Every order is done. The pack leaves the working list; you can reopen it from Closed.",
+  "pack.confirm.closeBodyLeftovers": {
+    one: "{count} order is not done yet. It moves to the filling pack (a new one is started if none is filling), then this pack closes.",
+    other:
+      "{count} orders are not done yet. They move to the filling pack (a new one is started if none is filling), then this pack closes.",
+  },
+  "pack.confirm.closeBodyUnknown":
+    "Orders that are not done yet move to the filling pack (a new one is started if none is filling), then this pack closes.",
+  "pack.confirm.deleteTitle": "Delete {name}?",
+  "pack.confirm.removeTitle": {
+    one: "Remove {count} order from the pack?",
+    other: "Remove {count} orders from the pack?",
+  },
+  "pack.confirm.removeBody":
+    "They go back to Not in a pack on the Orders page. Orders in a closed pack stay where they are.",
+  "pack.done.created": "{name} started.",
+  "pack.done.locked": "Pack started. New orders now go to a new pack.",
+  "pack.done.closed": "Pack closed.",
+  "pack.done.closedAndMoved": {
+    one: "Pack closed. {count} order moved to {name}.",
+    other: "Pack closed. {count} orders moved to {name}.",
+  },
+  "pack.done.reopened": "Pack reopened.",
+  "pack.done.deleted": "Pack deleted.",
+  "pack.done.retryingTags": {
+    one: "Tagging {count} order again.",
+    other: "Tagging {count} orders again.",
+  },
+  "pack.done.added": {
+    one: "{count} order added to {name}.",
+    other: "{count} orders added to {name}.",
+  },
+  "pack.done.ofWhichMoved": {
+    one: "{count} of them came from another pack.",
+    other: "{count} of them came from other packs.",
+  },
+  "pack.done.skippedClosed": {
+    one: "{count} order is in a closed pack and stayed there.",
+    other: "{count} orders are in closed packs and stayed there.",
+  },
+  "pack.done.removed": {
+    one: "{count} order removed from its pack.",
+    other: "{count} orders removed from their packs.",
+  },
+  "pack.error.notFound": "This pack no longer exists. Reload the page.",
+  "pack.error.alreadyFilling":
+    "A pack is already filling. Start working on it before starting a new one.",
+  "pack.error.notFilling": "Only a filling pack can be started.",
+  "pack.error.lockEmpty": "Add orders to the pack before starting it.",
+  "pack.error.closeNotLocked": "Only a pack in progress can be closed.",
+  "pack.error.ordersLeft": {
+    one: "{count} order is not done yet.",
+    other: "{count} orders are not done yet.",
+  },
+  "pack.error.ordersBusy": {
+    one: "A job is running on {count} of this pack's orders. Close the pack once it finishes.",
+    other:
+      "A job is running on {count} of this pack's orders. Close the pack once it finishes.",
+  },
+  "pack.error.notClosed": "Only a closed pack can be reopened.",
+  "pack.error.deleteNotEmpty": "Only an empty pack can be deleted.",
+  "pack.error.targetClosed": "A closed pack cannot take orders.",
+  "pack.error.unknownAction": "Unknown pack action.",
+  "pack.error.unexpected": "The pack action failed: {error}",
+  "packs.heading": "Packs",
+  "packs.workingHeading": "Working packs",
+  "packs.closedHeading": "Recently closed",
+  "packs.intro":
+    "New orders go into the filling pack. Start working on a pack to keep its orders together: new orders then start the next pack.",
+  "packs.notInPackLink": "Orders not in a pack →",
+  "packs.newPack": "New pack",
+  "packs.noWorkingPacks": "No packs yet. Start one, then add orders to it from the Orders page.",
 
   // job names
   "job.add-tracking": "Add tracking numbers",
@@ -51,6 +179,8 @@ export const en = {
     "The list was refreshed and the selection cleared.",
   "dashboard.allInTabSelected": 'All {count} orders in "{tab}" selected',
   "dashboard.selectedCount": "{count} selected",
+  "dashboard.jobsOnlyInPacks": "Add tracking and print labels run from a pack.",
+  "dashboard.goToPacks": "Go to Packs →",
   "dashboard.tabTooLarge":
     "{count} orders in this tab, more than one job takes ({max})",
   "dashboard.selectAllInTab": "Select all {count} orders in this tab",
@@ -103,12 +233,27 @@ export const en = {
     "When adding tracking, an order over the limit is packed into several parcels, each with its own AWB. When off, heavy orders are only highlighted, and listed for a check before adding tracking.",
   "settings.save": "Save",
   "settings.saved": "Settings saved",
+  "settings.packScheduleHeading": "Packs",
+  "settings.jobsOnlyInPacks": "Add tracking and print labels only from a pack",
+  "settings.jobsOnlyInPacksDetails":
+    "The Orders page then only lists orders and adds them to packs. Its add tracking and print labels buttons are replaced by a link to Packs.",
+  "settings.packScheduleIntro":
+    "A new pack always starts when you start working on the filling one. Tick days to also start a new pack at midnight before each of them.",
+  "settings.packScheduleDetails":
+    "The filling pack then waits for you, and that day's orders go into a new pack. A change applies from the next order. Nothing ticked: packs change only when you start working on one.",
+  "weekday.1": "Monday",
+  "weekday.2": "Tuesday",
+  "weekday.3": "Wednesday",
+  "weekday.4": "Thursday",
+  "weekday.5": "Friday",
+  "weekday.6": "Saturday",
+  "weekday.7": "Sunday",
   "settings.invalidWeightLimit":
     "The weight limit must be a number of kg greater than 0, or empty.",
 
   // "ZIP to fix" tab
   "zipFix.intro":
-    "Add tracking stopped on these orders because of their ZIP code. Correct the ZIPs, then add tracking again. Rows you edit are ticked; tick a row without editing it to retry it as it is.",
+    "Rows you edit are ticked; tick a row without editing it to retry it as it is.",
   "zipFix.submit": {
     one: "Save & add tracking for {count} order",
     other: "Save & add tracking for {count} orders",
@@ -197,7 +342,7 @@ export const en = {
   // recent jobs
   "jobs.heading": "Recent jobs",
   "jobs.linksExpire":
-    "Download links work for 1 hour. Press Refresh for new ones.",
+    "Download links work for 1 hour.",
   "jobs.autoUpdates": "This list updates on its own while a job runs.",
   "jobs.refresh": "Refresh",
   "jobs.empty": "No jobs since the app last started.",
@@ -235,6 +380,12 @@ export const en = {
   "startJob.couldNotStart": "Could not start the job: {error}",
   "startJob.invalidOrderIds": "Invalid order IDs: {ids}.",
   "startJob.noOrdersSelected": "No orders were selected.",
+  "startJob.onlyInPacks":
+    "Add tracking and print labels only run from a pack. Open the pack on the Packs page.",
+  "startJob.ordersNotInPack": {
+    one: "{count} selected order is no longer in this pack. Reload the page.",
+    other: "{count} selected orders are no longer in this pack. Reload the page.",
+  },
   "startJob.noOrdersInTab": 'No orders match the "{tab}" tab.',
   "startJob.tooManyOrders":
     "A job can take at most {max} orders. This selection has more.",
@@ -291,6 +442,14 @@ export const en = {
 
   // unfulfilled report (page and PDF)
   "report.heading": "Unfulfilled orders report",
+  "report.packIntro":
+    "What is left to fulfil for this pack's orders. Print it before adding tracking numbers.",
+  "report.backToPack": "← Back to the pack",
+  "report.soldHeading": "Sold products report",
+  "report.soldPackIntro":
+    "Everything this pack's orders sold, per product: cancelled orders and removed items left out. Print it after adding tracking numbers.",
+  "report.soldNeedsPack":
+    "The sold products report is made for one pack. Open it from the pack on the Packs page.",
   "report.intro":
     "Products still to be fulfilled, added up per variant. Every unfulfilled order is included unless you set an order number interval.",
   "report.intervalHeading": "Order interval",
@@ -361,6 +520,7 @@ export const en = {
   "fileName.failed": "FAILED_{job}",
   "fileName.test": "trackme-test",
   "fileName.unfulfilledReport": "unfulfilled-report",
+  "fileName.soldReport": "sold-products-report",
   "fileName.job.add-tracking": "add-tracking",
   "fileName.job.print-labels": "print-labels",
   "fileName.job.test": "test",
@@ -374,6 +534,7 @@ export type TranslationKey = keyof typeof en;
  */
 export const ro: Record<TranslationKey, TranslationEntry> = {
   // navigation
+  "nav.packs": "Pachete",
   "nav.orders": "Comenzi",
   "nav.unfulfilledReport": "Raport neexecutate",
   "nav.settings": "Setări",
@@ -393,6 +554,153 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "filter.pending_fulfillment": "Neexecutate",
   "filter.zip_to_fix": "Cod poștal de corectat",
   "filter.unprinted": "Neprintate",
+  "filter.not_in_pack": "Fără pachet",
+
+  // fulfillment packs
+  "pack.name": "Pachet {date}/{sequence}",
+  "pack.status.OPEN": "Se umple",
+  "pack.status.LOCKED": "În lucru",
+  "pack.status.CLOSED": "Închis",
+  "pack.status.waiting": "În așteptare",
+  "pack.orderCount": {
+    one: "{count} comandă",
+    few: "{count} comenzi",
+    other: "{count} de comenzi",
+  },
+  "pack.startedAt": "prima comandă {time}",
+  "pack.lockedAt": "început {time}",
+  "pack.closedAt": "închis {time}",
+  "pack.progress": "{done} din {total} gata · {left} rămase",
+  "pack.progressAllDone": "Toate cele {total} sunt gata",
+  "pack.progressUnavailable": "Progresul nu a putut fi încărcat.",
+  "pack.untagged": {
+    one: "{count} comandă nu are încă eticheta pachetului, așa că taburile pachetului nu o arată.",
+    other:
+      "{count} comenzi nu au încă eticheta pachetului, așa că taburile pachetului nu le arată.",
+  },
+  "pack.newPack": "Pachet nou",
+  "pack.action.lock": "Începe lucrul",
+  "pack.action.close": "Închide pachetul",
+  "pack.action.closeAndMove": "Închide și mută cele {count} rămase",
+  "pack.action.reopen": "Redeschide",
+  "pack.action.delete": "Șterge",
+  "pack.action.cancel": "Anulează",
+  "pack.action.retryTagging": "Reîncearcă etichetarea",
+  "pack.action.report": "Raport produse neexecutate",
+  "pack.action.soldReport": "Raport produse vândute",
+  "pack.action.addToPack": "Adaugă în pachet…",
+  "pack.action.moveToPack": "Mută în alt pachet…",
+  "pack.action.removeFromPack": "Scoate din pachet",
+  "pack.action.addConfirm": {
+    one: "Adaugă {count} comandă",
+    few: "Adaugă {count} comenzi",
+    other: "Adaugă {count} de comenzi",
+  },
+  "pack.action.moveConfirm": {
+    one: "Mută {count} comandă",
+    few: "Mută {count} comenzi",
+    other: "Mută {count} de comenzi",
+  },
+  "pack.picker.addTitle": {
+    one: "Adaugă {count} comandă într-un pachet",
+    few: "Adaugă {count} comenzi într-un pachet",
+    other: "Adaugă {count} de comenzi într-un pachet",
+  },
+  "pack.picker.moveTitle": {
+    one: "Mută {count} comandă în alt pachet",
+    few: "Mută {count} comenzi în alt pachet",
+    other: "Mută {count} de comenzi în alt pachet",
+  },
+  "pack.picker.noOtherPack": "Nu există alt pachet în care să le muți.",
+  "pack.confirm.lockTitle": "Începi lucrul la {name}?",
+  "pack.confirm.lockBody":
+    "Pachetul nu mai primește comenzi noi: următoarea comandă pornește un pachet nou. Poți adăuga în continuare comenzi manual. Apoi printează raportul de produse neexecutate și adaugă tracking-ul.",
+  "pack.confirm.closeTitle": "Închizi {name}?",
+  "pack.confirm.closeBody":
+    "Toate comenzile sunt gata. Pachetul iese din lista de lucru; îl poți redeschide din Închise.",
+  "pack.confirm.closeBodyLeftovers": {
+    one: "{count} comandă nu este gata. Se mută în pachetul care se umple (se pornește unul nou dacă nu există), apoi pachetul acesta se închide.",
+    few: "{count} comenzi nu sunt gata. Se mută în pachetul care se umple (se pornește unul nou dacă nu există), apoi pachetul acesta se închide.",
+    other:
+      "{count} de comenzi nu sunt gata. Se mută în pachetul care se umple (se pornește unul nou dacă nu există), apoi pachetul acesta se închide.",
+  },
+  "pack.confirm.closeBodyUnknown":
+    "Comenzile care nu sunt gata se mută în pachetul care se umple (se pornește unul nou dacă nu există), apoi pachetul acesta se închide.",
+  "pack.confirm.deleteTitle": "Ștergi {name}?",
+  "pack.confirm.removeTitle": {
+    one: "Scoți {count} comandă din pachet?",
+    few: "Scoți {count} comenzi din pachet?",
+    other: "Scoți {count} de comenzi din pachet?",
+  },
+  "pack.confirm.removeBody":
+    "Revin în tabul Fără pachet de pe pagina Comenzi. Comenzile dintr-un pachet închis rămân unde sunt.",
+  "pack.done.created": "{name} a pornit.",
+  "pack.done.locked":
+    "Lucrul a început. Comenzile noi merg acum într-un pachet nou.",
+  "pack.done.closed": "Pachet închis.",
+  "pack.done.closedAndMoved": {
+    one: "Pachet închis. {count} comandă a fost mutată în {name}.",
+    few: "Pachet închis. {count} comenzi au fost mutate în {name}.",
+    other: "Pachet închis. {count} de comenzi au fost mutate în {name}.",
+  },
+  "pack.done.reopened": "Pachet redeschis.",
+  "pack.done.deleted": "Pachet șters.",
+  "pack.done.retryingTags": {
+    one: "Se reetichetează {count} comandă.",
+    few: "Se reetichetează {count} comenzi.",
+    other: "Se reetichetează {count} de comenzi.",
+  },
+  "pack.done.added": {
+    one: "{count} comandă adăugată în {name}.",
+    few: "{count} comenzi adăugate în {name}.",
+    other: "{count} de comenzi adăugate în {name}.",
+  },
+  "pack.done.ofWhichMoved": {
+    one: "{count} dintre ele a venit din alt pachet.",
+    few: "{count} dintre ele au venit din alte pachete.",
+    other: "{count} dintre ele au venit din alte pachete.",
+  },
+  "pack.done.skippedClosed": {
+    one: "{count} comandă este într-un pachet închis și a rămas acolo.",
+    few: "{count} comenzi sunt în pachete închise și au rămas acolo.",
+    other: "{count} de comenzi sunt în pachete închise și au rămas acolo.",
+  },
+  "pack.done.removed": {
+    one: "{count} comandă scoasă din pachet.",
+    few: "{count} comenzi scoase din pachete.",
+    other: "{count} de comenzi scoase din pachete.",
+  },
+  "pack.error.notFound": "Pachetul nu mai există. Reîncarcă pagina.",
+  "pack.error.alreadyFilling":
+    "Un pachet se umple deja. Începe lucrul la el înainte să pornești altul.",
+  "pack.error.notFilling": "Doar un pachet care se umple poate fi început.",
+  "pack.error.lockEmpty": "Adaugă comenzi în pachet înainte să începi lucrul.",
+  "pack.error.closeNotLocked": "Doar un pachet în lucru poate fi închis.",
+  "pack.error.ordersLeft": {
+    one: "{count} comandă nu este gata.",
+    few: "{count} comenzi nu sunt gata.",
+    other: "{count} de comenzi nu sunt gata.",
+  },
+  "pack.error.ordersBusy": {
+    one: "O sarcină rulează pe {count} comandă din pachet. Închide pachetul după ce se termină.",
+    few: "O sarcină rulează pe {count} comenzi din pachet. Închide pachetul după ce se termină.",
+    other:
+      "O sarcină rulează pe {count} de comenzi din pachet. Închide pachetul după ce se termină.",
+  },
+  "pack.error.notClosed": "Doar un pachet închis poate fi redeschis.",
+  "pack.error.deleteNotEmpty": "Doar un pachet gol poate fi șters.",
+  "pack.error.targetClosed": "Un pachet închis nu poate primi comenzi.",
+  "pack.error.unknownAction": "Acțiune necunoscută pentru pachet.",
+  "pack.error.unexpected": "Acțiunea pe pachet a eșuat: {error}",
+  "packs.heading": "Pachete",
+  "packs.workingHeading": "Pachete în lucru",
+  "packs.closedHeading": "Închise recent",
+  "packs.intro":
+    "Comenzile noi intră în pachetul care se umple. Începe lucrul la un pachet ca să-i ții comenzile împreună: comenzile noi pornesc atunci următorul pachet.",
+  "packs.notInPackLink": "Comenzi fără pachet →",
+  "packs.newPack": "Pachet nou",
+  "packs.noWorkingPacks":
+    "Niciun pachet încă. Pornește unul, apoi adaugă comenzi din pagina Comenzi.",
 
   // job names
   "job.add-tracking": "Adaugă numere de tracking",
@@ -422,6 +730,9 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     one: "{count} selectată",
     other: "{count} selectate",
   },
+  "dashboard.jobsOnlyInPacks":
+    "Tracking-ul și printarea etichetelor se fac dintr-un pachet.",
+  "dashboard.goToPacks": "Mergi la Pachete →",
   // only shown past the job limit, so always 20 or more: "de comenzi"
   "dashboard.tabTooLarge":
     "{count} de comenzi în acest tab, mai multe decât poate prelua o sarcină ({max})",
@@ -485,12 +796,28 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     "La adăugarea tracking-ului, o comandă peste limită e împărțită în mai multe colete, fiecare cu AWB-ul lui. Când e oprită, comenzile grele sunt doar evidențiate și afișate pentru verificare înainte de adăugarea tracking-ului.",
   "settings.save": "Salvează",
   "settings.saved": "Setările au fost salvate",
+  "settings.packScheduleHeading": "Pachete",
+  "settings.jobsOnlyInPacks":
+    "Adaugă tracking și printează etichete doar dintr-un pachet",
+  "settings.jobsOnlyInPacksDetails":
+    "Pagina Comenzi doar listează comenzile și le adaugă în pachete. Butoanele de tracking și printare sunt înlocuite de un link către Pachete.",
+  "settings.packScheduleIntro":
+    "Un pachet nou pornește mereu când începi lucrul la cel care se umple. Bifează zile ca să pornească un pachet nou și la miezul nopții dinaintea fiecăreia.",
+  "settings.packScheduleDetails":
+    "Pachetul care se umple te așteaptă atunci, iar comenzile din ziua aceea intră într-un pachet nou. O schimbare se aplică de la următoarea comandă. Nimic bifat: pachetele se schimbă doar când începi lucrul la unul.",
+  "weekday.1": "Luni",
+  "weekday.2": "Marți",
+  "weekday.3": "Miercuri",
+  "weekday.4": "Joi",
+  "weekday.5": "Vineri",
+  "weekday.6": "Sâmbătă",
+  "weekday.7": "Duminică",
   "settings.invalidWeightLimit":
     "Greutatea maximă trebuie să fie un număr de kg mai mare decât 0, sau gol.",
 
   // tabul „Cod poștal de corectat”
   "zipFix.intro":
-    "Adăugarea tracking-ului s-a oprit la aceste comenzi din cauza codului poștal. Corectează codurile, apoi adaugă din nou tracking-ul. Rândurile editate se bifează singure; bifează un rând needitat ca să-l reîncerci așa cum e.",
+    "Rândurile editate se bifează singure; bifează un rând needitat ca să-l reîncerci așa cum e.",
   "zipFix.submit": {
     one: "Salvează și adaugă tracking pentru {count} comandă",
     few: "Salvează și adaugă tracking pentru {count} comenzi",
@@ -588,7 +915,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // recent jobs
   "jobs.heading": "Sarcini recente",
   "jobs.linksExpire":
-    "Linkurile de descărcare sunt valabile 1 oră. Apasă Reîmprospătează pentru linkuri noi.",
+    "Linkurile de descărcare sunt valabile 1 oră.",
   "jobs.autoUpdates":
     "Lista se actualizează singură cât timp rulează o sarcină.",
   "jobs.refresh": "Reîmprospătează",
@@ -627,6 +954,14 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "startJob.couldNotStart": "Sarcina nu a putut porni: {error}",
   "startJob.invalidOrderIds": "ID-uri de comenzi invalide: {ids}.",
   "startJob.noOrdersSelected": "Nu a fost selectată nicio comandă.",
+  "startJob.onlyInPacks":
+    "Tracking-ul și printarea etichetelor se fac doar dintr-un pachet. Deschide pachetul din pagina Pachete.",
+  "startJob.ordersNotInPack": {
+    one: "{count} comandă selectată nu mai este în acest pachet. Reîncarcă pagina.",
+    few: "{count} comenzi selectate nu mai sunt în acest pachet. Reîncarcă pagina.",
+    other:
+      "{count} de comenzi selectate nu mai sunt în acest pachet. Reîncarcă pagina.",
+  },
   "startJob.noOrdersInTab": "Nicio comandă în tabul „{tab}”.",
   "startJob.tooManyOrders":
     "O sarcină poate prelua cel mult {max} de comenzi. Selecția aceasta are mai multe.",
@@ -684,6 +1019,14 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
 
   // unfulfilled report (page and PDF)
   "report.heading": "Raport comenzi neexecutate",
+  "report.packIntro":
+    "Ce mai este de executat pentru comenzile acestui pachet. Printează-l înainte de a adăuga numerele de tracking.",
+  "report.backToPack": "← Înapoi la pachet",
+  "report.soldHeading": "Raport produse vândute",
+  "report.soldPackIntro":
+    "Tot ce s-a vândut în comenzile acestui pachet, pe produs: fără comenzile anulate și produsele scoase. Printează-l după ce adaugi numerele de tracking.",
+  "report.soldNeedsPack":
+    "Raportul de produse vândute se face pentru un pachet. Deschide-l din pachet, de pe pagina Pachete.",
   "report.intro":
     "Produsele care mai trebuie onorate, însumate pe variantă. Sunt incluse toate comenzile neexecutate, dacă nu setezi un interval de numere de comandă.",
   "report.intervalHeading": "Interval de comenzi",
@@ -764,6 +1107,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "fileName.failed": "ESUAT_{job}",
   "fileName.test": "trackme-test",
   "fileName.unfulfilledReport": "raport-neexecutate",
+  "fileName.soldReport": "raport-produse-vandute",
   "fileName.job.add-tracking": "adaugare-tracking",
   "fileName.job.print-labels": "printare-etichete",
   "fileName.job.test": "test",

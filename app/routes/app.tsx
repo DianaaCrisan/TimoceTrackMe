@@ -12,6 +12,7 @@ import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import { I18nProvider } from "app/frontend/core/i18n/I18nProvider";
 import { UNFULFILLED_REPORT_PATH } from "app/commons/unfulfilled-report/UnfulfilledReport";
+import { PACKS_PATH } from "app/commons/packs/FulfillmentPack";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -44,6 +45,7 @@ export default function App() {
     <AppProvider embedded apiKey={apiKey}>
       <I18nProvider locale={locale}>
         <s-app-nav>
+          <s-link href={PACKS_PATH}>{t("nav.packs")}</s-link>
           <s-link href="/app/orders-dashboard">{t("nav.orders")}</s-link>
           <s-link href={UNFULFILLED_REPORT_PATH}>
             {t("nav.unfulfilledReport")}
