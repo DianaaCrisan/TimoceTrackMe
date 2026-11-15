@@ -14,6 +14,8 @@ export type JobArtifact = {
   hasErrors?: boolean;
   /** One line for the jobs list, e.g. "40 succeeded, 2 failed". */
   summary?: string;
+  /** Orders now on the "ZIP to fix" tab because of this job. */
+  zipToFixCount?: number;
 };
 
 export type StartBackgroundJobInput = {
@@ -126,6 +128,7 @@ async function runJob(
       fileName: artifact.fileName,
       hasErrors: artifact.hasErrors ?? false,
       summary: artifact.summary,
+      zipToFixCount: artifact.zipToFixCount,
     });
     console.log(`[Job:${input.job}] result stored at ${key}.`);
   } catch (error) {

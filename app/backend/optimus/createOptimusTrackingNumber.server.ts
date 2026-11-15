@@ -1,3 +1,4 @@
+import { formatKilogramsForAwb } from "app/commons/shipping/Weight";
 import {
   OPTIMUS_API_KEY,
   OPTIMUS_API_URL,
@@ -40,7 +41,19 @@ type NewAWBRequest = {
   country: string;
   zip: string;
   invoiceDetails?: string;
-  weight: string;
+  /**
+   * The parcel's weight in kg. GLS takes kg only: convert before it gets
+   * here (see docs/gls-shipping-specification.md).
+   */
+  weightKg: number;
+  /**
+   * Which of the order's parcels this is, such as "2/3". Unset when the order
+   * ships as one parcel.
+   *
+   * Without it, every parcel of an order books an identical AWB, and GLS
+   * refuses the sixth identical request within five minutes.
+   */
+  parcelPosition?: string;
   formatted: string; // TODO: - check if we need this
 };
 
@@ -83,11 +96,13 @@ export async function createOptimusTrackingNumber(
     destinatar_contact: shippingDetails.name,
     destinatar_telefon: shippingDetails.phoneNumber,
     colet_buc: "1",
-    colet_greutate: shippingDetails.weight,
+    colet_greutate: formatKilogramsForAwb(shippingDetails.weightKg),
     data_colectare: new Date().toISOString().split("T")[0].toString(),
     ramburs_valoare: "0",
     ref_factura: shippingDetails.invoiceDetails ?? "",
-    colet_descriere: `produse (${shippingDetails.orderName})`,
+    colet_descriere: shippingDetails.parcelPosition
+      ? `produse (${shippingDetails.orderName}) ${shippingDetails.parcelPosition}`
+      : `produse (${shippingDetails.orderName})`,
     destinatar_email: shippingDetails.email ?? "",
   };
 

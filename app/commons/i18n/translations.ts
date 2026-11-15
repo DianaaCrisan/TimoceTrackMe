@@ -13,7 +13,8 @@ export const en = {
   // navigation
   "nav.orders": "Orders",
   "nav.unfulfilledReport": "Unfulfilled report",
-  "nav.adminPanel": "Admin Panel",
+  "nav.settings": "Settings",
+  "nav.developerPanel": "Developer panel",
 
   // landing page
   "landing.welcome": "Welcome to TrackMe!",
@@ -27,6 +28,7 @@ export const en = {
   // dashboard tabs
   "filter.all": "All",
   "filter.pending_fulfillment": "Pending fulfillment",
+  "filter.zip_to_fix": "ZIP to fix",
   "filter.unprinted": "Unprinted",
 
   // job names
@@ -37,6 +39,7 @@ export const en = {
   // dashboard
   "dashboard.starting": "Starting...",
   "dashboard.dismiss": "Dismiss",
+  "dashboard.loading": "Loading...",
   "dashboard.jobStarted": {
     one: "{title} started for {count} order. When it finishes, the list refreshes and the result appears under Recent jobs.",
     other:
@@ -53,6 +56,10 @@ export const en = {
   "dashboard.selectAllInTab": "Select all {count} orders in this tab",
   "dashboard.deselectAll": "Deselect all",
   "dashboard.httpError": "The server answered with HTTP {status}.",
+  "dashboard.fixZips": {
+    one: "Fix {count} ZIP code",
+    other: "Fix {count} ZIP codes",
+  },
 
   // orders table
   "table.selectAllVisible": "Select all visible orders",
@@ -69,6 +76,84 @@ export const en = {
   "table.noOrders": "No orders found.",
   "table.itemCount": { one: "{count} item", other: "{count} items" },
   "table.missingZip": "Missing",
+  "table.customerNote": "Customer note",
+  "table.weight": "Weight",
+
+  // order weight, against the limit per parcel
+  "weight.overLimit": "Over {limit}",
+  "weight.willSplit": "Will be split into parcels",
+  "weight.splitInto": {
+    one: "Shipped in {count} parcel",
+    other: "Split into {count} parcels",
+  },
+  "weight.limitTitle": "Over the {limit} limit per parcel",
+  "trackingReview.overWeightLimit":
+    "Over the {limit} limit per parcel. Automatic split is off, so it will ship as one parcel.",
+
+  // Settings page
+  "settings.heading": "Settings",
+  "settings.parcelWeightHeading": "Parcel weight",
+  "settings.parcelWeightIntro":
+    "Orders heavier than the limit are highlighted on the Orders page. With automatic split on, adding tracking ships them as several parcels, each with its own shipping label marked 1/3, 2/3 and so on.",
+  "settings.weightLimit": "Weight limit per parcel",
+  "settings.weightLimitDetails":
+    "Leave empty to turn the check off. Set it a few kg below the courier's maximum: products sold by weight often weigh more than listed.",
+  "settings.autoSplit": "Split heavy orders automatically",
+  "settings.autoSplitDetails":
+    "When adding tracking, an order over the limit is packed into several parcels, each with its own AWB. When off, heavy orders are only highlighted, and listed for a check before adding tracking.",
+  "settings.save": "Save",
+  "settings.saved": "Settings saved",
+  "settings.invalidWeightLimit":
+    "The weight limit must be a number of kg greater than 0, or empty.",
+
+  // "ZIP to fix" tab
+  "zipFix.intro":
+    "Add tracking stopped on these orders because of their ZIP code. Correct the ZIPs, then add tracking again. Rows you edit are ticked; tick a row without editing it to retry it as it is.",
+  "zipFix.submit": {
+    one: "Save & add tracking for {count} order",
+    other: "Save & add tracking for {count} orders",
+  },
+  "zipFix.invalidCount": {
+    one: "{count} ZIP code is not 6 digits",
+    other: "{count} ZIP codes are not 6 digits",
+  },
+  "zipFix.selectAll": "Select all orders on this page",
+  "zipFix.colAddress": "Address",
+  "zipFix.colCity": "City",
+  "zipFix.colCounty": "County",
+  "zipFix.colProblem": "Problem",
+  "zipFix.colCorrectZip": "Correct ZIP",
+  "zipFix.problemMissing": "Missing, not found automatically",
+  "zipFix.problemRejected": "{zip} rejected by Optimus",
+  "zipFix.zipInputLabel": "Correct ZIP for order {name}",
+  "zipFix.invalidZip": "A ZIP code has 6 digits",
+  "zipFix.search": "Search",
+  "zipFix.searchTitle": "Look up the ZIP code of this address on Google",
+  "zipFix.inProgress": "Adding tracking...",
+  "zipFix.empty":
+    "No ZIP codes to fix. When add tracking stops on an order because of its ZIP, the order shows up here.",
+
+  // customer notes, checked before add tracking
+  "trackingReview.checking": "Checking orders...",
+  "trackingReview.couldNotLoad": "Could not check the orders: {error}",
+  "trackingReview.dialogTitle": "Check these orders first",
+  "trackingReview.dialogIntro": {
+    one: "{count} of the selected orders has a customer note or is over the weight limit. Untick it to leave it out of add tracking, e.g. if the customer asks you to wait.",
+    other:
+      "{count} of the selected orders have a customer note or are over the weight limit. Untick an order to leave it out of add tracking, e.g. if the customer asks you to wait.",
+  },
+  "trackingReview.include": "Add tracking",
+  "trackingReview.leftOut": {
+    one: "{count} order left out",
+    other: "{count} orders left out",
+  },
+  "trackingReview.confirm": {
+    one: "Add tracking for {count} order",
+    other: "Add tracking for {count} orders",
+  },
+  "trackingReview.cancel": "Cancel",
+  "trackingReview.loadFailedTitle": "The orders could not be checked",
+  "trackingReview.addWithoutChecking": "Add tracking without checking",
 
   // Shopify payment statuses
   "financialStatus.AUTHORIZED": "Authorized",
@@ -139,6 +224,10 @@ export const en = {
   "summary.notMarkedPrinted": "{count} orders not marked as printed",
   "summary.seeErrorsFile": "see {fileName}",
   "summary.testFileUploaded": "Test file uploaded",
+  "summary.zipToFix": {
+    one: "{count} needs a ZIP fix",
+    other: "{count} need a ZIP fix",
+  },
 
   // errors when starting a job
   "startJob.ordersBusy":
@@ -149,43 +238,47 @@ export const en = {
   "startJob.noOrdersInTab": 'No orders match the "{tab}" tab.',
   "startJob.tooManyOrders":
     "A job can take at most {max} orders. This selection has more.",
+  "startJob.unreadableManualZips":
+    "The ZIP codes you typed could not be read. Reload the page and try again.",
+  "startJob.invalidManualZip":
+    'ZIP code "{zip}" is not valid: it must have 6 digits.',
 
-  // admin panel
-  "admin.heading": "Admin Panel",
-  "admin.credentialsHeading": "Optimus test credentials",
-  "admin.credentialsIntro":
+  // Developer panel
+  "developer.heading": "Developer panel",
+  "developer.credentialsHeading": "Optimus test credentials",
+  "developer.credentialsIntro":
     "These values are loaded from environment variables. The API key is masked for safety.",
-  "admin.apiUrl": "API URL",
-  "admin.username": "Username",
-  "admin.apiKey": "API Key",
-  "admin.testRequestHeading": "Test request",
-  "admin.testRequestIntro":
+  "developer.apiUrl": "API URL",
+  "developer.username": "Username",
+  "developer.apiKey": "API Key",
+  "developer.testRequestHeading": "Test request",
+  "developer.testRequestIntro":
     "This sends a server-side test request to Optimus using test credentials and a mocked AWB-style payload.",
-  "admin.sendTestRequest": "Send test request",
-  "admin.responseOutput": "Response output",
-  "admin.noRequestYet":
+  "developer.sendTestRequest": "Send test request",
+  "developer.responseOutput": "Response output",
+  "developer.noRequestYet":
     "No request sent yet.\n\nThe Optimus response will be displayed here after you send a test request.",
-  "admin.optimusTestCompleted": "Optimus test request completed",
-  "admin.optimusTestFailed": "Optimus test request failed",
-  "admin.unknownOptimusError": "Unknown Optimus test error.",
-  "admin.s3Heading": "Bulk jobs: S3 setup",
-  "admin.s3Intro":
+  "developer.optimusTestCompleted": "Optimus test request completed",
+  "developer.optimusTestFailed": "Optimus test request failed",
+  "developer.unknownOptimusError": "Unknown Optimus test error.",
+  "developer.s3Heading": "Bulk jobs: S3 setup",
+  "developer.s3Intro":
     "Bulk actions store their result files in S3. Every variable below must be set for them to work.",
-  "admin.s3Bucket": "S3 bucket",
-  "admin.awsRegion": "AWS region",
-  "admin.appFolder": "This app's folder in the bucket",
-  "admin.notSet": "(not set)",
-  "admin.bucketRoot": "(bucket root)",
-  "admin.openAppFolder": "Open this app's folder in the S3 console",
-  "admin.s3TestIntro":
+  "developer.s3Bucket": "S3 bucket",
+  "developer.awsRegion": "AWS region",
+  "developer.appFolder": "This app's folder in the bucket",
+  "developer.notSet": "(not set)",
+  "developer.bucketRoot": "(bucket root)",
+  "developer.openAppFolder": "Open this app's folder in the S3 console",
+  "developer.s3TestIntro":
     "The test uploads a small text file. It then appears under Recent jobs with a link to it in S3.",
-  "admin.uploadTestFile": "Upload test file",
-  "admin.testUploadStarted": "Test upload started",
-  "admin.testUploadCouldNotStart": "Test upload could not start",
-  "admin.testUploadStartedDetails":
+  "developer.uploadTestFile": "Upload test file",
+  "developer.testUploadStarted": "Test upload started",
+  "developer.testUploadCouldNotStart": "Test upload could not start",
+  "developer.testUploadStartedDetails":
     "Test upload started. Press Refresh under Recent jobs in a few seconds.",
-  "admin.testUploadAlreadyRunning": "A test upload is already running.",
-  "admin.unknownTestUploadError": "Unknown test upload error.",
+  "developer.testUploadAlreadyRunning": "A test upload is already running.",
+  "developer.unknownTestUploadError": "Unknown test upload error.",
 
   // unfulfilled report (page and PDF)
   "report.heading": "Unfulfilled orders report",
@@ -274,7 +367,8 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // navigation
   "nav.orders": "Comenzi",
   "nav.unfulfilledReport": "Raport neexecutate",
-  "nav.adminPanel": "Panou de administrare",
+  "nav.settings": "Setări",
+  "nav.developerPanel": "Panou pentru dezvoltatori",
 
   // landing page
   "landing.welcome": "Bun venit în TrackMe!",
@@ -288,6 +382,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // dashboard tabs
   "filter.all": "Toate",
   "filter.pending_fulfillment": "Neexecutate",
+  "filter.zip_to_fix": "Cod poștal de corectat",
   "filter.unprinted": "Neprintate",
 
   // job names
@@ -298,6 +393,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // dashboard
   "dashboard.starting": "Se pornește...",
   "dashboard.dismiss": "Închide",
+  "dashboard.loading": "Se încarcă...",
   "dashboard.jobStarted": {
     one: "{title} a pornit pentru {count} comandă. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
     few: "{title} a pornit pentru {count} comenzi. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
@@ -327,6 +423,11 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   },
   "dashboard.deselectAll": "Deselectează tot",
   "dashboard.httpError": "Serverul a răspuns cu HTTP {status}.",
+  "dashboard.fixZips": {
+    one: "Corectează {count} cod poștal",
+    few: "Corectează {count} coduri poștale",
+    other: "Corectează {count} de coduri poștale",
+  },
 
   // orders table
   "table.selectAllVisible": "Selectează toate comenzile vizibile",
@@ -347,6 +448,90 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     other: "{count} de articole",
   },
   "table.missingZip": "Lipsește",
+  "table.customerNote": "Notă client",
+  "table.weight": "Greutate",
+
+  // greutatea comenzii, față de limita pe colet
+  "weight.overLimit": "Peste {limit}",
+  "weight.willSplit": "Se va împărți în colete",
+  "weight.splitInto": {
+    one: "Expediată într-un colet",
+    few: "Împărțită în {count} colete",
+    other: "Împărțită în {count} de colete",
+  },
+  "weight.limitTitle": "Peste limita de {limit} pe colet",
+  "trackingReview.overWeightLimit":
+    "Peste limita de {limit} pe colet. Împărțirea automată este oprită, așa că va pleca într-un singur colet.",
+
+  // pagina Setări
+  "settings.heading": "Setări",
+  "settings.parcelWeightHeading": "Greutatea coletelor",
+  "settings.parcelWeightIntro":
+    "Comenzile mai grele decât limita sunt evidențiate pe pagina Comenzi. Cu împărțirea automată pornită, la adăugarea tracking-ului pleacă în mai multe colete, fiecare cu eticheta lui de expediere, marcată 1/3, 2/3 și așa mai departe.",
+  "settings.weightLimit": "Greutate maximă pe colet",
+  "settings.weightLimitDetails":
+    "Lasă gol ca să oprești verificarea. Pune câteva kg sub maximul curierului: produsele vândute la kilogram cântăresc des mai mult decât e trecut.",
+  "settings.autoSplit": "Împarte automat comenzile grele",
+  "settings.autoSplitDetails":
+    "La adăugarea tracking-ului, o comandă peste limită e împărțită în mai multe colete, fiecare cu AWB-ul lui. Când e oprită, comenzile grele sunt doar evidențiate și afișate pentru verificare înainte de adăugarea tracking-ului.",
+  "settings.save": "Salvează",
+  "settings.saved": "Setările au fost salvate",
+  "settings.invalidWeightLimit":
+    "Greutatea maximă trebuie să fie un număr de kg mai mare decât 0, sau gol.",
+
+  // tabul „Cod poștal de corectat”
+  "zipFix.intro":
+    "Adăugarea tracking-ului s-a oprit la aceste comenzi din cauza codului poștal. Corectează codurile, apoi adaugă din nou tracking-ul. Rândurile editate se bifează singure; bifează un rând needitat ca să-l reîncerci așa cum e.",
+  "zipFix.submit": {
+    one: "Salvează și adaugă tracking pentru {count} comandă",
+    few: "Salvează și adaugă tracking pentru {count} comenzi",
+    other: "Salvează și adaugă tracking pentru {count} de comenzi",
+  },
+  "zipFix.invalidCount": {
+    one: "{count} cod poștal nu are 6 cifre",
+    few: "{count} coduri poștale nu au 6 cifre",
+    other: "{count} de coduri poștale nu au 6 cifre",
+  },
+  "zipFix.selectAll": "Selectează toate comenzile de pe pagină",
+  "zipFix.colAddress": "Adresă",
+  "zipFix.colCity": "Localitate",
+  "zipFix.colCounty": "Județ",
+  "zipFix.colProblem": "Problemă",
+  "zipFix.colCorrectZip": "Cod poștal corect",
+  "zipFix.problemMissing": "Lipsește, negăsit automat",
+  "zipFix.problemRejected": "{zip} respins de Optimus",
+  "zipFix.zipInputLabel": "Codul poștal corect pentru comanda {name}",
+  "zipFix.invalidZip": "Un cod poștal are 6 cifre",
+  "zipFix.search": "Caută",
+  "zipFix.searchTitle": "Caută pe Google codul poștal al acestei adrese",
+  "zipFix.inProgress": "Se adaugă tracking...",
+  "zipFix.empty":
+    "Niciun cod poștal de corectat. Când adăugarea tracking-ului se oprește la o comandă din cauza codului poștal, comanda apare aici.",
+
+  // note client, verificate înainte de adăugarea tracking-ului
+  "trackingReview.checking": "Se verifică comenzile...",
+  "trackingReview.couldNotLoad": "Comenzile nu au putut fi verificate: {error}",
+  "trackingReview.dialogTitle": "Verifică întâi aceste comenzi",
+  "trackingReview.dialogIntro": {
+    one: "{count} dintre comenzile selectate are o notă de la client sau depășește greutatea maximă. Debifeaz-o ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
+    few: "{count} dintre comenzile selectate au o notă de la client sau depășesc greutatea maximă. Debifează o comandă ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
+    other:
+      "{count} dintre comenzile selectate au o notă de la client sau depășesc greutatea maximă. Debifează o comandă ca să o lași în afara adăugării tracking-ului, de ex. dacă clientul cere să aștepți.",
+  },
+  "trackingReview.include": "Adaugă tracking",
+  "trackingReview.leftOut": {
+    one: "{count} comandă lăsată deoparte",
+    few: "{count} comenzi lăsate deoparte",
+    other: "{count} de comenzi lăsate deoparte",
+  },
+  "trackingReview.confirm": {
+    one: "Adaugă tracking pentru {count} comandă",
+    few: "Adaugă tracking pentru {count} comenzi",
+    other: "Adaugă tracking pentru {count} de comenzi",
+  },
+  "trackingReview.cancel": "Anulează",
+  "trackingReview.loadFailedTitle": "Comenzile nu au putut fi verificate",
+  "trackingReview.addWithoutChecking": "Adaugă tracking fără verificare",
 
   // Shopify payment statuses
   "financialStatus.AUTHORIZED": "Autorizată",
@@ -422,6 +607,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "summary.notMarkedPrinted": "Comenzi nemarcate ca printate: {count}",
   "summary.seeErrorsFile": "vezi {fileName}",
   "summary.testFileUploaded": "Fișierul de test a fost încărcat",
+  "summary.zipToFix": "Coduri poștale de corectat: {count}",
 
   // errors when starting a job
   "startJob.ordersBusy": {
@@ -435,43 +621,48 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "startJob.noOrdersInTab": "Nicio comandă în tabul „{tab}”.",
   "startJob.tooManyOrders":
     "O sarcină poate prelua cel mult {max} de comenzi. Selecția aceasta are mai multe.",
+  "startJob.unreadableManualZips":
+    "Codurile poștale introduse nu au putut fi citite. Reîncarcă pagina și încearcă din nou.",
+  "startJob.invalidManualZip":
+    "Codul poștal „{zip}” nu este valid: trebuie să aibă 6 cifre.",
 
-  // admin panel
-  "admin.heading": "Panou de administrare",
-  "admin.credentialsHeading": "Date de test Optimus",
-  "admin.credentialsIntro":
+  // Developer panel
+  "developer.heading": "Panou pentru dezvoltatori",
+  "developer.credentialsHeading": "Date de test Optimus",
+  "developer.credentialsIntro":
     "Aceste valori sunt încărcate din variabilele de mediu. Cheia API este mascată din motive de securitate.",
-  "admin.apiUrl": "URL API",
-  "admin.username": "Nume utilizator",
-  "admin.apiKey": "Cheie API",
-  "admin.testRequestHeading": "Cerere de test",
-  "admin.testRequestIntro":
+  "developer.apiUrl": "URL API",
+  "developer.username": "Nume utilizator",
+  "developer.apiKey": "Cheie API",
+  "developer.testRequestHeading": "Cerere de test",
+  "developer.testRequestIntro":
     "Trimite din server o cerere de test către Optimus, cu datele de test și un payload AWB simulat.",
-  "admin.sendTestRequest": "Trimite cererea de test",
-  "admin.responseOutput": "Răspuns",
-  "admin.noRequestYet":
+  "developer.sendTestRequest": "Trimite cererea de test",
+  "developer.responseOutput": "Răspuns",
+  "developer.noRequestYet":
     "Nicio cerere trimisă încă.\n\nRăspunsul Optimus va apărea aici după ce trimiți o cerere de test.",
-  "admin.optimusTestCompleted": "Cererea de test Optimus s-a încheiat",
-  "admin.optimusTestFailed": "Cererea de test Optimus a eșuat",
-  "admin.unknownOptimusError": "Eroare necunoscută la testul Optimus.",
-  "admin.s3Heading": "Sarcini în masă: configurare S3",
-  "admin.s3Intro":
+  "developer.optimusTestCompleted": "Cererea de test Optimus s-a încheiat",
+  "developer.optimusTestFailed": "Cererea de test Optimus a eșuat",
+  "developer.unknownOptimusError": "Eroare necunoscută la testul Optimus.",
+  "developer.s3Heading": "Sarcini în masă: configurare S3",
+  "developer.s3Intro":
     "Acțiunile în masă își salvează fișierele rezultat în S3. Toate variabilele de mai jos trebuie setate pentru ca acestea să funcționeze.",
-  "admin.s3Bucket": "Bucket S3",
-  "admin.awsRegion": "Regiune AWS",
-  "admin.appFolder": "Folderul acestei aplicații în bucket",
-  "admin.notSet": "(nesetat)",
-  "admin.bucketRoot": "(rădăcina bucketului)",
-  "admin.openAppFolder": "Deschide folderul aplicației în consola S3",
-  "admin.s3TestIntro":
+  "developer.s3Bucket": "Bucket S3",
+  "developer.awsRegion": "Regiune AWS",
+  "developer.appFolder": "Folderul acestei aplicații în bucket",
+  "developer.notSet": "(nesetat)",
+  "developer.bucketRoot": "(rădăcina bucketului)",
+  "developer.openAppFolder": "Deschide folderul aplicației în consola S3",
+  "developer.s3TestIntro":
     "Testul încarcă un fișier text mic. Acesta apare apoi la Sarcini recente, cu un link către el în S3.",
-  "admin.uploadTestFile": "Încarcă fișierul de test",
-  "admin.testUploadStarted": "Încărcarea de test a pornit",
-  "admin.testUploadCouldNotStart": "Încărcarea de test nu a putut porni",
-  "admin.testUploadStartedDetails":
+  "developer.uploadTestFile": "Încarcă fișierul de test",
+  "developer.testUploadStarted": "Încărcarea de test a pornit",
+  "developer.testUploadCouldNotStart": "Încărcarea de test nu a putut porni",
+  "developer.testUploadStartedDetails":
     "Încărcarea de test a pornit. Apasă Reîmprospătează la Sarcini recente în câteva secunde.",
-  "admin.testUploadAlreadyRunning": "O încărcare de test rulează deja.",
-  "admin.unknownTestUploadError": "Eroare necunoscută la încărcarea de test.",
+  "developer.testUploadAlreadyRunning": "O încărcare de test rulează deja.",
+  "developer.unknownTestUploadError":
+    "Eroare necunoscută la încărcarea de test.",
 
   // unfulfilled report (page and PDF)
   "report.heading": "Raport comenzi neexecutate",

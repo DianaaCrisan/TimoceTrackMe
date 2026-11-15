@@ -48,8 +48,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         ok: result.isStarted,
         data: {
           message: result.isStarted
-            ? t("admin.testUploadStartedDetails")
-            : t("admin.testUploadAlreadyRunning"),
+            ? t("developer.testUploadStartedDetails")
+            : t("developer.testUploadAlreadyRunning"),
         },
       };
     } catch (error) {
@@ -60,7 +60,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           message:
             error instanceof Error
               ? error.message
-              : t("admin.unknownTestUploadError"),
+              : t("developer.unknownTestUploadError"),
         },
       };
     }
@@ -82,13 +82,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         message:
           error instanceof Error
             ? error.message
-            : t("admin.unknownOptimusError"),
+            : t("developer.unknownOptimusError"),
       },
     };
   }
 };
 
-export default function AdminPanelPage() {
+/**
+ * Tools for whoever runs the app: test the Optimus and S3 connections, and
+ * follow the background jobs. Nothing here changes how the shop works; that
+ * is the Settings page.
+ */
+export default function DeveloperPanelPage() {
   const { credentials, s3Setup, recentJobs } = useLoaderData<typeof loader>();
   const optimusFetcher = useFetcher<typeof action>();
   const s3TestFetcher = useFetcher<typeof action>();
@@ -101,7 +106,7 @@ export default function AdminPanelPage() {
 
   const optimusResponseContent = useMemo(() => {
     if (!optimusFetcher.data) {
-      return t("admin.noRequestYet");
+      return t("developer.noRequestYet");
     }
 
     return JSON.stringify(optimusFetcher.data.data, null, 2);
@@ -112,8 +117,8 @@ export default function AdminPanelPage() {
 
     shopify.toast.show(
       optimusFetcher.data.ok
-        ? t("admin.optimusTestCompleted")
-        : t("admin.optimusTestFailed"),
+        ? t("developer.optimusTestCompleted")
+        : t("developer.optimusTestFailed"),
     );
     // `t` is left out: a language change reloads the app, and the toast must
     // only show when a response arrives
@@ -125,37 +130,37 @@ export default function AdminPanelPage() {
 
     shopify.toast.show(
       s3TestFetcher.data.ok
-        ? t("admin.testUploadStarted")
-        : t("admin.testUploadCouldNotStart"),
+        ? t("developer.testUploadStarted")
+        : t("developer.testUploadCouldNotStart"),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s3TestFetcher.data, shopify]);
 
   return (
-    <s-page heading={t("admin.heading")}>
+    <s-page heading={t("developer.heading")}>
       <s-stack direction="block" gap="large">
-        <s-section heading={t("admin.credentialsHeading")}>
+        <s-section heading={t("developer.credentialsHeading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>{t("admin.credentialsIntro")}</s-paragraph>
+            <s-paragraph>{t("developer.credentialsIntro")}</s-paragraph>
 
             <ReadOnlyField
-              label={t("admin.apiUrl")}
+              label={t("developer.apiUrl")}
               value={credentials.apiUrl}
             />
             <ReadOnlyField
-              label={t("admin.username")}
+              label={t("developer.username")}
               value={credentials.username}
             />
             <ReadOnlyField
-              label={t("admin.apiKey")}
+              label={t("developer.apiKey")}
               value={credentials.maskedApiKey}
             />
           </s-stack>
         </s-section>
 
-        <s-section heading={t("admin.testRequestHeading")}>
+        <s-section heading={t("developer.testRequestHeading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>{t("admin.testRequestIntro")}</s-paragraph>
+            <s-paragraph>{t("developer.testRequestIntro")}</s-paragraph>
 
             <optimusFetcher.Form method="post">
               <input type="hidden" name="intent" value={OPTIMUS_TEST_INTENT} />
@@ -164,7 +169,7 @@ export default function AdminPanelPage() {
                 type="submit"
                 {...(isSendingOptimusTest ? { loading: true } : {})}
               >
-                {t("admin.sendTestRequest")}
+                {t("developer.sendTestRequest")}
               </s-button>
             </optimusFetcher.Form>
           </s-stack>
@@ -172,9 +177,9 @@ export default function AdminPanelPage() {
 
         <ResponseViewer content={optimusResponseContent} />
 
-        <s-section heading={t("admin.s3Heading")}>
+        <s-section heading={t("developer.s3Heading")}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>{t("admin.s3Intro")}</s-paragraph>
+            <s-paragraph>{t("developer.s3Intro")}</s-paragraph>
 
             <s-stack direction="block" gap="small-200">
               {s3Setup.envVars.map((envVar) => (
@@ -185,25 +190,25 @@ export default function AdminPanelPage() {
             </s-stack>
 
             <ReadOnlyField
-              label={t("admin.s3Bucket")}
-              value={s3Setup.bucket ?? t("admin.notSet")}
+              label={t("developer.s3Bucket")}
+              value={s3Setup.bucket ?? t("developer.notSet")}
             />
             <ReadOnlyField
-              label={t("admin.awsRegion")}
-              value={s3Setup.region ?? t("admin.notSet")}
+              label={t("developer.awsRegion")}
+              value={s3Setup.region ?? t("developer.notSet")}
             />
             <ReadOnlyField
-              label={t("admin.appFolder")}
-              value={s3Setup.appFolderKey || t("admin.bucketRoot")}
+              label={t("developer.appFolder")}
+              value={s3Setup.appFolderKey || t("developer.bucketRoot")}
             />
 
             {s3Setup.appFolderConsoleUrl ? (
               <s-link href={s3Setup.appFolderConsoleUrl} target="_blank">
-                {t("admin.openAppFolder")}
+                {t("developer.openAppFolder")}
               </s-link>
             ) : null}
 
-            <s-paragraph>{t("admin.s3TestIntro")}</s-paragraph>
+            <s-paragraph>{t("developer.s3TestIntro")}</s-paragraph>
 
             <s3TestFetcher.Form method="post">
               <input type="hidden" name="intent" value={S3_TEST_INTENT} />
@@ -213,7 +218,7 @@ export default function AdminPanelPage() {
                 {...(isStartingS3Test ? { loading: true } : {})}
                 {...(!isS3SetupComplete ? { disabled: true } : {})}
               >
-                {t("admin.uploadTestFile")}
+                {t("developer.uploadTestFile")}
               </s-button>
             </s3TestFetcher.Form>
 

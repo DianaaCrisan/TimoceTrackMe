@@ -9,7 +9,7 @@ export function ResponseViewer({ title, content }: ResponseViewerProps) {
   const { t } = useI18n();
 
   return (
-    <s-section heading={title ?? t("admin.responseOutput")}>
+    <s-section heading={title ?? t("developer.responseOutput")}>
       <s-box
         padding="base"
         borderWidth="base"

@@ -26,3 +26,21 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+/// The app's settings. One row, created with these defaults on first read.
+/// See `SettingsRepository`.
+model AppSettings {
+  id String @id @default("singleton")
+
+  /// Heaviest parcel to ship, in kg. NULL turns the weight check off.
+  /// Set it some kg below the courier's maximum: products sold by weight
+  /// often weigh more than their listed weight.
+  parcelWeightLimitKg Float?
+
+  /// When true, add tracking splits a fulfillment over `parcelWeightLimitKg`
+  /// into several parcels, one AWB each. When false, heavy orders are only
+  /// highlighted.
+  autoSplitHeavyOrders Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+}

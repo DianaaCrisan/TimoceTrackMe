@@ -5,6 +5,7 @@ import type { TranslationKey } from "../i18n/translations";
 export const ORDERS_DASHBOARD_FILTERS = [
   "all",
   "pending_fulfillment",
+  "zip_to_fix",
   "unprinted",
 ] as const;
 
@@ -17,6 +18,7 @@ export const DEFAULT_ORDERS_DASHBOARD_FILTER: OrdersDashboardFilter =
 /** Tabs that show how many orders they hold, loaded after the page. */
 export const COUNTED_ORDERS_DASHBOARD_FILTERS = [
   "pending_fulfillment",
+  "zip_to_fix",
   "unprinted",
 ] as const satisfies readonly OrdersDashboardFilter[];
 
@@ -25,6 +27,7 @@ export const ORDERS_DASHBOARD_PATH = "/app/orders-dashboard";
 const FILTER_LABELS: Record<OrdersDashboardFilter, TranslationKey> = {
   all: "filter.all",
   pending_fulfillment: "filter.pending_fulfillment",
+  zip_to_fix: "filter.zip_to_fix",
   unprinted: "filter.unprinted",
 };
 

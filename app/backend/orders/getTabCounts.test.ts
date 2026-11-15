@@ -7,17 +7,18 @@ vi.mock("./getOrdersCount.server", () => ({ getOrdersCount: vi.fn() }));
 const admin = {} as AdminApiContextWithoutRest;
 
 describe("getTabCounts", () => {
-  it("counts the Pending fulfillment and Unprinted tabs", async () => {
+  it("counts the Pending fulfillment, ZIP to fix and Unprinted tabs", async () => {
     const countOrders = vi.fn(async (_admin: unknown, filter: string) => ({
-      count: filter === "unprinted" ? 4 : 12,
+      count: filter === "unprinted" ? 4 : filter === "zip_to_fix" ? 3 : 12,
       isAtLeast: false,
     }));
 
     await expect(getTabCounts(admin, countOrders)).resolves.toEqual({
       pending_fulfillment: { count: 12, isAtLeast: false },
+      zip_to_fix: { count: 3, isAtLeast: false },
       unprinted: { count: 4, isAtLeast: false },
     });
-    expect(countOrders).toHaveBeenCalledTimes(2);
+    expect(countOrders).toHaveBeenCalledTimes(3);
   });
 
   it("leaves only the failed tab without a number", async () => {
@@ -29,6 +30,7 @@ describe("getTabCounts", () => {
 
     await expect(getTabCounts(admin, countOrders)).resolves.toEqual({
       pending_fulfillment: { count: 12, isAtLeast: false },
+      zip_to_fix: { count: 12, isAtLeast: false },
       unprinted: null,
     });
   });

@@ -9,6 +9,7 @@ import {
   parseOrderSelection,
   resolveOrderIds,
 } from "../orders/resolveOrderSelection.server";
+import { parseManualZips } from "../add-tracking/parseManualZips";
 import { buildFailureFileName } from "./buildFailureFileName";
 import { createJobAdmin } from "./createJobAdmin.server";
 import type { OrdersJobContext } from "./definitions/OrdersJobContext";
@@ -20,6 +21,8 @@ import {
 type OrdersJobDefinition = {
   job: JobKind;
   title: string;
+  /** Reads ZIPs the admin typed from the form (see `ManualZips`). */
+  acceptsManualZips?: boolean;
   buildArtifact: (ctx: OrdersJobContext) => Promise<JobArtifact>;
 };
 
@@ -51,6 +54,9 @@ export async function handleStartOrdersJob(
       t,
     );
     const timeZone = formData.get("timeZone");
+    const manualZips = definition.acceptsManualZips
+      ? parseManualZips(formData, orderIds, t)
+      : undefined;
 
     const jobAdmin = createJobAdmin(session.shop);
     const startedAt = new Date();
@@ -68,6 +74,7 @@ export async function handleStartOrdersJob(
           startedAt,
           timeZone: typeof timeZone === "string" ? timeZone : null,
           locale,
+          manualZips,
         }),
     });
 

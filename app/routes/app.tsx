@@ -48,7 +48,8 @@ export default function App() {
           <s-link href={UNFULFILLED_REPORT_PATH}>
             {t("nav.unfulfilledReport")}
           </s-link>
-          <s-link href="/app/admin-panel">{t("nav.adminPanel")}</s-link>
+          <s-link href="/app/settings">{t("nav.settings")}</s-link>
+          <s-link href="/app/developer-panel">{t("nav.developerPanel")}</s-link>
         </s-app-nav>
         <Outlet />
       </I18nProvider>

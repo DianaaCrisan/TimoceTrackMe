@@ -62,6 +62,12 @@ $font-color: rgb(48, 48, 48);
     background: var(--p-color-bg-surface-secondary, #eeeeee);
   }
 
+  // a bar on the first cell rather than a background, so it still shows on
+  // selected rows; table rows themselves do not reliably draw a box-shadow
+  &.--heavy > td:first-child {
+    box-shadow: inset 4px 0 0 var(--p-color-border-caution, #e8b400);
+  }
+
   &.--cancelled {
     opacity: 0.6;
     .orders-dashboard-table__body-cell {

@@ -1,4 +1,5 @@
 import type { Locale } from "app/commons/i18n/Locale";
+import type { ManualZips } from "app/commons/orders/ManualZips";
 import type { AdminApiContextWithoutRest } from "../../core/types/AdminApiContextWithoutRest";
 
 /** What every bulk orders job gets when it starts building its result. */
@@ -12,4 +13,6 @@ export type OrdersJobContext = {
   timeZone: string | null;
   /** The language of whoever started the job, for its summary. English if unset. */
   locale?: Locale;
+  /** ZIPs the admin typed on the "ZIP to fix" tab (add tracking only). */
+  manualZips?: ManualZips;
 };

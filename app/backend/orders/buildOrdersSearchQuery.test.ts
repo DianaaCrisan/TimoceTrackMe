@@ -10,6 +10,13 @@ describe("buildOrdersSearchQuery", () => {
     );
   });
 
+  it("finds orders whose ZIP stopped add tracking and that still need shipping", () => {
+    expect(buildOrdersSearchQuery("zip_to_fix")).toBe(
+      "tag:cod-postal-de-corectat AND NOT status:cancelled AND " +
+        "(fulfillment_status:unfulfilled OR fulfillment_status:partial)",
+    );
+  });
+
   it("keeps the other tabs as they were", () => {
     expect(buildOrdersSearchQuery("all")).toBeNull();
     expect(buildOrdersSearchQuery("pending_fulfillment")).toBe(
@@ -21,6 +28,7 @@ describe("buildOrdersSearchQuery", () => {
 describe("parseOrdersDashboardFilter", () => {
   it("accepts every tab and falls back to Pending fulfillment", () => {
     expect(parseOrdersDashboardFilter("unprinted")).toBe("unprinted");
+    expect(parseOrdersDashboardFilter("zip_to_fix")).toBe("zip_to_fix");
     expect(parseOrdersDashboardFilter("pending_fulfillment")).toBe(
       "pending_fulfillment",
     );
