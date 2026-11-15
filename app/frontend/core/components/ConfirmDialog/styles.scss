@@ -1,0 +1,67 @@
+$font-color: rgb(48, 48, 48);
+
+.confirm-dialog {
+  width: min(480px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  color: $font-color;
+  font-size: 13px;
+  font-family: inherit;
+
+  &::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
+
+.confirm-dialog__title {
+  margin: 0;
+  padding: 16px 20px 8px;
+  font-size: 16px;
+}
+
+.confirm-dialog__body {
+  padding: 0 20px 16px;
+  color: #4a4a4a;
+  line-height: 18px;
+
+  p {
+    margin: 0 0 8px;
+  }
+}
+
+.confirm-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid #e1e3e5;
+}
+
+.confirm-dialog__secondary,
+.confirm-dialog__primary {
+  padding: 6px 14px;
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.confirm-dialog__secondary {
+  border: 1px solid #c9cccf;
+  background: white;
+}
+
+.confirm-dialog__primary {
+  border: 1px solid #303030;
+  background: #303030;
+  color: white;
+  font-weight: 600;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}

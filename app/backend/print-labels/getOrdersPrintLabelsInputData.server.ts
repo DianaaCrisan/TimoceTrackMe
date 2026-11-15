@@ -3,6 +3,7 @@ import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
 import { GET_ORDERS_PRINT_LABELS_INPUT_QUERY } from "./printLabels.operations.server";
 import type { GetOrdersPrintLabelsInputQuery } from "app/types/admin.generated";
 import { chunk, SHOPIFY_READ_BATCH_SIZE } from "../graphql/utils/batch-utils";
+import { isPickupDeliveryMethod } from "app/commons/orders/isPickupDeliveryMethod";
 
 const INITIAL_EXPECTED_COST = 80;
 
@@ -76,10 +77,11 @@ async function getOrdersPrintLabelsInputDataBatch(
   return nodes
     .filter((node): node is NonNullable<typeof node> => !!node)
     .map((order) => {
-      // PICKUP DETECTION
-      const shippingEdges = order.shippingLines?.edges ?? [];
-      const firstShipping = shippingEdges[0]?.node;
-      const isPickup = !firstShipping?.taxLines?.length;
+      // PICKUP DETECTION: Shopify's delivery method, as everywhere in the app
+      const isPickup =
+        order.fulfillmentOrders?.edges.some((edge) =>
+          isPickupDeliveryMethod(edge.node.deliveryMethod?.methodType),
+        ) ?? false;
 
       // PICKUP FULFILLMENTS
       const pickupFulfillmentOrders =
@@ -87,7 +89,9 @@ async function getOrdersPrintLabelsInputDataBatch(
           .map((edge) => edge.node)
           .filter(
             (fulfillmentOrder) =>
-              fulfillmentOrder.deliveryMethod?.methodType === "PICK_UP" &&
+              isPickupDeliveryMethod(
+                fulfillmentOrder.deliveryMethod?.methodType,
+              ) &&
               fulfillmentOrder.lineItems.edges.some(
                 (lineItemEdge) => lineItemEdge.node.remainingQuantity > 0,
               ),

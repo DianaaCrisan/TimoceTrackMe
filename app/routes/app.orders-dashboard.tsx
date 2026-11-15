@@ -1,53 +1,42 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { TitleBar } from "@shopify/app-bridge-react";
+import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 import { authenticate } from "../shopify.server";
-import { getOrdersDashboardData } from "../backend/orders/orders-dashboard.server";
-import { getOrdersCount } from "../backend/orders/getOrdersCount.server";
-import { getRecentJobsSnapshot } from "../backend/jobs/jobsSetup.server";
-import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
-import { parseOrdersDashboardFilter } from "app/commons/orders/OrdersDashboardFilter";
+import { loadOrdersDashboard } from "app/backend/orders/loadOrdersDashboard.server";
+import { ALL_ORDERS_SCOPE } from "app/commons/orders/OrdersScope";
 import { OrdersDashboardPage } from "app/frontend/orders-dashboard/components/OrdersDashboardPage";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
 
-  const url = new URL(request.url);
-  const filter = parseOrdersDashboardFilter(url.searchParams.get("filter"));
-
-  const [data, ordersCount, recentJobs] = await Promise.all([
-    getOrdersDashboardData(admin, {
-      after: url.searchParams.get("after"),
-      before: url.searchParams.get("before"),
-      filter,
-    }),
-    getOrdersCount(admin, filter),
-    getRecentJobsSnapshot(),
-  ]);
-
-  return {
-    ...data,
-    filter,
-    ordersCount,
-    recentJobs,
-    shopAdminUrl: ShopifyUtils.getShopAdminUrl(session.shop),
-  };
+  return loadOrdersDashboard({
+    admin,
+    shop: session.shop,
+    url: new URL(request.url),
+    scope: ALL_ORDERS_SCOPE,
+  });
 };
 
 export default function OrdersDashboardRoute() {
-  const { orders, pageInfo, shopAdminUrl, filter, ordersCount, recentJobs } =
-    useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
+  const { t } = useI18n();
 
   return (
     <>
-      <TitleBar title="Orders" />
+      <TitleBar title={t("nav.orders")} />
       <OrdersDashboardPage
-        orders={orders}
-        pageInfo={pageInfo}
-        shopAdminUrl={shopAdminUrl}
-        activeFilter={filter}
-        ordersCount={ordersCount}
-        recentJobs={recentJobs}
+        scope={ALL_ORDERS_SCOPE}
+        orders={data.orders}
+        pageInfo={data.pageInfo}
+        shopAdminUrl={data.shopAdminUrl}
+        activeFilter={data.filter}
+        ordersCount={data.ordersCount}
+        pageNumbers={data.pageNumbers}
+        recentJobs={data.recentJobs}
+        parcelWeight={data.parcelWeight}
+        targetPacks={data.targetPacks}
+        jobsOnlyInPacks={data.jobsOnlyInPacks}
       />
     </>
   );

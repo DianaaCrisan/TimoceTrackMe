@@ -15,7 +15,7 @@ export function drawRightArrowFooter(
 
     // stroke
     thickness?: number;
-  }
+  },
 ) {
   const {
     bottomPadding = 12,

@@ -19,7 +19,21 @@ import { createOptimusTrackingNumber } from "../optimus/createOptimusTrackingNum
 import { isEligibleForFulfillment } from "../graphql/utils/fulfillment-order-utils";
 import { ShopifyUtils } from "../graphql/utils/ShopifyUtils";
 import { isOptimusInvalidZipError } from "../optimus/isOptimusInvalidZipError";
-import { ZipRecovery } from "./ZipRecovery.server";
+import { addZipCodeToOrderMutation } from "../zip-solver/addZipCodeToOrder.server";
+import { ZIP_TO_FIX_ORDER_TAG } from "app/commons/constants";
+import { normalizeZip, type ManualZips } from "app/commons/orders/ManualZips";
+import { addZipToFixTag, removeZipToFixTag } from "./zipToFixTag.server";
+import { ZipRecovery, type ZipChange } from "./ZipRecovery.server";
+import {
+  packIntoParcels,
+  type PackableItem,
+  type PackedParcel,
+} from "./packIntoParcels";
+import {
+  getSplitLimitKg,
+  type ParcelWeightSettings,
+} from "app/commons/settings/ParcelWeightSettings";
+import { formatKilogramsForAwb } from "app/commons/shipping/Weight";
 
 type AddTrackingDeps = {
   getOrders: typeof getOrdersTrackingInputDataInBatches;
@@ -29,6 +43,14 @@ type AddTrackingDeps = {
     admin: AdminApiContextWithoutRest,
     shopUrl: string,
   ) => ZipRecovery;
+  saveZip: (
+    admin: AdminApiContextWithoutRest,
+    shopUrl: string,
+    orderId: string,
+    zip: string,
+  ) => Promise<void>;
+  addZipToFixTag: typeof addZipToFixTag;
+  removeZipToFixTag: typeof removeZipToFixTag;
 };
 
 const defaultDeps: AddTrackingDeps = {
@@ -36,16 +58,38 @@ const defaultDeps: AddTrackingDeps = {
   createAwb: createOptimusTrackingNumber,
   addTrackingToFulfillment: addTrackingNumberToFulfillment,
   createZipRecovery: (admin, shopUrl) => new ZipRecovery(admin, shopUrl),
+  saveZip: async (admin, shopUrl, orderId, zip) => {
+    await addZipCodeToOrderMutation(admin, shopUrl, {
+      id: orderId,
+      shippingAddress: { zip },
+    });
+  },
+  addZipToFixTag,
+  removeZipToFixTag,
 };
 
+/** Optimus refused the order's ZIP and it could not be fixed in this run. */
+class ZipProblemError extends Error {}
+
 /**
- * Creates an Optimus AWB for every shipping fulfillment order that still has
- * items to ship, and fulfills it in Shopify with that tracking number.
+ * Creates an Optimus AWB for every parcel of the shipping fulfillment orders
+ * that still have items to ship, and fulfills each parcel in Shopify with its
+ * tracking number.
  *
- * ZIP codes are solved automatically (see `ZipRecovery`):
+ * Parcels: a fulfillment order is one parcel, unless auto split is on and it
+ * weighs more than the limit (`request.parcelWeight`). Then it is packed into
+ * several parcels, each its own AWB and its own Shopify fulfillment. An order
+ * with several parcels numbers them ("2/3") on the AWB.
+ *
+ * ZIPs the admin typed (`request.manualZips`) are saved to the orders first.
+ * Every other ZIP is solved automatically (see `ZipRecovery`):
  * - orders without a ZIP are solved in one batch before any AWB is created
  * - when Optimus rejects a ZIP, the order is solved once more and the AWB
  *   retried once. Optimus keeps the rejected AWB; it is never fulfilled.
+ *
+ * Orders that still fail on their ZIP get the `ZIP_TO_FIX_ORDER_TAG`, so the
+ * admin finds them on the "ZIP to fix" tab; every other order processed here
+ * loses it.
  */
 export async function addTrackingNumbers(
   admin: AdminApiContextWithoutRest,
@@ -59,10 +103,21 @@ export async function addTrackingNumbers(
   const orders = await deps.getOrders(admin, request.orderIds);
   const ordersById = new Map(orders.map((order) => [order.id, order]));
 
+  const manualZipResults = await saveManualZips({
+    admin,
+    shopUrl,
+    orders,
+    manualZips: request.manualZips ?? {},
+    deps,
+    failedOrders,
+  });
+
   const zipRecovery = deps.createZipRecovery(admin, shopUrl);
   await zipRecovery.fillMissingZips(
     orders.filter(
-      (order) => getEligibleShippingFulfillmentOrders(order).length > 0,
+      (order) =>
+        !manualZipResults.has(order.id) &&
+        getEligibleShippingFulfillmentOrders(order).length > 0,
     ),
   );
 
@@ -75,12 +130,18 @@ export async function addTrackingNumbers(
   await Promise.all(
     request.orderIds.map((orderId) =>
       scheduleWithProgress(pool, progress, orderId, async () => {
+        const manualZip = manualZipResults.get(orderId);
+        // the ZIP could not be saved, so the order already failed
+        if (manualZip?.isSaveFailed) return;
+
         await processOneOrder({
           admin,
           shopUrl,
           orderId,
           order: ordersById.get(orderId),
           zipRecovery,
+          manualZip,
+          parcelWeight: request.parcelWeight,
           deps,
           successfulOrders,
           failedOrders,
@@ -88,6 +149,15 @@ export async function addTrackingNumbers(
       }),
     ),
   );
+
+  await syncZipToFixTags({
+    admin,
+    shopUrl,
+    ordersById,
+    successfulOrders,
+    failedOrders,
+    deps,
+  });
 
   return {
     ok: failedOrders.length === 0,
@@ -102,6 +172,8 @@ async function processOneOrder({
   orderId,
   order,
   zipRecovery,
+  manualZip,
+  parcelWeight,
   deps,
   successfulOrders,
   failedOrders,
@@ -111,6 +183,9 @@ async function processOneOrder({
   orderId: string;
   order?: TrackingInputOrder;
   zipRecovery: ZipRecovery;
+  /** Set when the admin typed this order's ZIP. */
+  manualZip?: ManualZipResult;
+  parcelWeight?: ParcelWeightSettings;
   deps: AddTrackingDeps;
   successfulOrders: AddTrackingNumbersSuccessfulOrder[];
   failedOrders: AddTrackingNumbersFailedOrder[];
@@ -142,79 +217,90 @@ async function processOneOrder({
             ? `Missing shipping ZIP code, and it could not be solved automatically: ${reason}.`
             : "Missing shipping ZIP code.",
         ],
+        isZipProblem: true,
       });
       return;
     }
 
-    const createdTrackingNumbers: string[] = [];
-    const fulfillmentErrors: string[] = [];
+    const parcels = planOrderParcels(
+      shippingFulfillmentOrders,
+      parcelWeight ? getSplitLimitKg(parcelWeight) : null,
+    );
+    const limitKg = parcelWeight?.parcelWeightLimitKg ?? null;
 
-    for (const fulfillmentOrder of shippingFulfillmentOrders) {
+    const createdTrackingNumbers: string[] = [];
+    const weightWarnings: string[] = [];
+    let failure: { error: string; isZipProblem: boolean } | undefined;
+
+    for (const [index, parcel] of parcels.entries()) {
+      const parcelPosition =
+        parcels.length > 1 ? `${index + 1}/${parcels.length}` : undefined;
+      const parcelLabel = describeParcel(parcel, parcelPosition);
+
       try {
-        const totalWeight = getTotalWeightForFulfillmentOrder(fulfillmentOrder);
         const awbResponse = await createAwbWithZipRetry(
           order,
-          totalWeight,
+          { weightKg: parcel.weightKg, parcelPosition },
           zipRecovery,
           deps,
+          manualZip !== undefined,
         );
 
         await deps.addTrackingToFulfillment(admin, shopUrl, {
-          fulfillmentOrderId: fulfillmentOrder.id,
-          fulfillmentOrderLineItems: fulfillmentOrder.lineItems
-            .filter((lineItem) => lineItem.remainingQuantity > 0)
-            .map((lineItem) => ({
-              id: lineItem.fulfillmentOrderLineItemId,
-              quantity: lineItem.remainingQuantity,
-            })),
+          fulfillmentOrderId: parcel.fulfillmentOrderId,
+          fulfillmentOrderLineItems: parcel.items.map(({ id, quantity }) => ({
+            id,
+            quantity,
+          })),
           trackingNumber: awbResponse.trackingNumber,
         });
 
         createdTrackingNumbers.push(awbResponse.trackingNumber);
-      } catch (fulfillmentError) {
-        fulfillmentErrors.push(
-          `Fulfillment ${ShopifyUtils.extractShopifyId(fulfillmentOrder.id)}: ${
-            fulfillmentError instanceof Error
-              ? fulfillmentError.message
-              : String(fulfillmentError)
-          }`,
+        const weightWarning = describeWeightWarning(
+          parcel,
+          parcelLabel,
+          limitKg,
         );
+        if (weightWarning) weightWarnings.push(weightWarning);
+      } catch (parcelError) {
+        // Stop at the first failure: the parcels left would carry numbers from
+        // a set that is no longer complete. Adding tracking again ships them.
+        failure = {
+          error: `${parcelLabel}: ${errorMessage(parcelError)}`,
+          isZipProblem: parcelError instanceof ZipProblemError,
+        };
+        break;
       }
     }
 
-    const zipChange = zipRecovery.getChange(order.id);
+    const zipChange = manualZip?.change ?? zipRecovery.getChange(order.id);
 
-    if (createdTrackingNumbers.length > 0 && fulfillmentErrors.length === 0) {
+    if (!failure && createdTrackingNumbers.length > 0) {
       successfulOrders.push({
         id: order.id,
         name: order.name,
         trackingNumbers: createdTrackingNumbers,
         zipChange,
+        ...(weightWarnings.length > 0 ? { weightWarnings } : {}),
       });
       return;
     }
 
-    if (createdTrackingNumbers.length > 0 && fulfillmentErrors.length > 0) {
-      failedOrders.push({
-        id: order.id,
-        name: order.name,
-        errors: [
-          `Some fulfillment orders succeeded (${createdTrackingNumbers.join(", ")}) and some failed.`,
-          ...fulfillmentErrors,
-        ],
-        zipChange,
-      });
-      return;
-    }
+    const errors = [
+      ...(createdTrackingNumbers.length > 0
+        ? [
+            `${createdTrackingNumbers.length} of ${parcels.length} parcels were shipped (${createdTrackingNumbers.join(", ")}). Add tracking again to ship the rest.`,
+          ]
+        : []),
+      failure?.error ?? "No tracking numbers were created for this order.",
+    ];
 
     failedOrders.push({
       id: order.id,
       name: order.name,
-      errors:
-        fulfillmentErrors.length > 0
-          ? fulfillmentErrors
-          : ["No tracking numbers were created for this order."],
+      errors,
       zipChange,
+      isZipProblem: failure?.isZipProblem ?? false,
     });
   } catch (error) {
     failedOrders.push({
@@ -228,32 +314,196 @@ async function processOneOrder({
 /**
  * Creates the AWB; if Optimus rejects the ZIP, solves it and retries once.
  * The order is patched in place, so its later fulfillment orders use the new
- * ZIP from the start.
+ * ZIP from the start. A ZIP the admin typed is never solved again.
+ *
+ * Throws `ZipProblemError` when the order ends up without a ZIP Optimus takes.
  */
 async function createAwbWithZipRetry(
   order: TrackingInputOrder,
-  totalWeight: number,
+  parcel: AwbParcel,
   zipRecovery: ZipRecovery,
   deps: AddTrackingDeps,
+  isZipEnteredByHand: boolean,
 ): Promise<{ trackingNumber: string }> {
   try {
-    return await deps.createAwb(buildAwbRequest(order, totalWeight));
+    return await deps.createAwb(buildAwbRequest(order, parcel));
   } catch (error) {
     if (!isOptimusInvalidZipError(error)) throw error;
 
     const rejectedZip = order.shippingAddress?.zip ?? "";
+    if (isZipEnteredByHand) {
+      throw new ZipProblemError(
+        `Optimus rejected ZIP ${rejectedZip}, which was entered by hand. ${errorMessage(error)}`,
+      );
+    }
+
     const decision = await zipRecovery.retryAfterRejection(order);
     if (!decision.shouldRetry) {
-      throw new Error(
+      throw new ZipProblemError(
         `Optimus rejected ZIP ${rejectedZip}, and it could not be solved automatically: ${decision.reason}. ${errorMessage(error)}`,
       );
     }
 
-    return deps.createAwb(buildAwbRequest(order, totalWeight));
+    try {
+      return await deps.createAwb(buildAwbRequest(order, parcel));
+    } catch (retryError) {
+      if (isOptimusInvalidZipError(retryError)) {
+        throw new ZipProblemError(errorMessage(retryError));
+      }
+      throw retryError;
+    }
   }
 }
 
-function buildAwbRequest(order: TrackingInputOrder, totalWeight: number) {
+type ManualZipResult = {
+  /** Unset when the typed ZIP is the one the order already had. */
+  change?: ZipChange;
+  isSaveFailed?: boolean;
+};
+
+/**
+ * Saves the ZIPs the admin typed to the orders in Shopify and patches the
+ * in-memory orders, so the AWBs use them. An order whose ZIP cannot be saved
+ * fails here and gets no AWB: the label would not match the order.
+ */
+async function saveManualZips({
+  admin,
+  shopUrl,
+  orders,
+  manualZips,
+  deps,
+  failedOrders,
+}: {
+  admin: AdminApiContextWithoutRest;
+  shopUrl: string;
+  orders: TrackingInputOrder[];
+  manualZips: ManualZips;
+  deps: AddTrackingDeps;
+  failedOrders: AddTrackingNumbersFailedOrder[];
+}): Promise<Map<string, ManualZipResult>> {
+  const results = new Map<string, ManualZipResult>();
+  const pool = createPool(ADD_TRACKING_GRAPHQL_POOL_WORKERS);
+
+  await Promise.all(
+    orders.map((order) => {
+      const typedZip = manualZips[order.id];
+      if (typedZip === undefined) return undefined;
+
+      return pool.schedule(async () => {
+        const zip = normalizeZip(typedZip);
+        const address = order.shippingAddress;
+
+        if (!address) {
+          results.set(order.id, { isSaveFailed: true });
+          failedOrders.push({
+            id: order.id,
+            name: order.name,
+            errors: [
+              `ZIP ${zip} was not saved: the order has no shipping address.`,
+            ],
+          });
+          return;
+        }
+
+        const previousZip = address.zip ?? null;
+        if (zip === previousZip) {
+          results.set(order.id, {});
+          return;
+        }
+
+        try {
+          await deps.saveZip(admin, shopUrl, order.id, zip);
+          address.zip = zip;
+          results.set(order.id, {
+            change: { previousZip, newZip: zip, isEnteredByHand: true },
+          });
+        } catch (error) {
+          results.set(order.id, { isSaveFailed: true });
+          failedOrders.push({
+            id: order.id,
+            name: order.name,
+            errors: [
+              `Could not save ZIP ${zip} to the order: ${errorMessage(error)}`,
+            ],
+            isZipProblem: true,
+          });
+        }
+      });
+    }),
+  );
+
+  return results;
+}
+
+/**
+ * Puts the orders that failed on their ZIP on the "ZIP to fix" tab, and takes
+ * every other processed order off it. Tags only orders that do not have the
+ * tag yet (and untags only those that do), so a normal run costs no calls.
+ */
+async function syncZipToFixTags({
+  admin,
+  shopUrl,
+  ordersById,
+  successfulOrders,
+  failedOrders,
+  deps,
+}: {
+  admin: AdminApiContextWithoutRest;
+  shopUrl: string;
+  ordersById: Map<string, TrackingInputOrder>;
+  successfulOrders: AddTrackingNumbersSuccessfulOrder[];
+  failedOrders: AddTrackingNumbersFailedOrder[];
+  deps: AddTrackingDeps;
+}): Promise<void> {
+  const hasTag = (orderId: string) =>
+    ordersById.get(orderId)?.tags.includes(ZIP_TO_FIX_ORDER_TAG) ?? false;
+  const pool = createPool(ADD_TRACKING_GRAPHQL_POOL_WORKERS);
+
+  const toTag = failedOrders.filter(
+    (order) =>
+      order.isZipProblem && ordersById.has(order.id) && !hasTag(order.id),
+  );
+  const toUntag = [
+    ...successfulOrders,
+    ...failedOrders.filter((order) => !order.isZipProblem),
+  ].filter((order) => hasTag(order.id));
+
+  await Promise.all([
+    ...toTag.map((order) =>
+      pool.schedule(async () => {
+        try {
+          await deps.addZipToFixTag(admin, shopUrl, order.id);
+        } catch (error) {
+          order.errors.push(
+            `Could not add the "${ZIP_TO_FIX_ORDER_TAG}" tag, so the order is not on the "ZIP to fix" tab: ${errorMessage(error)}`,
+          );
+        }
+      }),
+    ),
+    ...toUntag.map((order) =>
+      pool.schedule(async () => {
+        try {
+          await deps.removeZipToFixTag(admin, shopUrl, order.id);
+        } catch (error) {
+          // a fulfilled order leaves the tab anyway; only a failed one stays
+          console.error(
+            `AppError[AddTracking] could not remove the "${ZIP_TO_FIX_ORDER_TAG}" tag from ${order.id}.`,
+            error,
+          );
+          if ("errors" in order) {
+            order.errors.push(
+              `Could not remove the "${ZIP_TO_FIX_ORDER_TAG}" tag: ${errorMessage(error)}`,
+            );
+          }
+        }
+      }),
+    ),
+  ]);
+}
+
+type AwbParcel = { weightKg: number; parcelPosition?: string };
+
+function buildAwbRequest(order: TrackingInputOrder, parcel: AwbParcel) {
   return {
     orderName: order.name,
     email: order.email ?? undefined,
@@ -265,8 +515,11 @@ function buildAwbRequest(order: TrackingInputOrder, totalWeight: number) {
     city: order.shippingAddress?.city ?? "",
     country: order.shippingAddress?.country ?? "",
     zip: order.shippingAddress?.zip ?? "",
-    invoiceDetails: `Comanda ${order.name}`,
-    weight: totalWeight.toString(),
+    invoiceDetails: parcel.parcelPosition
+      ? `Comanda ${order.name} (colet ${parcel.parcelPosition})`
+      : `Comanda ${order.name}`,
+    weightKg: parcel.weightKg,
+    parcelPosition: parcel.parcelPosition,
     formatted: order.shippingAddress?.formatted.join(", ") ?? "",
   };
 }
@@ -293,27 +546,73 @@ function getEligibleShippingFulfillmentOrders(
   });
 }
 
-function getTotalWeightForFulfillmentOrder(
+type OrderParcel = PackedParcel & { fulfillmentOrderId: string };
+
+/**
+ * The order's parcels, in the order they are numbered. A parcel never mixes
+ * fulfillment orders, because each parcel becomes one Shopify fulfillment.
+ * Throws before any AWB exists when an item has no usable weight.
+ */
+function planOrderParcels(
+  fulfillmentOrders: TrackingInputFulfillmentOrder[],
+  splitLimitKg: number | null,
+): OrderParcel[] {
+  return fulfillmentOrders.flatMap((fulfillmentOrder) =>
+    packIntoParcels(toPackableItems(fulfillmentOrder), splitLimitKg).map(
+      (parcel) => ({ ...parcel, fulfillmentOrderId: fulfillmentOrder.id }),
+    ),
+  );
+}
+
+function toPackableItems(
   fulfillmentOrder: TrackingInputFulfillmentOrder,
-): number {
-  const totalWeight = fulfillmentOrder.lineItems.reduce((sum, lineItem) => {
-    if (lineItem.remainingQuantity <= 0) {
-      return sum;
-    }
+): PackableItem[] {
+  return fulfillmentOrder.lineItems
+    .filter((lineItem) => lineItem.remainingQuantity > 0)
+    .map((lineItem) => {
+      const unitWeightKg = lineItem.weightKg;
+      if (
+        unitWeightKg == null ||
+        !Number.isFinite(unitWeightKg) ||
+        unitWeightKg <= 0
+      ) {
+        throw new Error(
+          `Fulfillment ${ShopifyUtils.extractShopifyId(fulfillmentOrder.id)}: missing or invalid weight for item "${lineItem.name}".`,
+        );
+      }
 
-    const weight = Number(lineItem.weight);
-    if (!Number.isFinite(weight) || weight <= 0) {
-      throw new Error(`Missing or invalid weight for item "${lineItem.name}".`);
-    }
+      return {
+        id: lineItem.fulfillmentOrderLineItemId,
+        name: lineItem.name,
+        quantity: lineItem.remainingQuantity,
+        unitWeightKg,
+      };
+    });
+}
 
-    return sum + weight * lineItem.remainingQuantity;
-  }, 0);
+function describeParcel(parcel: OrderParcel, parcelPosition?: string): string {
+  const fulfillmentId = ShopifyUtils.extractShopifyId(
+    parcel.fulfillmentOrderId,
+  );
+  return parcelPosition
+    ? `Parcel ${parcelPosition} (fulfillment ${fulfillmentId})`
+    : `Fulfillment ${fulfillmentId}`;
+}
 
-  if (totalWeight <= 0) {
-    throw new Error("Total shipment weight must be greater than 0.");
-  }
+/** Set when the parcel shipped heavier than the admin's limit. */
+function describeWeightWarning(
+  parcel: PackedParcel,
+  parcelLabel: string,
+  limitKg: number | null,
+): string | undefined {
+  if (limitKg === null || parcel.weightKg <= limitKg) return undefined;
 
-  return totalWeight;
+  const weight = `${formatKilogramsForAwb(parcel.weightKg)} kg`;
+  const limit = `${formatKilogramsForAwb(limitKg)} kg`;
+
+  return parcel.isOverLimit
+    ? `${parcelLabel}: "${parcel.items[0].name}" alone weighs ${weight}, over the ${limit} limit, so it ships in a parcel of its own.`
+    : `${parcelLabel} weighs ${weight}, over the ${limit} limit. Auto split is off, so it ships as one parcel.`;
 }
 
 function buildFullAddress(order: TrackingInputOrder): string {

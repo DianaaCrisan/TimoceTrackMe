@@ -1,0 +1,177 @@
+// Laid out for phones first: everything stacks, and the fields and buttons
+// sit side by side only where there is room.
+
+.report-page__interval-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.report-page__interval-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  max-width: 480px;
+}
+
+.report-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-page__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.report-page__scope {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.report-page__loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+// Each section in its own colour, the same as the PDF: blue for delivery,
+// orange for pickup (distinct for colour-blind readers too).
+.report-page__section {
+  --section-band: #1f5199;
+  --section-tint: #e3ecf8;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &.--pickup {
+    --section-band: #b45309;
+    --section-tint: #fcebd7;
+  }
+}
+
+.report-page__section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--section-band);
+  color: #ffffff;
+}
+
+.report-page__section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.report-page__section-count {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.report-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 20px;
+  color: #303030;
+
+  th,
+  td {
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #e3e5e8;
+    // long product names wrap instead of widening the page
+    overflow-wrap: anywhere;
+  }
+
+  thead th {
+    background: var(--section-tint);
+    font-weight: 700;
+    color: var(--section-band);
+  }
+
+  // every other row shaded, so the eye stays on the line to the quantity
+  tbody tr:nth-child(even) {
+    background: #f5f6f8;
+  }
+
+  .--quantity {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  tbody td.--quantity {
+    font-weight: 600;
+  }
+
+  tfoot th,
+  tfoot td {
+    font-weight: 700;
+    color: var(--section-band);
+    background: var(--section-tint);
+    border-top: 2px solid var(--section-band);
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .report-page__table {
+    th,
+    td {
+      padding: 8px;
+    }
+  }
+}
+
+.report-page__orders {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.report-page__orders-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--section-band);
+}
+
+.report-page__order-ranges {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: #303030;
+  // long lists of ranges wrap between ranges, never off the screen
+  overflow-wrap: anywhere;
+}
+
+// On a phone, the buttons take the full width, easier to tap
+@media (max-width: 480px) {
+  .report-page__toolbar,
+  .report-page__toolbar .report-page__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -9,16 +9,11 @@ import {
   buildPrintLabels,
   type PrintLabelsResult,
 } from "../../print-labels/printLabels.server";
-import { SolveZipService } from "../../zip-solver/SolveZipService";
 import type { OrdersJobContext } from "./OrdersJobContext";
 import { buildPrintLabelsArtifact } from "./printLabelsJob.server";
-import { buildSolveZipArtifact } from "./solveZipJob.server";
 
 vi.mock("../../orders/getOrderNames.server", () => ({
   getOrderNames: vi.fn(),
-}));
-vi.mock("../../zip-solver/SolveZipService", () => ({
-  SolveZipService: { solveMissingZipCodesWithOrderIds: vi.fn() },
 }));
 vi.mock("../../print-labels/printLabels.server", () => ({
   buildPrintLabels: vi.fn(),
@@ -55,52 +50,6 @@ async function readResultRows(buf: Buffer): Promise<string[][]> {
   });
   return rows;
 }
-
-describe("buildSolveZipArtifact", () => {
-  beforeEach(() => {
-    vi.mocked(getOrderNames).mockResolvedValue(new Map([[gid(3), "#1003"]]));
-  });
-
-  it("reports solved, failed and skipped orders, counting a ZIP that could not be saved as failed", async () => {
-    vi.mocked(
-      SolveZipService.solveMissingZipCodesWithOrderIds,
-    ).mockResolvedValue({
-      processedOrdersSolvedZip: [
-        {
-          id: gid(1),
-          name: "#1001",
-          zipCode: "400001",
-          confidenceLevel: "high",
-        },
-        {
-          id: gid(2),
-          name: "#1002",
-          zipCode: "500001",
-          confidenceLevel: "medium",
-        },
-      ],
-      processedOrdersUnsolvedZip: [],
-      unsupportedOrders: [
-        { id: gid(2), name: "#1002", errorStack: ["orderUpdate failed"] },
-      ],
-    } as never);
-
-    const artifact = await buildSolveZipArtifact(ctx);
-
-    expect(artifact.summary).toBe("1 succeeded, 1 failed, 1 skipped");
-    expect(artifact.hasErrors).toBe(true);
-    expect(await readResultRows(artifact.buf)).toEqual([
-      [
-        "#1002",
-        "Failed",
-        "ZIP set to 500001 (medium confidence)",
-        "orderUpdate failed",
-      ],
-      ["#1003", "Skipped", "Already has a ZIP code, or is a pickup order.", ""],
-      ["#1001", "Succeeded", "ZIP set to 400001 (high confidence)", ""],
-    ]);
-  });
-});
 
 describe("buildPrintLabelsArtifact", () => {
   const printResult = (
@@ -239,6 +188,37 @@ describe("buildPrintLabelsArtifact", () => {
       "Totals page render failed\n",
     );
     expect(artifact.hasErrors).toBe(true);
+  });
+
+  it("names every file and the PDFs' language after the user's language", async () => {
+    vi.mocked(buildPrintLabels).mockResolvedValue(
+      printResult({
+        files: [
+          {
+            fileName: "etichete-livrare_1001.pdf",
+            buf: Buffer.from("pdf"),
+          },
+        ],
+        generalErrors: ["Totals page render failed"],
+        timestamp: "13-nov-2026_12-00",
+      }),
+    );
+
+    const artifact = await buildPrintLabelsArtifact({ ...ctx, locale: "ro" });
+    const zip = await JSZip.loadAsync(artifact.buf);
+
+    expect(buildPrintLabels).toHaveBeenCalledWith(ctx.admin, ctx.shopUrl, {
+      orderIds: ctx.orderIds,
+      timeZone: ctx.timeZone,
+      locale: "ro",
+    });
+    expect(artifact.fileName).toBe("etichete_13-nov-2026_12-00.zip");
+    expect(Object.keys(zip.files).sort()).toEqual([
+      "erori.txt",
+      "etichete-livrare_1001.pdf",
+      "rezultate-printare-etichete.xlsx",
+    ]);
+    expect(artifact.summary).toContain("vezi erori.txt");
   });
 
   it("fails the job when there are errors and no PDF at all, without marking anything", async () => {
