@@ -1,4 +1,7 @@
 import {
+  OPTIMUS_API_KEY,
+  OPTIMUS_API_URL,
+  OPTIMUS_USERNAME,
   OPTIMUS_API_KEY_TEST,
   OPTIMUS_API_URL_TEST,
   OPTIMUS_USERNAME_TEST,
@@ -19,8 +22,39 @@ export function getOptimusTestCredentialsForDisplay(): OptimusCredentialsDisplay
 
 export async function sendOptimusConnectionTest(): Promise<OptimusConnectionTestResult> {
   const { apiUrl } = getOptimusTestCredentials();
-  const payload = buildMockConnectionPayload();
+  return sendOptimusDebugRequest(apiUrl, buildMockConnectionPayload());
+}
 
+/**
+ * Asks Optimus for an AWB's current status and returns the whole exchange, so
+ * we can see what Optimus sends back before mapping it to Shopify statuses.
+ *
+ * Uses the live credentials, not the test ones: real AWBs only exist in the
+ * live account. Safe, because `status` only reads.
+ */
+export async function checkOptimusAwbStatus(
+  awb: string,
+): Promise<OptimusConnectionTestResult> {
+  if (!OPTIMUS_API_URL || !OPTIMUS_USERNAME || !OPTIMUS_API_KEY) {
+    throw new Error("Missing Optimus credentials in environment variables.");
+  }
+
+  return sendOptimusDebugRequest(OPTIMUS_API_URL, {
+    username: OPTIMUS_USERNAME,
+    api_key: OPTIMUS_API_KEY,
+    action: "status",
+    awb,
+  });
+}
+
+/**
+ * Sends a request to Optimus and returns it with the full response (HTTP
+ * status, raw body and parsed body). The API key is masked in the result.
+ */
+async function sendOptimusDebugRequest(
+  apiUrl: string,
+  payload: Record<string, string>,
+): Promise<OptimusConnectionTestResult> {
   let status = 0;
   let rawBody = "";
   let parsedBody: unknown = null;
