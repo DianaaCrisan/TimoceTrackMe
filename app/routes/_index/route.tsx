@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from "react-router";
+import type { ClientLoaderFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, Form, useLoaderData } from "react-router";
 
 import { login } from "../../shopify.server";
@@ -13,6 +13,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   return { showForm: Boolean(login) };
+};
+
+/**
+ * The admin's back arrow (and any in-app jump to the app root) navigates to
+ * `/` client-side, without the `?shop=` param the server loader keys on, so
+ * it would land on the public login page. Inside the admin iframe, go to the
+ * app home instead.
+ */
+export const clientLoader = async ({
+  serverLoader,
+}: ClientLoaderFunctionArgs) => {
+  if (window.top !== window.self) {
+    throw redirect("/app");
+  }
+
+  return serverLoader<typeof loader>();
 };
 
 export default function App() {
