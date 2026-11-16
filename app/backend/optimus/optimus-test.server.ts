@@ -10,6 +10,8 @@ import { OptimusConnectionTestRequest } from "./types/OptimusConnectionTestReque
 import { OptimusConnectionTestResult } from "./types/OptimusConnectionTestResult";
 import { OptimusCredentialsDisplay } from "./types/OptimusCredentialsDisplay";
 
+const OPTIMUS_STATUS_PATH = "/api-status";
+
 export function getOptimusTestCredentialsForDisplay(): OptimusCredentialsDisplay {
   return {
     apiUrl: OPTIMUS_API_URL_TEST || "Not configured",
@@ -30,7 +32,11 @@ export async function sendOptimusConnectionTest(): Promise<OptimusConnectionTest
  * we can see what Optimus sends back before mapping it to Shopify statuses.
  *
  * Uses the live credentials, not the test ones: real AWBs only exist in the
- * live account. Safe, because `status` only reads.
+ * live account. Safe, because the status endpoint only reads.
+ *
+ * Status lives on its own endpoint (`/api-status`, no `action` field), on the
+ * same host as the main API. Posting `action=status` to `/api` returns 200
+ * with an empty body.
  */
 export async function checkOptimusAwbStatus(
   awb: string,
@@ -39,10 +45,11 @@ export async function checkOptimusAwbStatus(
     throw new Error("Missing Optimus credentials in environment variables.");
   }
 
-  return sendOptimusDebugRequest(OPTIMUS_API_URL, {
+  const statusUrl = new URL(OPTIMUS_STATUS_PATH, OPTIMUS_API_URL).toString();
+
+  return sendOptimusDebugRequest(statusUrl, {
     username: OPTIMUS_USERNAME,
     api_key: OPTIMUS_API_KEY,
-    action: "status",
     awb,
   });
 }
