@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { appendOrderSelection } from "app/commons/orders/OrderSelection";
-import { SettingsRepository } from "../settings/SettingsRepository.server";
 import { handleStartOrdersJob } from "./handleStartOrdersJob.server";
 import { startBackgroundJob } from "./startBackgroundJob.server";
 
@@ -11,9 +10,6 @@ vi.mock("app/shopify.server", () => ({
       session: { shop: "timoce.myshopify.com" },
     })),
   },
-}));
-vi.mock("../settings/SettingsRepository.server", () => ({
-  SettingsRepository: { get: vi.fn() },
 }));
 vi.mock("../packs/PackRepository.server", () => ({
   PackRepository: {
@@ -45,15 +41,12 @@ function jobRequest(packId?: string): Request {
   });
 }
 
-describe("handleStartOrdersJob with jobs only in packs", () => {
+describe("handleStartOrdersJob: jobs only in packs", () => {
   beforeEach(() => {
     vi.mocked(startBackgroundJob).mockClear();
-    vi.mocked(SettingsRepository.get).mockResolvedValue({
-      jobsOnlyInPacks: true,
-    } as Awaited<ReturnType<typeof SettingsRepository.get>>);
   });
 
-  it("refuses a job started from the Orders page", async () => {
+  it("refuses a job that was not picked inside a pack", async () => {
     const response = await handleStartOrdersJob(jobRequest(), DEFINITION);
 
     expect(response.status).toBe(409);
@@ -73,14 +66,5 @@ describe("handleStartOrdersJob with jobs only in packs", () => {
 
     expect(response.status).toBe(202);
     expect(startBackgroundJob).toHaveBeenCalledOnce();
-  });
-
-  it("starts a job from the Orders page while the setting is off", async () => {
-    vi.mocked(SettingsRepository.get).mockResolvedValue({
-      jobsOnlyInPacks: false,
-    } as Awaited<ReturnType<typeof SettingsRepository.get>>);
-
-    const response = await handleStartOrdersJob(jobRequest(), DEFINITION);
-    expect(response.status).toBe(202);
   });
 });

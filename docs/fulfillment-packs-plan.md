@@ -243,14 +243,16 @@ still need, per product, for delivery and for pickup.
 
 ### Jobs only in packs (done)
 
-- Settings → Packs: "Add tracking and print labels only from a pack"
-  (`AppSettings.jobsOnlyInPacks`, off by default).
-- On, the Orders page keeps listing orders and adding them to packs, but its
-  job buttons (and the ZIP to fix tab's submit) give way to "Go to Packs".
+- Add tracking and print labels run from inside a pack only. The Orders page
+  ("Comenzi fără pachet") lists orders in no pack and adds them to one; it
+  has no job buttons. A single order can still be handled from the Shopify
+  order page (docs/order-page-extensions-plan.md).
 - Enforced by `handleStartOrdersJob`, not only by hiding buttons: a job
   whose selection carries no `packId` is refused with 409.
-- Every selection made inside a pack now carries its `packId`, ticked orders
+- Every selection made inside a pack carries its `packId`, ticked orders
   too; `resolveOrderIds` refuses ticked orders that have left the pack.
+- This was a setting (`AppSettings.jobsOnlyInPacks`) until 18.11.2026; the
+  migration `20261118090000_remove_jobs_only_in_packs` dropped it.
 
 ### Sold products report per pack (done)
 

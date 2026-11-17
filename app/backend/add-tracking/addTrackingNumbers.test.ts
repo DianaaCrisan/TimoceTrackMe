@@ -70,10 +70,12 @@ function setup(
     createAwb: vi.fn(async (_request: { zip: string }) => ({
       trackingNumber: `AWB${++awbCounter}`,
     })),
-    addTrackingToFulfillment: vi.fn(async () => undefined),
+    addTrackingToFulfillment: vi.fn(async () => "gid://shopify/Fulfillment/1"),
     saveZip: vi.fn(async () => undefined),
     addZipToFixTag: vi.fn(async () => undefined),
     removeZipToFixTag: vi.fn(async () => undefined),
+    recordGeneratedLabel: vi.fn(async () => undefined),
+    markLabelAddedToShopify: vi.fn(async () => undefined),
     solveZips: vi.fn(
       async (
         _admin: AdminApiContextWithoutRest,
@@ -99,6 +101,8 @@ function setup(
           saveZip: deps.saveZip,
           addZipToFixTag: deps.addZipToFixTag,
           removeZipToFixTag: deps.removeZipToFixTag,
+          recordGeneratedLabel: deps.recordGeneratedLabel,
+          markLabelAddedToShopify: deps.markLabelAddedToShopify,
         },
       ),
   };
@@ -424,6 +428,8 @@ describe("addTrackingNumbers: parcels by weight", () => {
         saveZip: deps.saveZip,
         addZipToFixTag: deps.addZipToFixTag,
         removeZipToFixTag: deps.removeZipToFixTag,
+        recordGeneratedLabel: deps.recordGeneratedLabel,
+        markLabelAddedToShopify: deps.markLabelAddedToShopify,
       },
     );
   }
@@ -478,7 +484,7 @@ describe("addTrackingNumbers: parcels by weight", () => {
       "AWB1",
       "AWB2",
     ]);
-    expect(result.successfulOrders[0].weightWarnings).toBeUndefined();
+    expect(result.successfulOrders[0].warnings).toBeUndefined();
   });
 
   it("ships one parcel with a warning when auto split is off", async () => {
@@ -490,7 +496,7 @@ describe("addTrackingNumbers: parcels by weight", () => {
     expect(awbCalls(deps)).toEqual([
       { weightKg: 30, parcelPosition: undefined, invoiceDetails: "Comanda #1" },
     ]);
-    expect(result.successfulOrders[0].weightWarnings).toEqual([
+    expect(result.successfulOrders[0].warnings).toEqual([
       "Fulfillment 11 weighs 30 kg, over the 25 kg limit. Auto split is off, so it ships as one parcel.",
     ]);
   });
@@ -502,7 +508,7 @@ describe("addTrackingNumbers: parcels by weight", () => {
     const result = await runWithLimit(order, true, deps);
 
     expect(deps.createAwb).toHaveBeenCalledTimes(1);
-    expect(result.successfulOrders[0].weightWarnings).toEqual([
+    expect(result.successfulOrders[0].warnings).toEqual([
       'Fulfillment 11: "Mușchi vită" alone weighs 30 kg, over the 25 kg limit, so it ships in a parcel of its own.',
     ]);
   });
@@ -545,6 +551,66 @@ describe("addTrackingNumbers: parcels by weight", () => {
     expect(deps.createAwb).not.toHaveBeenCalled();
     expect(result.failedOrders[0].errors).toEqual([
       'Fulfillment 11: missing or invalid weight for item "Mușchi vită".',
+    ]);
+  });
+});
+
+describe("addTrackingNumbers: AWB report", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+  });
+
+  it("saves every AWB as soon as Optimus returns it, then marks it as on Shopify", async () => {
+    const { deps, run } = setup([shippingOrder("1", "400001")], () =>
+      solved("1", "400001"),
+    );
+
+    await run(["1"]);
+
+    expect(deps.recordGeneratedLabel).toHaveBeenCalledWith(
+      {
+        trackingNumber: "AWB1",
+        orderId: "1",
+        orderName: "#1",
+        orderCreatedAt: new Date("2026-11-13T10:00:00Z"),
+        fulfillmentOrderId: "1-fo1",
+        weightKg: 1,
+        parcelPosition: null,
+      },
+      expect.any(Date),
+    );
+    expect(deps.markLabelAddedToShopify).toHaveBeenCalledWith(
+      "AWB1",
+      "gid://shopify/Fulfillment/1",
+    );
+  });
+
+  it("keeps an AWB that Optimus made but Shopify refused, unmarked", async () => {
+    const { deps, run } = setup([shippingOrder("1", "400001")], () =>
+      solved("1", "400001"),
+    );
+    deps.addTrackingToFulfillment.mockRejectedValueOnce(
+      new Error("fulfillment failed"),
+    );
+
+    const result = await run(["1"]);
+
+    expect(deps.recordGeneratedLabel).toHaveBeenCalledTimes(1);
+    expect(deps.markLabelAddedToShopify).not.toHaveBeenCalled();
+    expect(result.failedOrders).toHaveLength(1);
+  });
+
+  it("still ships when the AWB cannot be saved, with a warning", async () => {
+    const { deps, run } = setup([shippingOrder("1", "400001")], () =>
+      solved("1", "400001"),
+    );
+    deps.recordGeneratedLabel.mockRejectedValueOnce(new Error("database down"));
+
+    const result = await run(["1"]);
+
+    expect(deps.addTrackingToFulfillment).toHaveBeenCalledTimes(1);
+    expect(result.successfulOrders[0].warnings).toEqual([
+      "Could not save the AWB for the AWB report: database down",
     ]);
   });
 });

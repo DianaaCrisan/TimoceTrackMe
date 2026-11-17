@@ -1,0 +1,6 @@
+// Each table keeps the page short: about 10 rows show, the rest scroll.
+.awb-report-table {
+  max-height: 440px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}

@@ -9,6 +9,11 @@ import {
 } from "../../reports/OrderResultRow";
 import type { ZipChange } from "../../add-tracking/ZipRecovery.server";
 import { createTranslator } from "app/commons/i18n/translate";
+import { ZIP_TO_FIX_ORDER_TAG } from "app/commons/constants";
+import {
+  searchIndexChecks,
+  waitForSearchIndex,
+} from "../../orders/waitForSearchIndex.server";
 import type { JobArtifact } from "../startBackgroundJob.server";
 import type { OrdersJobContext } from "./OrdersJobContext";
 
@@ -39,7 +44,7 @@ export async function buildAddTrackingArtifact(
           ? `${order.trackingNumbers.length} parcels, AWB ${order.trackingNumbers.join(", ")}`
           : `AWB ${order.trackingNumbers.join(", ")}`,
         describeZipChange(order.zipChange),
-        ...(order.weightWarnings ?? []),
+        ...(order.warnings ?? []),
       ),
     });
   }
@@ -57,9 +62,20 @@ export async function buildAddTrackingArtifact(
     });
   }
 
-  const zipToFixCount = result.failedOrders.filter(
-    (order) => order.isZipProblem,
-  ).length;
+  const zipProblemIds = result.failedOrders
+    .filter((order) => order.isZipProblem)
+    .map((order) => order.id);
+  const zipToFixCount = zipProblemIds.length;
+
+  // finish only once Shopify's search shows the change, so the dashboard's
+  // reload already lists the orders in their new tabs
+  await waitForSearchIndex(ctx.admin, [
+    ...searchIndexChecks(
+      "NOT fulfillment_status:unfulfilled",
+      result.successfulOrders.map((order) => order.id),
+    ),
+    ...searchIndexChecks(`tag:${ZIP_TO_FIX_ORDER_TAG}`, zipProblemIds),
+  ]);
 
   const t = createTranslator(ctx.locale);
   const rows = await completeOrderResultRows({

@@ -27,6 +27,11 @@ import {
   type UnfulfilledReportResponse,
 } from "app/commons/unfulfilled-report/UnfulfilledReport";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
+import {
+  readErrorMessage,
+  readFileName,
+  saveBlob,
+} from "app/frontend/core/utils/download";
 
 const SECTION_TITLES: Record<ReportSectionKey, TranslationKey> = {
   delivery: "report.delivery",
@@ -398,32 +403,4 @@ function buildScopeQuery(
   const params = new URLSearchParams({ [REPORT_PACK_PARAM]: packId });
   if (kind === "sold") params.set(REPORT_KIND_PARAM, kind);
   return params.toString();
-}
-
-/** The server answers JSON `{ error }`, but a proxy or crash page might not. */
-async function readErrorMessage(response: Response): Promise<string> {
-  const contentType = response.headers.get("Content-Type") ?? "";
-  if (contentType.includes("application/json")) {
-    const body = (await response.json()) as { error?: string };
-    if (body.error) return body.error;
-  }
-  return (await response.text()) || `HTTP ${response.status}`;
-}
-
-/** `attachment; filename="estimari-neexecutate_1201-1206.pdf"` → the name. */
-function readFileName(contentDisposition: string | null): string | null {
-  const match = /filename="?([^";]+)"?/i.exec(contentDisposition ?? "");
-  return match?.[1] ?? null;
-}
-
-function saveBlob(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  // give the browser time to start the download before freeing it
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

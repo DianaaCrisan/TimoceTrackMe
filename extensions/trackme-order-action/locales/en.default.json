@@ -1,0 +1,23 @@
+{
+  "name": "TrackMe: add tracking",
+  "locale": "en",
+  "addTracking": "Add tracking",
+  "close": "Close",
+  "done": "Done",
+  "cancelled": "This order is cancelled: nothing to ship.",
+  "busy": "A TrackMe job is working on this order right now. Try again when it's done.",
+  "unitsToShip": {
+    "one": "{{count}} item to ship by courier.",
+    "other": "{{count}} items to ship by courier."
+  },
+  "weight": "Weight: {{weight}} kg",
+  "overWeightLimit": "Over the {{limit}} kg limit per parcel, and auto split is off: it will ship as one heavy parcel.",
+  "pickup": "Pickup order: it gets no AWB. Print its label from Print → TrackMe: label.",
+  "nothingToShip": "Nothing left to ship by courier on this order.",
+  "customerNote": "Customer note",
+  "existingAwbs": "AWBs already on this order: {{awbs}}",
+  "failed": "No AWB was made",
+  "fixZip": "Fix the ZIP code in the order's shipping address, then try again.",
+  "added": "Tracking added",
+  "nextSteps": "To print the label: Print → TrackMe: label."
+}
