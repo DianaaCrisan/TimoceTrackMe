@@ -12,8 +12,10 @@ export type TranslationEntry = string | PluralForms;
 export const en = {
   // navigation
   "nav.packs": "Packs",
-  "nav.orders": "Orders",
+  "nav.orders": "Unpacked orders",
   "nav.unfulfilledReport": "Unfulfilled report",
+  "nav.awbReport": "AWB report",
+  "nav.tutorials": "Tutorials",
   "nav.settings": "Settings",
   "nav.developerPanel": "Developer panel",
 
@@ -21,10 +23,17 @@ export const en = {
   "landing.welcome": "Welcome to TrackMe!",
   "landing.intro":
     "This app helps you manage your orders in just a few clicks.",
-  "landing.featureZip": "Solve missing ZIP codes automatically",
-  "landing.featureTracking": "Add tracking numbers in bulk",
-  "landing.featureLabels": "Download and print shipping labels",
-  "landing.openDashboard": "Open Orders Dashboard",
+
+  // home page cards
+  "home.packs": "Work through orders pack by pack: tracking, labels, closing.",
+  "home.orders":
+    "Orders that didn't get into a pack. Add them to one from here.",
+  "home.unfulfilledReport": "Which products still need preparing.",
+  "home.awbReport":
+    "The month's AWBs, used and cancelled, to check the Optimus bill.",
+  "home.tutorials": "What to do, step by step, in each case.",
+  "home.settings": "Parcel weight and pack rules.",
+  "home.developerPanel": "Technical checks: Optimus, file storage, jobs.",
 
   // dashboard tabs
   "filter.all": "All",
@@ -157,7 +166,8 @@ export const en = {
     "New orders go into the filling pack. Start working on a pack to keep its orders together: new orders then start the next pack.",
   "packs.notInPackLink": "Orders not in a pack →",
   "packs.newPack": "New pack",
-  "packs.noWorkingPacks": "No packs yet. Start one, then add orders to it from the Orders page.",
+  "packs.noWorkingPacks":
+    "No packs yet. Start one, then add orders to it from the Orders page.",
 
   // job names
   "job.add-tracking": "Add tracking numbers",
@@ -179,7 +189,6 @@ export const en = {
     "The list was refreshed and the selection cleared.",
   "dashboard.allInTabSelected": 'All {count} orders in "{tab}" selected',
   "dashboard.selectedCount": "{count} selected",
-  "dashboard.jobsOnlyInPacks": "Add tracking and print labels run from a pack.",
   "dashboard.goToPacks": "Go to Packs →",
   "dashboard.tabTooLarge":
     "{count} orders in this tab, more than one job takes ({max})",
@@ -205,7 +214,7 @@ export const en = {
   "table.zipCode": "ZIP code",
   "table.noOrders": "No orders found.",
   "table.itemCount": { one: "{count} item", other: "{count} items" },
-  "table.missingZip": "Missing",
+  "table.missingZip": "Add the ZIP code",
   "table.customerNote": "Customer note",
   "table.weight": "Weight",
 
@@ -234,9 +243,6 @@ export const en = {
   "settings.save": "Save",
   "settings.saved": "Settings saved",
   "settings.packScheduleHeading": "Packs",
-  "settings.jobsOnlyInPacks": "Add tracking and print labels only from a pack",
-  "settings.jobsOnlyInPacksDetails":
-    "The Orders page then only lists orders and adds them to packs. Its add tracking and print labels buttons are replaced by a link to Packs.",
   "settings.packScheduleIntro":
     "A new pack always starts when you start working on the filling one. Tick days to also start a new pack at midnight before each of them.",
   "settings.packScheduleDetails":
@@ -268,7 +274,7 @@ export const en = {
   "zipFix.colCounty": "County",
   "zipFix.colProblem": "Problem",
   "zipFix.colCorrectZip": "Correct ZIP",
-  "zipFix.problemMissing": "Missing, not found automatically",
+  "zipFix.problemMissing": "Not found automatically: add the ZIP code",
   "zipFix.problemRejected": "{zip} rejected by Optimus",
   "zipFix.zipInputLabel": "Correct ZIP for order {name}",
   "zipFix.invalidZip": "A ZIP code has 6 digits",
@@ -341,8 +347,7 @@ export const en = {
 
   // recent jobs
   "jobs.heading": "Recent jobs",
-  "jobs.linksExpire":
-    "Download links work for 1 hour.",
+  "jobs.linksExpire": "Download links work for 1 hour.",
   "jobs.autoUpdates": "This list updates on its own while a job runs.",
   "jobs.refresh": "Refresh",
   "jobs.empty": "No jobs since the app last started.",
@@ -384,7 +389,8 @@ export const en = {
     "Add tracking and print labels only run from a pack. Open the pack on the Packs page.",
   "startJob.ordersNotInPack": {
     one: "{count} selected order is no longer in this pack. Reload the page.",
-    other: "{count} selected orders are no longer in this pack. Reload the page.",
+    other:
+      "{count} selected orders are no longer in this pack. Reload the page.",
   },
   "startJob.noOrdersInTab": 'No orders match the "{tab}" tab.',
   "startJob.tooManyOrders":
@@ -489,6 +495,116 @@ export const en = {
   "report.timedOut":
     "Shopify took too long to collect the orders. Try again in a minute.",
 
+  // TrackMe on the Shopify order page (extensions)
+  "orderAction.invalidOrder": "This is not an order TrackMe can open.",
+  "orderAction.notFound": "Shopify has no such order.",
+  "orderAction.failed": "TrackMe could not do it: {error}",
+  "orderAction.busy":
+    "A TrackMe job is working on this order right now. Try again when it's done.",
+  "orderAction.nothingToShip":
+    "Nothing to ship by courier on this order: no AWB was made.",
+  "orderAction.zipSolved": "ZIP code solved automatically: {from} → {to}.",
+  "orderAction.noLabel":
+    "No label to print: the order has no AWB yet and is not a pickup order. Add tracking first.",
+
+  // tutorials page
+  "tutorials.heading": "Tutorials",
+  "tutorials.intro": "What to do, step by step, in each case:",
+  "tutorials.goodToKnow": "Good to know",
+  "tutorials.inProgress": "In progress",
+
+  // AWB report
+  "awbReport.heading": "AWB report",
+  "awbReport.intro":
+    "The month's AWBs, by the day each one was issued, whatever the order's date. Used: on an active fulfillment in Shopify. Cancelled: no longer on one. Optimus doesn't bill an AWB the courier never scanned.",
+  "awbReport.tutorialsLink": "What to do in each case →",
+  "awbReport.month": "Month",
+  "awbReport.syncedAt": "Last read from Shopify: {time}",
+  "awbReport.neverSynced":
+    'This month hasn\'t been read from Shopify yet. Press "Refresh from Shopify" to bring in the AWBs that are already on orders.',
+  "awbReport.refresh": "Refresh from Shopify",
+  "awbReport.refreshed": {
+    one: "Read {orders} orders from Shopify: {count} AWB added or updated.",
+    other: "Read {orders} orders from Shopify: {count} AWBs added or updated.",
+  },
+  "awbReport.refreshFailed": "Could not read Shopify: {error}",
+  "awbReport.addByHand": "Add AWBs by hand",
+  "awbReport.downloadExcel": "Download Excel",
+  "awbReport.downloadFailed": "Could not create the Excel file: {error}",
+  "awbReport.invalidMonth": "Pick a month from the list.",
+  "awbReport.unknownAction": "Unknown action. Reload the page.",
+  "awbReport.count": { one: "{count} AWB", other: "{count} AWBs" },
+  "awbReport.usedHeading": "Used AWBs",
+  "awbReport.cancelledHeading": "Cancelled AWBs",
+  "awbReport.unknownHeading": "Unrecognised courier",
+  "awbReport.cancelledHint":
+    "Highlighted: printed before it was cancelled. If that label reached the courier and was scanned, Optimus bills it.",
+  "awbReport.unknownHint":
+    'The courier on these fulfillments is neither Optimus nor GLS. If it is an Optimus AWB, fix the courier in Shopify (Edit tracking), then press "Refresh from Shopify".',
+  "awbReport.emptyTable": "None in {month}.",
+  "awbReport.printed": "Printed",
+  "awbReport.delete": "Delete",
+  "awbReport.cancel": "Cancel",
+  "awbReport.deleteTitle": "Delete AWB {awb}?",
+  "awbReport.deleteBody":
+    "It was added by hand, so it only disappears from this report. You can add it again.",
+  "awbReport.deleted": "AWB {awb} deleted.",
+  "awbReport.deleteNotAllowed": "Only AWBs added by hand can be deleted.",
+  "awbReport.add.title": "Add AWBs by hand",
+  "awbReport.add.intro":
+    'For AWBs the app can\'t find on its own: ones whose tracking was removed before this report existed, or ones booked on Optimus for a parcel outside Shopify. Press "Refresh from Shopify" first: AWBs that are on orders show up by themselves.',
+  "awbReport.add.status": "Status",
+  "awbReport.add.day": "Issue date",
+  "awbReport.add.dayDetails": "Decides the month the AWBs are listed in.",
+  "awbReport.add.awbs": "AWBs, one per line",
+  "awbReport.add.awbsDetails":
+    "You can add the order number after the AWB, e.g. 6256347789 1022.",
+  "awbReport.add.note": "Note (optional)",
+  "awbReport.add.submit": "Add",
+  "awbReport.add.saved": {
+    one: "{count} AWB added.",
+    other: "{count} AWBs added.",
+  },
+  "awbReport.add.alreadyInReport":
+    "Already in the report, left as they were: {awbs}",
+  "awbReport.add.empty": "Type at least one AWB.",
+  "awbReport.add.tooMany": "At most {max} AWBs at a time.",
+  "awbReport.add.badDay": "Pick the issue date.",
+  "awbReport.add.badStatus": "Pick Used or Cancelled.",
+  "awbReport.add.lineErrorsIntro":
+    "Nothing was saved. Fix these lines and press Add again:",
+  "awbReport.add.lineError": "Line {line} ({text}): {reason}",
+  "awbReport.add.reason.badAwb": "not an AWB",
+  "awbReport.add.reason.badOrder": "the order number is not valid",
+  "awbReport.add.reason.tooManyParts":
+    "write only the AWB and the order number",
+  "awbReport.add.reason.duplicate": "already on an earlier line",
+  "awbReport.add.reason.orderNotFound": "Shopify has no such order",
+  "awbReport.colIndex": "No.",
+  "awbReport.colAwb": "AWB",
+  "awbReport.colOrder": "Order",
+  "awbReport.colSource": "Source",
+  "awbReport.colParcel": "Parcel",
+  "awbReport.colWeight": "Weight (kg)",
+  "awbReport.colOrderDate": "Order date",
+  "awbReport.colIssuedAt": "Issued",
+  "awbReport.colCancelledAt": "Cancelled",
+  "awbReport.colReason": "Reason",
+  "awbReport.colCourier": "Courier in Shopify",
+  "awbReport.colStatus": "Status",
+  "awbReport.colNote": "Note",
+  "awbReport.colPrintedAt": "First printed",
+  "awbReport.colPrintCount": "Prints",
+  "awbReport.source.TRACKME": "TrackMe",
+  "awbReport.source.SHOPIFY": "Shopify",
+  "awbReport.source.IMPORT": "Added by hand",
+  "awbReport.status.USED": "Used",
+  "awbReport.status.CANCELLED": "Cancelled",
+  "awbReport.reason.FULFILLMENT_CANCELLED": "Fulfillment cancelled in Shopify",
+  "awbReport.reason.TRACKING_REMOVED": "Tracking removed in Shopify",
+  "awbReport.reason.NEVER_ON_SHOPIFY": "Never reached Shopify",
+  "awbReport.reason.SET_BY_HAND": "Added by hand as cancelled",
+
   // shipping and pickup labels PDF
   "labelsPdf.totalsTitle": "Label totals",
   "labelsPdf.deliveryLabels": "Delivery labels",
@@ -521,6 +637,7 @@ export const en = {
   "fileName.test": "trackme-test",
   "fileName.unfulfilledReport": "unfulfilled-report",
   "fileName.soldReport": "sold-products-report",
+  "fileName.awbReport": "awb-report",
   "fileName.job.add-tracking": "add-tracking",
   "fileName.job.print-labels": "print-labels",
   "fileName.job.test": "test",
@@ -535,8 +652,10 @@ export type TranslationKey = keyof typeof en;
 export const ro: Record<TranslationKey, TranslationEntry> = {
   // navigation
   "nav.packs": "Pachete",
-  "nav.orders": "Comenzi",
+  "nav.orders": "Comenzi fără pachet",
   "nav.unfulfilledReport": "Raport neexecutate",
+  "nav.awbReport": "Raport AWB",
+  "nav.tutorials": "Tutoriale",
   "nav.settings": "Setări",
   "nav.developerPanel": "Panou pentru dezvoltatori",
 
@@ -544,10 +663,18 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "landing.welcome": "Bun venit în TrackMe!",
   "landing.intro":
     "Această aplicație te ajută să îți gestionezi comenzile în doar câteva clicuri.",
-  "landing.featureZip": "Completează automat codurile poștale lipsă",
-  "landing.featureTracking": "Adaugă numere de tracking în masă",
-  "landing.featureLabels": "Descarcă și printează etichetele de expediere",
-  "landing.openDashboard": "Deschide panoul de comenzi",
+
+  // carduri pe pagina principală
+  "home.packs": "Lucrezi comenzile pe pachete: tracking, etichete, închidere.",
+  "home.orders":
+    "Comenzile care nu au intrat în niciun pachet. Le adaugi într-unul de aici.",
+  "home.unfulfilledReport": "Ce produse mai trebuie pregătite.",
+  "home.awbReport":
+    "AWB-urile lunii, folosite și anulate, pentru verificarea facturii Optimus.",
+  "home.tutorials": "Ce faci, pas cu pas, în fiecare caz.",
+  "home.settings": "Greutatea coletelor și regulile pachetelor.",
+  "home.developerPanel":
+    "Verificări tehnice: Optimus, stocarea fișierelor, sarcini.",
 
   // dashboard tabs
   "filter.all": "Toate",
@@ -730,8 +857,6 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     one: "{count} selectată",
     other: "{count} selectate",
   },
-  "dashboard.jobsOnlyInPacks":
-    "Tracking-ul și printarea etichetelor se fac dintr-un pachet.",
   "dashboard.goToPacks": "Mergi la Pachete →",
   // only shown past the job limit, so always 20 or more: "de comenzi"
   "dashboard.tabTooLarge":
@@ -767,7 +892,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     few: "{count} articole",
     other: "{count} de articole",
   },
-  "table.missingZip": "Lipsește",
+  "table.missingZip": "Adaugă codul poștal",
   "table.customerNote": "Notă client",
   "table.weight": "Greutate",
 
@@ -797,10 +922,6 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "settings.save": "Salvează",
   "settings.saved": "Setările au fost salvate",
   "settings.packScheduleHeading": "Pachete",
-  "settings.jobsOnlyInPacks":
-    "Adaugă tracking și printează etichete doar dintr-un pachet",
-  "settings.jobsOnlyInPacksDetails":
-    "Pagina Comenzi doar listează comenzile și le adaugă în pachete. Butoanele de tracking și printare sunt înlocuite de un link către Pachete.",
   "settings.packScheduleIntro":
     "Un pachet nou pornește mereu când începi lucrul la cel care se umple. Bifează zile ca să pornească un pachet nou și la miezul nopții dinaintea fiecăreia.",
   "settings.packScheduleDetails":
@@ -834,7 +955,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "zipFix.colCounty": "Județ",
   "zipFix.colProblem": "Problemă",
   "zipFix.colCorrectZip": "Cod poștal corect",
-  "zipFix.problemMissing": "Lipsește, negăsit automat",
+  "zipFix.problemMissing": "Negăsit automat: adaugă codul poștal",
   "zipFix.problemRejected": "{zip} respins de Optimus",
   "zipFix.zipInputLabel": "Codul poștal corect pentru comanda {name}",
   "zipFix.invalidZip": "Un cod poștal are 6 cifre",
@@ -914,8 +1035,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
 
   // recent jobs
   "jobs.heading": "Sarcini recente",
-  "jobs.linksExpire":
-    "Linkurile de descărcare sunt valabile 1 oră.",
+  "jobs.linksExpire": "Linkurile de descărcare sunt valabile 1 oră.",
   "jobs.autoUpdates":
     "Lista se actualizează singură cât timp rulează o sarcină.",
   "jobs.refresh": "Reîmprospătează",
@@ -1071,6 +1191,125 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "report.timedOut":
     "Shopify a avut nevoie de prea mult timp pentru a aduna comenzile. Încearcă din nou peste un minut.",
 
+  // TrackMe pe pagina comenzii din Shopify (extensii)
+  "orderAction.invalidOrder":
+    "Aceasta nu este o comandă pe care TrackMe o poate deschide.",
+  "orderAction.notFound": "Comanda nu există în Shopify.",
+  "orderAction.failed": "TrackMe nu a reușit: {error}",
+  "orderAction.busy":
+    "O sarcină TrackMe lucrează acum la această comandă. Încearcă din nou după ce se termină.",
+  "orderAction.nothingToShip":
+    "Comanda nu are nimic de trimis prin curier: nu s-a făcut niciun AWB.",
+  "orderAction.zipSolved": "Cod poștal completat automat: {from} → {to}.",
+  "orderAction.noLabel":
+    "Nicio etichetă de printat: comanda nu are încă AWB și nu este cu ridicare personală. Adaugă întâi tracking.",
+
+  // tutorials page
+  "tutorials.heading": "Tutoriale",
+  "tutorials.intro": "Ce faci, pas cu pas, în fiecare caz:",
+  "tutorials.goodToKnow": "Bine de știut",
+  "tutorials.inProgress": "În lucru",
+
+  // AWB report
+  "awbReport.heading": "Raport AWB",
+  "awbReport.intro":
+    "AWB-urile lunii, după ziua în care a fost emis fiecare, indiferent de data comenzii. Folosit: este pe o onorare activă în Shopify. Anulat: nu mai este pe niciuna. Optimus nu facturează un AWB pe care curierul nu l-a scanat.",
+  "awbReport.tutorialsLink": "Ce faci în fiecare caz →",
+  "awbReport.month": "Luna",
+  "awbReport.syncedAt": "Citit ultima dată din Shopify: {time}",
+  "awbReport.neverSynced":
+    "Luna aceasta nu a fost citită încă din Shopify. Apasă „Reîmprospătează din Shopify” ca să aduci AWB-urile care sunt deja pe comenzi.",
+  "awbReport.refresh": "Reîmprospătează din Shopify",
+  "awbReport.refreshed": {
+    one: "Am citit {orders} comenzi din Shopify: {count} AWB adăugat sau actualizat.",
+    few: "Am citit {orders} comenzi din Shopify: {count} AWB-uri adăugate sau actualizate.",
+    other:
+      "Am citit {orders} comenzi din Shopify: {count} de AWB-uri adăugate sau actualizate.",
+  },
+  "awbReport.refreshFailed": "Shopify nu a putut fi citit: {error}",
+  "awbReport.addByHand": "Adaugă AWB-uri de mână",
+  "awbReport.downloadExcel": "Descarcă Excel",
+  "awbReport.downloadFailed": "Fișierul Excel nu a putut fi creat: {error}",
+  "awbReport.invalidMonth": "Alege o lună din listă.",
+  "awbReport.unknownAction": "Acțiune necunoscută. Reîncarcă pagina.",
+  "awbReport.count": {
+    one: "{count} AWB",
+    few: "{count} AWB-uri",
+    other: "{count} de AWB-uri",
+  },
+  "awbReport.usedHeading": "AWB-uri folosite",
+  "awbReport.cancelledHeading": "AWB-uri anulate",
+  "awbReport.unknownHeading": "Curier nerecunoscut",
+  "awbReport.cancelledHint":
+    "Evidențiate: printate înainte să fie anulate. Dacă eticheta a ajuns la curier și a fost scanată, Optimus o facturează.",
+  "awbReport.unknownHint":
+    "Curierul de pe aceste onorări nu este nici Optimus, nici GLS. Dacă este un AWB Optimus, corectează curierul în Shopify (Edit tracking), apoi apasă „Reîmprospătează din Shopify”.",
+  "awbReport.emptyTable": "Niciunul în {month}.",
+  "awbReport.printed": "Printat",
+  "awbReport.delete": "Șterge",
+  "awbReport.cancel": "Renunță",
+  "awbReport.deleteTitle": "Ștergi AWB-ul {awb}?",
+  "awbReport.deleteBody":
+    "A fost adăugat de mână, deci dispare doar din acest raport. Îl poți adăuga din nou.",
+  "awbReport.deleted": "AWB-ul {awb} a fost șters.",
+  "awbReport.deleteNotAllowed":
+    "Doar AWB-urile adăugate de mână pot fi șterse.",
+  "awbReport.add.title": "Adaugă AWB-uri de mână",
+  "awbReport.add.intro":
+    "Pentru AWB-urile pe care aplicația nu le găsește singură: cele cu tracking-ul șters înainte să existe acest raport, sau cele făcute pe Optimus pentru un colet din afara Shopify. Apasă întâi „Reîmprospătează din Shopify”: AWB-urile care sunt pe comenzi apar singure.",
+  "awbReport.add.status": "Stare",
+  "awbReport.add.day": "Data emiterii",
+  "awbReport.add.dayDetails": "Stabilește luna în care apar AWB-urile.",
+  "awbReport.add.awbs": "AWB-uri, câte unul pe rând",
+  "awbReport.add.awbsDetails":
+    "Poți scrie și numărul comenzii după AWB, de exemplu 6256347789 1022.",
+  "awbReport.add.note": "Notă (opțional)",
+  "awbReport.add.submit": "Adaugă",
+  "awbReport.add.saved": {
+    one: "{count} AWB adăugat.",
+    few: "{count} AWB-uri adăugate.",
+    other: "{count} de AWB-uri adăugate.",
+  },
+  "awbReport.add.alreadyInReport":
+    "Erau deja în raport și au rămas cum erau: {awbs}",
+  "awbReport.add.empty": "Scrie cel puțin un AWB.",
+  "awbReport.add.tooMany": "Cel mult {max} AWB-uri odată.",
+  "awbReport.add.badDay": "Alege data emiterii.",
+  "awbReport.add.badStatus": "Alege Folosit sau Anulat.",
+  "awbReport.add.lineErrorsIntro":
+    "Nu s-a salvat nimic. Corectează aceste rânduri și apasă din nou Adaugă:",
+  "awbReport.add.lineError": "Rândul {line} ({text}): {reason}",
+  "awbReport.add.reason.badAwb": "nu este un AWB",
+  "awbReport.add.reason.badOrder": "numărul comenzii nu este valid",
+  "awbReport.add.reason.tooManyParts": "scrie doar AWB-ul și numărul comenzii",
+  "awbReport.add.reason.duplicate": "apare deja pe un rând de mai sus",
+  "awbReport.add.reason.orderNotFound": "comanda nu există în Shopify",
+  "awbReport.colIndex": "Nr.",
+  "awbReport.colAwb": "AWB",
+  "awbReport.colOrder": "Comandă",
+  "awbReport.colSource": "Sursă",
+  "awbReport.colParcel": "Colet",
+  "awbReport.colWeight": "Greutate (kg)",
+  "awbReport.colOrderDate": "Dată comandă",
+  "awbReport.colIssuedAt": "Emis",
+  "awbReport.colCancelledAt": "Anulat",
+  "awbReport.colReason": "Motiv",
+  "awbReport.colCourier": "Curier în Shopify",
+  "awbReport.colStatus": "Stare",
+  "awbReport.colNote": "Notă",
+  "awbReport.colPrintedAt": "Printat prima dată",
+  "awbReport.colPrintCount": "Printări",
+  "awbReport.source.TRACKME": "TrackMe",
+  "awbReport.source.SHOPIFY": "Shopify",
+  "awbReport.source.IMPORT": "Adăugat de mână",
+  "awbReport.status.USED": "Folosit",
+  "awbReport.status.CANCELLED": "Anulat",
+  "awbReport.reason.FULFILLMENT_CANCELLED":
+    "Onorarea a fost anulată în Shopify",
+  "awbReport.reason.TRACKING_REMOVED": "Tracking-ul a fost șters în Shopify",
+  "awbReport.reason.NEVER_ON_SHOPIFY": "Nu a ajuns pe Shopify",
+  "awbReport.reason.SET_BY_HAND": "Adăugat de mână ca anulat",
+
   // shipping and pickup labels PDF
   "labelsPdf.totalsTitle": "Total etichete",
   "labelsPdf.deliveryLabels": "Etichete livrare",
@@ -1108,6 +1347,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "fileName.test": "trackme-test",
   "fileName.unfulfilledReport": "raport-neexecutate",
   "fileName.soldReport": "raport-produse-vandute",
+  "fileName.awbReport": "raport-awb",
   "fileName.job.add-tracking": "adaugare-tracking",
   "fileName.job.print-labels": "printare-etichete",
   "fileName.job.test": "test",

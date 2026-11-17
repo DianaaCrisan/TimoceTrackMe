@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
-  type ReactNode,
   type Ref,
 } from "react";
 import { ShopifyUtils } from "app/backend/graphql/utils/ShopifyUtils";
@@ -30,8 +29,6 @@ type ZipFixPanelProps = {
   isStarting: boolean;
   /** Starts add tracking; resolves to whether the job started. */
   onSubmit: (orderIds: string[], manualZips: ManualZips) => Promise<boolean>;
-  /** Shown instead of the submit button when add tracking is not allowed here. */
-  blockedNotice?: ReactNode;
   scrollRef?: Ref<HTMLDivElement>;
 };
 
@@ -51,7 +48,6 @@ export function ZipFixPanel({
   isStarting,
   onSubmit,
   scrollRef,
-  blockedNotice,
 }: ZipFixPanelProps) {
   const { t } = useI18n();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -169,19 +165,17 @@ export function ZipFixPanel({
               {t("zipFix.invalidCount", { count: invalidCount })}
             </span>
           ) : null}
-          {blockedNotice ?? (
-            <button
-              type="button"
-              className="zip-fix-panel__submit"
-              disabled={!canSubmit}
-              onClick={handleSubmit}
-            >
-              <img src={deliveryIcon} alt="" width={20} height={20} />
-              {isStarting
-                ? t("dashboard.starting")
-                : t("zipFix.submit", { count: tickedOrders.length })}
-            </button>
-          )}
+          <button
+            type="button"
+            className="zip-fix-panel__submit"
+            disabled={!canSubmit}
+            onClick={handleSubmit}
+          >
+            <img src={deliveryIcon} alt="" width={20} height={20} />
+            {isStarting
+              ? t("dashboard.starting")
+              : t("zipFix.submit", { count: tickedOrders.length })}
+          </button>
         </div>
       </div>
 

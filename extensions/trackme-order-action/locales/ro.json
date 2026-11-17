@@ -1,0 +1,24 @@
+{
+  "name": "TrackMe: adaugă tracking",
+  "locale": "ro",
+  "addTracking": "Adaugă tracking",
+  "close": "Închide",
+  "done": "Gata",
+  "cancelled": "Comanda este anulată: nu e nimic de trimis.",
+  "busy": "O sarcină TrackMe lucrează acum la această comandă. Încearcă din nou după ce se termină.",
+  "unitsToShip": {
+    "one": "{{count}} articol de trimis prin curier.",
+    "few": "{{count}} articole de trimis prin curier.",
+    "other": "{{count}} de articole de trimis prin curier."
+  },
+  "weight": "Greutate: {{weight}} kg",
+  "overWeightLimit": "Peste limita de {{limit}} kg pe colet, iar împărțirea automată e oprită: pleacă într-un singur colet greu.",
+  "pickup": "Comandă cu ridicare personală: nu primește AWB. Printează-i eticheta din Print → TrackMe: etichetă.",
+  "nothingToShip": "Comanda nu mai are nimic de trimis prin curier.",
+  "customerNote": "Nota clientului",
+  "existingAwbs": "AWB-uri deja pe comandă: {{awbs}}",
+  "failed": "Nu s-a făcut niciun AWB",
+  "fixZip": "Corectează codul poștal în adresa de livrare a comenzii, apoi încearcă din nou.",
+  "added": "Tracking adăugat",
+  "nextSteps": "Pentru etichetă: Print → TrackMe: etichetă."
+}

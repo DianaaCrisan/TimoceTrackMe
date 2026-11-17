@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getFilterJobs,
   PACK_DASHBOARD_FILTERS,
   parseOrdersDashboardFilter,
 } from "app/commons/orders/OrdersDashboardFilter";
@@ -9,10 +10,11 @@ import {
 } from "./buildOrdersSearchQuery";
 
 describe("buildOrdersSearchQuery", () => {
-  it("finds orders ready to print and not printed yet", () => {
+  it("finds orders ready to print and not printed yet, pickup orders from the start", () => {
     expect(buildOrdersSearchQuery("unprinted")).toBe(
       "tag_not:eticheta-printata AND NOT status:cancelled AND " +
-        "(fulfillment_status:fulfilled OR fulfillment_status:partial)",
+        "(fulfillment_status:fulfilled OR fulfillment_status:partial OR " +
+        "delivery_method:pick-up)",
     );
   });
 
@@ -84,5 +86,14 @@ describe("parseOrdersDashboardFilter", () => {
     expect(parseOrdersDashboardFilter("all")).toBe("all");
     expect(parseOrdersDashboardFilter("nonsense")).toBe("pending_fulfillment");
     expect(parseOrdersDashboardFilter(null)).toBe("pending_fulfillment");
+  });
+});
+
+describe("getFilterJobs", () => {
+  it("offers only the next step in the working tabs", () => {
+    expect(getFilterJobs("pending_fulfillment")).toEqual(["add-tracking"]);
+    expect(getFilterJobs("zip_to_fix")).toEqual(["add-tracking"]);
+    expect(getFilterJobs("unprinted")).toEqual(["print-labels"]);
+    expect(getFilterJobs("all")).toEqual(["add-tracking", "print-labels"]);
   });
 });

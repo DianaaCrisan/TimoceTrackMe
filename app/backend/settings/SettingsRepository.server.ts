@@ -11,7 +11,6 @@ export type SettingsPatch = Partial<
     | "parcelWeightLimitKg"
     | "autoSplitHeavyOrders"
     | "packStartWeekdays"
-    | "jobsOnlyInPacks"
   >
 >;
 

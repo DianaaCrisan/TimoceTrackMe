@@ -10,7 +10,6 @@ import {
   resolveOrderIds,
 } from "../orders/resolveOrderSelection.server";
 import { parseManualZips } from "../add-tracking/parseManualZips";
-import { SettingsRepository } from "../settings/SettingsRepository.server";
 import { buildFailureFileName } from "./buildFailureFileName";
 import { createJobAdmin } from "./createJobAdmin.server";
 import type { OrdersJobContext } from "./definitions/OrdersJobContext";
@@ -50,12 +49,9 @@ export async function handleStartOrdersJob(
 
     const shopUrl = ShopifyUtils.getShopAdminUrl(session.shop);
     const selection = parseOrderSelection(formData, t);
-    // checked here, not only by hiding buttons: the Orders page may be open
-    // from before the setting was turned on
-    if (
-      !selection.packId &&
-      (await SettingsRepository.get()).jobsOnlyInPacks
-    ) {
+    // jobs run on a pack's orders only; checked here, not only by hiding the
+    // buttons, so an old page or a crafted request cannot get round it
+    if (!selection.packId) {
       throw new RequestError(409, t("startJob.onlyInPacks"));
     }
     const orderIds = await resolveOrderIds(admin, shopUrl, selection, t);
