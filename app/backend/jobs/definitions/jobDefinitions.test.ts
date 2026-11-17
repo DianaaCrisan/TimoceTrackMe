@@ -5,6 +5,7 @@ import type { AdminApiContextWithoutRest } from "../../core/types/AdminApiContex
 import { getOrderNames } from "../../orders/getOrderNames.server";
 import { LabelUnitKind } from "../../print-labels/models/LabelUnitKind";
 import { markLabelsPrinted } from "../../print-labels/markLabelsPrinted.server";
+import { ShippingLabelRepository } from "../../shipping-labels/ShippingLabelRepository.server";
 import {
   buildPrintLabels,
   type PrintLabelsResult,
@@ -20,6 +21,9 @@ vi.mock("../../print-labels/printLabels.server", () => ({
 }));
 vi.mock("../../print-labels/markLabelsPrinted.server", () => ({
   markLabelsPrinted: vi.fn(),
+}));
+vi.mock("../../shipping-labels/ShippingLabelRepository.server", () => ({
+  ShippingLabelRepository: { recordPrinted: vi.fn() },
 }));
 
 const gid = (n: number) => `gid://shopify/Order/${n}`;
@@ -75,6 +79,7 @@ describe("buildPrintLabelsArtifact", () => {
         kind: LabelUnitKind.DELIVERY,
       },
     ],
+    printedTrackingNumbers: ["6256000001", "6256000002"],
     orderNamesById: new Map([
       [gid(1), "#1001"],
       [gid(2), "#1002"],
@@ -92,6 +97,8 @@ describe("buildPrintLabelsArtifact", () => {
     vi.mocked(markLabelsPrinted).mockResolvedValue({
       failuresByOrderId: new Map(),
     });
+    vi.mocked(ShippingLabelRepository.recordPrinted).mockReset();
+    vi.mocked(ShippingLabelRepository.recordPrinted).mockResolvedValue();
   });
 
   async function reportRows(artifactBuf: Buffer) {
@@ -174,6 +181,33 @@ describe("buildPrintLabelsArtifact", () => {
       "2 labels",
       'Could not add the "eticheta-printata" tag: throttled',
     ]);
+  });
+
+  it("counts the prints for the AWB report", async () => {
+    vi.mocked(buildPrintLabels).mockResolvedValue(printResult());
+
+    await buildPrintLabelsArtifact(ctx);
+
+    expect(ShippingLabelRepository.recordPrinted).toHaveBeenCalledWith(
+      ["6256000001", "6256000002"],
+      expect.any(Date),
+    );
+  });
+
+  it("still delivers the labels when saving them for the report fails", async () => {
+    vi.mocked(buildPrintLabels).mockResolvedValue(printResult());
+    vi.mocked(ShippingLabelRepository.recordPrinted).mockRejectedValue(
+      new Error("database down"),
+    );
+
+    const artifact = await buildPrintLabelsArtifact(ctx);
+    const zip = await JSZip.loadAsync(artifact.buf);
+
+    expect(zip.file("shipping-labels_13-Nov-2026_12-00.pdf")).not.toBeNull();
+    expect(await zip.file("errors.txt")!.async("string")).toContain(
+      "database down",
+    );
+    expect(artifact.hasErrors).toBe(true);
   });
 
   it("puts errors that belong to no order in errors.txt", async () => {

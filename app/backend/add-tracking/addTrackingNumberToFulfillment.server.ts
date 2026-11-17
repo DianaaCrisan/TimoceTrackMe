@@ -1,3 +1,4 @@
+import { OPTIMUS_TRACKING_COMPANY } from "app/commons/couriers/Courier";
 import type {
   FulfillmentCreateWithTrackingMutation,
   FulfillmentCreateWithTrackingMutationVariables,
@@ -21,7 +22,7 @@ export async function addTrackingNumberToFulfillment(
   admin: AdminApiContextWithoutRest,
   shopUrl: string,
   input: AddTrackingNumberToFulfillmentInput,
-): Promise<void> {
+): Promise<string> {
   const isGLS = input.trackingNumber.startsWith("6");
   const url = isGLS
     ? process.env.GLS_TRACKING_URL + input.trackingNumber
@@ -31,7 +32,7 @@ export async function addTrackingNumberToFulfillment(
     fulfillment: {
       notifyCustomer: true,
       trackingInfo: {
-        company: "Optimus",
+        company: OPTIMUS_TRACKING_COMPANY,
         number: input.trackingNumber,
         url,
       },
@@ -75,4 +76,6 @@ export async function addTrackingNumberToFulfillment(
       "Shopify fulfillmentCreate did not return a fulfillment ID.",
     );
   }
+
+  return payload.fulfillment.id;
 }

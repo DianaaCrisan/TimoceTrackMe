@@ -42,6 +42,29 @@ const FILTER_LABELS: Record<OrdersDashboardFilter, TranslationKey> = {
   not_in_pack: "filter.not_in_pack",
 };
 
+/** The bulk jobs the dashboard offers on its selection. */
+export type OrdersDashboardJob = "add-tracking" | "print-labels";
+
+/**
+ * The jobs each tab offers, so the admin only sees the next step:
+ * "Pending fulfillment" ships (pickup orders are skipped by add tracking),
+ * "Unprinted" prints. "ZIP to fix" has its own panel, which only adds
+ * tracking.
+ */
+const JOBS_BY_FILTER: Record<OrdersDashboardFilter, OrdersDashboardJob[]> = {
+  all: ["add-tracking", "print-labels"],
+  pending_fulfillment: ["add-tracking"],
+  zip_to_fix: ["add-tracking"],
+  unprinted: ["print-labels"],
+  not_in_pack: ["add-tracking", "print-labels"],
+};
+
+export function getFilterJobs(
+  filter: OrdersDashboardFilter,
+): readonly OrdersDashboardJob[] {
+  return JOBS_BY_FILTER[filter];
+}
+
 /** Falls back to the default tab for anything not in `allowed`. */
 export function parseOrdersDashboardFilter(
   value: string | null | undefined,

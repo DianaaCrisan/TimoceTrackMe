@@ -4,7 +4,10 @@ import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWi
 import { buildOrderRangesFileName } from "../exports/buildOrderRangesFileName";
 import { formatFileTimestamp } from "../exports/formatFileTimestamp";
 import { createPool } from "../graphql/throttle-handling/helpers/createPool";
-import { getOrdersPrintLabelsInputData } from "./getOrdersPrintLabelsInputData.server";
+import {
+  getOrdersPrintLabelsInputData,
+  type PrintLabelsOrder,
+} from "./getOrdersPrintLabelsInputData.server";
 import {
   GroupedPdfComposer,
   type ComposeError,
@@ -35,6 +38,8 @@ export type PrintLabelsResult = {
   files: PrintLabelsFile[];
   /** The labels that made it into a PDF. */
   printedUnits: PrintedLabelUnit[];
+  /** The tracking numbers of the delivery labels among them. */
+  printedTrackingNumbers: string[];
   /** Orders Shopify returned, by ID, so the caller can name every order. */
   orderNamesById: Map<string, string>;
   /** Labels that failed, by the order they belong to. */
@@ -140,10 +145,34 @@ export async function buildPrintLabels(
       ...(deliveryRes?.appended ?? []),
       ...(pickupRes?.appended ?? []),
     ],
+    printedTrackingNumbers: toPrintedTrackingNumbers(
+      deliveryRes?.appended ?? [],
+      orders,
+    ),
     orderNamesById,
     ...splitErrors(errors),
     timestamp,
   };
+}
+
+/** A delivery unit is one fulfillment: its ID is the fulfillment's. */
+export function toPrintedTrackingNumbers(
+  deliveryUnits: PrintedLabelUnit[],
+  orders: PrintLabelsOrder[],
+): string[] {
+  const trackingNumberByFulfillmentId = new Map(
+    orders.flatMap((order) =>
+      order.deliveryFulfillments.map((fulfillment) => [
+        fulfillment.fulfillmentId,
+        fulfillment.trackingNumber,
+      ]),
+    ),
+  );
+
+  return deliveryUnits.flatMap((unit) => {
+    const trackingNumber = trackingNumberByFulfillmentId.get(unit.unitId);
+    return trackingNumber ? [trackingNumber] : [];
+  });
 }
 
 function splitErrors(errors: ComposeError[]): {

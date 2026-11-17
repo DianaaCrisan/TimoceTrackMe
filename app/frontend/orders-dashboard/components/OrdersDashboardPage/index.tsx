@@ -21,8 +21,10 @@ import {
 import {
   COUNTED_ORDERS_DASHBOARD_FILTERS,
   formatOrdersDashboardFilter,
+  getFilterJobs,
   ORDERS_DASHBOARD_PATH,
   type OrdersDashboardFilter,
+  type OrdersDashboardJob,
 } from "app/commons/orders/OrdersDashboardFilter";
 import {
   buildScopeTabUrl,
@@ -74,7 +76,7 @@ import {
 } from "app/frontend/orders-dashboard/components/TrackingReviewDialog";
 
 type BulkJobAction = {
-  key: "add-tracking" | "print-labels";
+  key: OrdersDashboardJob;
   endpoint: string;
   title: TranslationKey;
   icon: string;
@@ -209,9 +211,7 @@ export function OrdersDashboardPage({
   const [pendingTrackingReview, setPendingTrackingReview] =
     useState<PendingTrackingReview | null>(null);
   const [jobsRefreshSignal, setJobsRefreshSignal] = useState(0);
-  const [openPackDialog, setOpenPackDialog] = useState<PackDialog | null>(
-    null,
-  );
+  const [openPackDialog, setOpenPackDialog] = useState<PackDialog | null>(null);
   const packAction = usePackAction(() => {
     setOpenPackDialog(null);
     setSelectedOrderIds([]);
@@ -256,10 +256,11 @@ export function OrdersDashboardPage({
     ) : null;
   };
 
-  // the filter selection means "every order in this tab", so it cannot follow
-  // the user to another tab
+  // a selection belongs to the tab it was made in: each tab offers its own
+  // jobs, and "every order in this tab" cannot follow the user elsewhere
   useEffect(() => {
     setIsFilterSelected(false);
+    setSelectedOrderIds([]);
   }, [activeFilter]);
 
   const visibleOrderIds = orders.map((order) => order.id);
@@ -713,10 +714,13 @@ export function OrdersDashboardPage({
                 </button>
 
                 <div className="orders-dashboard-page__bulk-actions">
-                  {areJobsBlockedHere ? (
-                    <JobsOnlyInPacksNotice />
-                  ) : null}
-                  {(areJobsBlockedHere ? [] : BULK_JOB_ACTIONS).map((action) => (
+                  {areJobsBlockedHere ? <JobsOnlyInPacksNotice /> : null}
+                  {(areJobsBlockedHere
+                    ? []
+                    : BULK_JOB_ACTIONS.filter((action) =>
+                        getFilterJobs(activeFilter).includes(action.key),
+                      )
+                  ).map((action) => (
                     <button
                       key={action.key}
                       type="button"

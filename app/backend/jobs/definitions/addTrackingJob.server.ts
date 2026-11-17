@@ -39,7 +39,7 @@ export async function buildAddTrackingArtifact(
           ? `${order.trackingNumbers.length} parcels, AWB ${order.trackingNumbers.join(", ")}`
           : `AWB ${order.trackingNumbers.join(", ")}`,
         describeZipChange(order.zipChange),
-        ...(order.weightWarnings ?? []),
+        ...(order.warnings ?? []),
       ),
     });
   }

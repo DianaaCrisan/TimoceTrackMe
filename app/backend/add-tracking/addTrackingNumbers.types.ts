@@ -24,8 +24,11 @@ export type AddTrackingNumbersSuccessfulOrder = {
   trackingNumbers: string[];
   /** Set when this run solved the order's ZIP, or saved one the admin typed. */
   zipChange?: ZipChange;
-  /** Parcels that shipped over the weight limit, for the admin to check. */
-  weightWarnings?: string[];
+  /**
+   * For the admin to check: parcels that shipped over the weight limit, AWBs
+   * that could not be saved for the AWB report.
+   */
+  warnings?: string[];
 };
 
 export type AddTrackingNumbersFailedOrder = {

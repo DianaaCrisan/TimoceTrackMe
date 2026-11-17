@@ -13,6 +13,8 @@ import { createTranslator } from "app/commons/i18n/translate";
 import { I18nProvider } from "app/frontend/core/i18n/I18nProvider";
 import { UNFULFILLED_REPORT_PATH } from "app/commons/unfulfilled-report/UnfulfilledReport";
 import { PACKS_PATH } from "app/commons/packs/FulfillmentPack";
+import { AWB_REPORT_PATH } from "app/commons/shipping-labels/AwbReport";
+import { TUTORIALS_PATH } from "app/commons/tutorials/Tutorials";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -50,6 +52,8 @@ export default function App() {
           <s-link href={UNFULFILLED_REPORT_PATH}>
             {t("nav.unfulfilledReport")}
           </s-link>
+          <s-link href={AWB_REPORT_PATH}>{t("nav.awbReport")}</s-link>
+          <s-link href={TUTORIALS_PATH}>{t("nav.tutorials")}</s-link>
           <s-link href="/app/settings">{t("nav.settings")}</s-link>
           <s-link href="/app/developer-panel">{t("nav.developerPanel")}</s-link>
         </s-app-nav>

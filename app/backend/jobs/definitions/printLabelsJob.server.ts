@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { markLabelsPrinted } from "../../print-labels/markLabelsPrinted.server";
 import { buildPrintLabels } from "../../print-labels/printLabels.server";
+import { ShippingLabelRepository } from "../../shipping-labels/ShippingLabelRepository.server";
 import { buildOrderResultsWorkbook } from "../../reports/buildOrderResultsWorkbook";
 import { completeOrderResultRows } from "../../reports/completeOrderResultRows.server";
 import {
@@ -23,6 +24,7 @@ export const PRINT_LABELS_JOB = {
  *
  * Every order with a label in the PDF is marked as printed (fulfillment event
  * and tag) before the zip is built, so marking failures can go in the report.
+ * The AWB report counts one more print for each printed tracking number.
  *
  * Fails the job only when there are errors and no PDF at all; a run where
  * every order is simply skipped still produces its report.
@@ -54,6 +56,24 @@ export async function buildPrintLabelsArtifact(
     result.printedUnits.length > 0
       ? await markLabelsPrinted(ctx.admin, ctx.shopUrl, result.printedUnits)
       : { failuresByOrderId: new Map<string, string[]>() };
+
+  // for the AWB report; like the marking, never fails the job
+  if (result.printedTrackingNumbers.length > 0) {
+    try {
+      await ShippingLabelRepository.recordPrinted(
+        result.printedTrackingNumbers,
+        new Date(),
+      );
+    } catch (error) {
+      console.error(
+        "AppError[PrintLabels] could not save the print dates.",
+        error,
+      );
+      result.generalErrors.push(
+        `Could not save the print dates for the AWB report: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
 
   const labelCountByOrderId = new Map<string, number>();
   for (const unit of result.printedUnits) {
