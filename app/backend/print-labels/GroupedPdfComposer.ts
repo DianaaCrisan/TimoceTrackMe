@@ -32,7 +32,8 @@ type Deps = {
  *    group's order numbers), followed by the group's labels
  *
  * The pages it writes itself are worded with `t`, the language of whoever
- * printed the labels.
+ * printed the labels. With `labelsOnly`, it writes none: just the labels,
+ * for printing one order from its Shopify page.
  */
 export class GroupedPdfComposer {
   // eslint-disable-next-line no-useless-constructor
@@ -48,6 +49,10 @@ export class GroupedPdfComposer {
     units: LabelUnitDetails[],
     orderNamesById: Map<string, string>,
     t: Translate,
+    options: {
+      /** Only the labels: no totals page and no group header pages. */
+      labelsOnly?: boolean;
+    } = {},
   ): Promise<{
     pdfData?: Buffer;
     errors: ComposeError[];
@@ -68,7 +73,11 @@ export class GroupedPdfComposer {
 
     // 1 - totals page
     const counts = this.computeCounts(usable);
-    if (counts.total > 0 && this.deps.generateTotalsPDF) {
+    if (
+      !options.labelsOnly &&
+      counts.total > 0 &&
+      this.deps.generateTotalsPDF
+    ) {
       try {
         const usableOrderNames = Array.from(
           new Set(
@@ -94,20 +103,22 @@ export class GroupedPdfComposer {
     for (const g of groups) {
       const groupOrderIds = Array.from(new Set(g.units.map((u) => u.orderId)));
 
-      try {
-        const headerBytes = await this.deps.generateGroupHeaderPDF(
-          g.items,
-          g.units.length,
-          groupOrderIds.map((id) => orderNamesById.get(id) ?? id),
-          t,
-        );
-        await this.deps.appendPDFToDocument(Buffer.from(headerBytes), merged);
-      } catch (e) {
-        // the labels still print; only their header page is missing
-        errors.push({
-          orderIds: groupOrderIds,
-          message: `Items page failed to render: ${String(e)}`,
-        });
+      if (!options.labelsOnly) {
+        try {
+          const headerBytes = await this.deps.generateGroupHeaderPDF(
+            g.items,
+            g.units.length,
+            groupOrderIds.map((id) => orderNamesById.get(id) ?? id),
+            t,
+          );
+          await this.deps.appendPDFToDocument(Buffer.from(headerBytes), merged);
+        } catch (e) {
+          // the labels still print; only their header page is missing
+          errors.push({
+            orderIds: groupOrderIds,
+            message: `Items page failed to render: ${String(e)}`,
+          });
+        }
       }
 
       for (const u of g.units) {

@@ -19,6 +19,7 @@ const ORDER_FIELDS = `#graphql
     id
     name
     createdAt
+    cancelledAt
     fulfillments(first: 10) {
       id
       status
@@ -142,6 +143,7 @@ function toOrderSnapshot(order: OrderNode): OrderSnapshot {
     id: order.id,
     name: order.name,
     createdAt: new Date(order.createdAt),
+    isCancelled: Boolean(order.cancelledAt),
     fulfillments: order.fulfillments.map((fulfillment) => ({
       id: fulfillment.id,
       status: fulfillment.status,

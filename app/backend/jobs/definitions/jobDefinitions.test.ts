@@ -13,6 +13,10 @@ import {
 import type { OrdersJobContext } from "./OrdersJobContext";
 import { buildPrintLabelsArtifact } from "./printLabelsJob.server";
 
+vi.mock("../../orders/waitForSearchIndex.server", () => ({
+  searchIndexChecks: vi.fn(() => []),
+  waitForSearchIndex: vi.fn(async () => ({ isCaughtUp: true })),
+}));
 vi.mock("../../orders/getOrderNames.server", () => ({
   getOrderNames: vi.fn(),
 }));

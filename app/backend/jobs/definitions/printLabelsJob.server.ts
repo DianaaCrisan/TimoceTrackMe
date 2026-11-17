@@ -1,5 +1,10 @@
 import JSZip from "jszip";
 import { markLabelsPrinted } from "../../print-labels/markLabelsPrinted.server";
+import {
+  searchIndexChecks,
+  waitForSearchIndex,
+} from "../../orders/waitForSearchIndex.server";
+import { PRINTED_ORDER_TAG } from "app/commons/constants";
 import { buildPrintLabels } from "../../print-labels/printLabels.server";
 import { ShippingLabelRepository } from "../../shipping-labels/ShippingLabelRepository.server";
 import { buildOrderResultsWorkbook } from "../../reports/buildOrderResultsWorkbook";
@@ -74,6 +79,18 @@ export async function buildPrintLabelsArtifact(
       );
     }
   }
+
+  // finish only once Shopify's search shows the printed tag, so the
+  // dashboard's reload no longer lists these orders as unprinted
+  await waitForSearchIndex(
+    ctx.admin,
+    searchIndexChecks(
+      `tag:${PRINTED_ORDER_TAG}`,
+      result.printedUnits
+        .map((unit) => unit.orderId)
+        .filter((orderId) => !markingFailuresByOrderId.has(orderId)),
+    ),
+  );
 
   const labelCountByOrderId = new Map<string, number>();
   for (const unit of result.printedUnits) {

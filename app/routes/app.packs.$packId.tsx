@@ -63,7 +63,6 @@ export default function PackRoute() {
         recentJobs={data.recentJobs}
         parcelWeight={data.parcelWeight}
         targetPacks={data.targetPacks}
-        jobsOnlyInPacks={data.jobsOnlyInPacks}
       />
     </>
   );

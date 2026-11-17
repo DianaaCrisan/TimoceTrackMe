@@ -21,7 +21,6 @@ import { useI18n } from "app/frontend/core/i18n/I18nProvider";
 /** Which form was saved: each section saves on its own. */
 const INTENT_FIELD = "intent";
 const PACK_SCHEDULE_INTENT = "packSchedule";
-const JOBS_ONLY_IN_PACKS_FIELD = "jobsOnlyInPacks";
 
 /** How the shop works with the app, set by the shop's admin. */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -34,7 +33,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       autoSplitHeavyOrders: settings.autoSplitHeavyOrders,
     },
     packStartWeekdays: settings.packStartWeekdays,
-    jobsOnlyInPacks: settings.jobsOnlyInPacks,
   };
 };
 
@@ -49,7 +47,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       packStartWeekdays: parsePackStartWeekdays(
         formData.getAll(PACK_START_WEEKDAYS_FIELD),
       ),
-      jobsOnlyInPacks: formData.get(JOBS_ONLY_IN_PACKS_FIELD) === "true",
     });
     return { ok: true };
   }
@@ -70,8 +67,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
-  const { parcelWeight, packStartWeekdays, jobsOnlyInPacks } =
-    useLoaderData<typeof loader>();
+  const { parcelWeight, packStartWeekdays } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const scheduleFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
@@ -160,20 +156,11 @@ export default function SettingsPage() {
               ))}
             </s-stack>
             <s-text color="subdued">{t("settings.packScheduleDetails")}</s-text>
-            <s-checkbox
-              label={t("settings.jobsOnlyInPacks")}
-              name={JOBS_ONLY_IN_PACKS_FIELD}
-              value="true"
-              defaultChecked={jobsOnlyInPacks}
-              details={t("settings.jobsOnlyInPacksDetails")}
-            />
             <div>
               <s-button
                 type="submit"
                 variant="primary"
-                {...(scheduleFetcher.state !== "idle"
-                  ? { loading: true }
-                  : {})}
+                {...(scheduleFetcher.state !== "idle" ? { loading: true } : {})}
               >
                 {t("settings.save")}
               </s-button>

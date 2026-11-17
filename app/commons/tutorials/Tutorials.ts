@@ -17,6 +17,8 @@ export type Tutorial = {
   steps: TutorialStep[];
   /** "Good to know", shown under the steps. */
   notes?: string[];
+  /** Not written yet: the page shows it as in progress, without steps. */
+  inProgress?: boolean;
 };
 
 /** Shopify admin buttons and fields the tutorials name. */
@@ -74,7 +76,7 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
   ro: [
     {
       id: "pack",
-      title: "Lucrezi un pachet de comenzi",
+      title: "Începi să lucrezi la un pachet de comenzi",
       when: "În fiecare zi de livrare. Pașii sunt în ordinea în care se fac.",
       steps: [
         "Deschide Pachete. Pachetul „Se umple” strânge singur comenzile noi.",
@@ -96,7 +98,14 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
             "Printează PDF-ul cu etichete. Etichetele de ridicare personală sunt tot aici.",
           ],
         },
-        "Apasă „Raport produse vândute” și printează-l.",
+        {
+          text: "Poți descărca și „Raport produse vândute”.",
+          bullets: [
+            "Folosește-l mai ales dacă ai uitat să descarci „Raport produse neexecutate” la început.",
+            "După ce primesc tracking, comenzile sunt executate și nu mai apar în raportul de neexecutate.",
+            "Raportul de vândute arată în continuare toate produsele din pachet, executate sau nu.",
+          ],
+        },
         "Lipește etichetele pe colete și predă coletele curierului.",
         `Ridicare personală: când vine clientul, marchează comanda ridicată în Shopify („${ro.markAsPickedUp}”).`,
         {
@@ -122,15 +131,15 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
         {
           text: `Apasă „${ro.fulfillItems}”.`,
           bullets: [
-            "Lasă doar cantitățile din primul colet. Pune 0 la rest.",
-            `La „${ro.trackingNumber}” lipește AWB-ul copiat.`,
+            "Lasă doar cantitățile din primul colet.",
+            `La „${ro.trackingNumber}” pune AWB-ul copiat.`,
             `La „${ro.shippingCarrier}” alege GLS din listă.`,
             "Debifează notificarea către client: clientul are deja AWB-ul.",
             `Apasă „${ro.fulfillItems}”.`,
           ],
         },
         "În TrackMe, în pachet, tab-ul „Toate”: bifează comanda → „Adaugă numere de tracking”. Restul articolelor primesc un AWB nou.",
-        "Bifează din nou comanda → „Printează etichete”. PDF-ul are ambele etichete: lipește-o doar pe cea nouă, pe al doilea colet.",
+        "Bifează din nou comanda → „Printează etichete”. PDF-ul are ambele etichete: pune-o doar pe cea nouă, pe al doilea colet.",
       ],
       notes: [
         "În Raport AWB, AWB-ul vechi apare puțin timp la anulate, apoi revine la folosite. E normal.",
@@ -153,21 +162,6 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
       ],
     },
     {
-      id: "cancel-awb",
-      title: "Anulezi un AWB",
-      when: "AWB-ul e greșit, sau comanda nu mai pleacă.",
-      steps: [
-        "Deschide comanda în Shopify.",
-        `Pe cardul „${ro.fulfilledCard}”: „⋯” → „${ro.cancelFulfillment}”.`,
-        "Articolele redevin neexecutate. În Raport AWB, AWB-ul trece la anulate.",
-        "Dacă comanda tot pleacă: în TrackMe, „Adaugă numere de tracking” îi face un AWB nou.",
-        "Nu da curierului eticheta veche. Dacă e lipită, scoate-o.",
-      ],
-      notes: [
-        "La Optimus nu se anulează nimic: un AWB nescanat de curier nu se facturează.",
-      ],
-    },
-    {
       id: "optimus-website",
       title: "Faci eticheta direct pe site-ul Optimus",
       when: "Când îți trebuie ceva ce TrackMe nu știe încă, de exemplu plata ramburs.",
@@ -183,7 +177,6 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
           ],
         },
         "Nu folosi „Adaugă numere de tracking” din TrackMe pentru comanda asta: ar face încă un AWB.",
-        "Dacă e într-un pachet: printează-i eticheta și din TrackMe („Neprintate” → „Printează etichete”), ca pachetul să o vadă gata.",
       ],
       notes: [
         "AWB-ul apare singur în Raport AWB, la folosite, cu sursa „Shopify”.",
@@ -192,53 +185,15 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
     {
       id: "monthly-bill",
       title: "Verifici factura Optimus la sfârșit de lună",
-      when: "Când vine factura lunară de la Optimus.",
-      steps: [
-        "Deschide Raport AWB și alege luna facturii.",
-        "Apasă „Reîmprospătează din Shopify”.",
-        "Apasă „Descarcă Excel”.",
-        "Compară foaia „AWB-uri folosite” cu factura.",
-        {
-          text: "AWB facturat, dar trecut la anulate:",
-          bullets: [
-            "Evidențiat cu roșu = a fost printat. Poate a ajuns totuși la curier.",
-            "Nu a ajuns la curier? Reclamă-l la Optimus.",
-          ],
-        },
-        "AWB facturat care lipsește din raport: pune-l pe comanda lui în Shopify, sau adaugă-l cu „Adaugă AWB-uri de mână”.",
-        `Foaia „Curier nerecunoscut”: corectează curierul în Shopify („${ro.editTracking}”), apoi reîmprospătează.`,
-      ],
-    },
-    {
-      id: "first-month",
-      title: "Aduci în raport AWB-urile de luna asta",
-      when: "O singură dată, după ce raportul a fost instalat.",
-      steps: [
-        "Deschide Raport AWB, pe luna curentă.",
-        "Apasă „Reîmprospătează din Shopify”. Apar singure AWB-urile de pe comenzi: cele folosite, și cele de pe onorări anulate.",
-        "Lipsesc doar AWB-urile al căror tracking a fost șters din Shopify (de exemplu, comenzi livrate de noi). Caută-le în lista de AWB-uri din contul Optimus.",
-        {
-          text: "Apasă „Adaugă AWB-uri de mână”.",
-          bullets: [
-            "Stare: Anulat (sau Folosit, dacă a plecat totuși prin curier).",
-            "Data emiterii: ziua din Optimus.",
-            "Câte un AWB pe rând. Poți scrie numărul comenzii după el: 6256347789 1022.",
-            "Notă, dacă vrei: „livrat de noi”.",
-            "Apasă „Adaugă”.",
-          ],
-        },
-        "Compară numărul total din raport cu lista din Optimus.",
-      ],
-      notes: [
-        "Un AWB adăugat de mână greșit se poate șterge din tabel („Șterge”) și adăuga din nou.",
-        "Aplicația nu schimbă starea AWB-urilor adăugate de mână.",
-      ],
+      when: "În lucru. Va fi definitivat ulterior.",
+      inProgress: true,
+      steps: [],
     },
   ],
   en: [
     {
       id: "pack",
-      title: "Work through a pack of orders",
+      title: "Start working on a pack of orders",
       when: "Every delivery day. The steps are in the order you do them.",
       steps: [
         'Open Packs. The "Filling" pack collects new orders by itself.',
@@ -260,7 +215,14 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
             "Print the labels PDF. The pickup labels are in it too.",
           ],
         },
-        'Press "Sold products report" and print it.',
+        {
+          text: 'You can also download the "Sold products report".',
+          bullets: [
+            'Use it especially if you forgot to download the "Unfulfilled items report" at the start.',
+            "Once they get tracking, orders are fulfilled and drop out of the unfulfilled report.",
+            "The sold report still shows every product in the pack, fulfilled or not.",
+          ],
+        },
         "Stick the labels on the parcels and hand them to the courier.",
         `Pickup orders: when the customer comes, mark the order as picked up in Shopify ("${en.markAsPickedUp}").`,
         {
@@ -286,15 +248,15 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
         {
           text: `Press "${en.fulfillItems}".`,
           bullets: [
-            "Keep only the quantities of the first parcel. Set the rest to 0.",
-            `Under "${en.trackingNumber}", paste the copied AWB.`,
+            "Keep only the quantities of the first parcel.",
+            `Under "${en.trackingNumber}", enter the copied AWB.`,
             `Under "${en.shippingCarrier}", pick GLS from the list.`,
             "Untick the customer notification: they already have the AWB.",
             `Press "${en.fulfillItems}".`,
           ],
         },
         'In TrackMe, in the pack, "All" tab: select the order → "Add tracking numbers". The remaining items get a new AWB.',
-        'Select the order again → "Print labels". The PDF has both labels: stick only the new one, on the second parcel.',
+        'Select the order again → "Print labels". The PDF has both labels: use only the new one, on the second parcel.',
       ],
       notes: [
         "In the AWB report, the old AWB shows as cancelled for a moment, then goes back to used. That's expected.",
@@ -317,21 +279,6 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
       ],
     },
     {
-      id: "cancel-awb",
-      title: "Cancel an AWB",
-      when: "The AWB is wrong, or the order is no longer shipping.",
-      steps: [
-        "Open the order in Shopify.",
-        `On the "${en.fulfilledCard}" card: "⋯" → "${en.cancelFulfillment}".`,
-        "The items are unfulfilled again. In the AWB report, the AWB moves to cancelled.",
-        'If the order still ships: in TrackMe, "Add tracking numbers" makes it a new AWB.',
-        "Don't give the courier the old label. If it's stuck on, remove it.",
-      ],
-      notes: [
-        "Nothing is cancelled at Optimus: an AWB the courier never scanned isn't billed.",
-      ],
-    },
-    {
       id: "optimus-website",
       title: "Make the label on the Optimus website",
       when: "When you need something TrackMe can't do yet, such as cash on delivery.",
@@ -347,7 +294,6 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
           ],
         },
         "Don't use TrackMe's \"Add tracking numbers\" for this order: it would make a second AWB.",
-        'If it\'s in a pack: also print its label from TrackMe ("Unprinted" → "Print labels"), so the pack sees it as done.',
       ],
       notes: [
         'The AWB shows up in the AWB report by itself, as used, with source "Shopify".',
@@ -356,47 +302,9 @@ export const TUTORIALS: Record<Locale, Tutorial[]> = {
     {
       id: "monthly-bill",
       title: "Check the Optimus bill at the end of the month",
-      when: "When Optimus's monthly bill arrives.",
-      steps: [
-        "Open the AWB report and pick the bill's month.",
-        'Press "Refresh from Shopify".',
-        'Press "Download Excel".',
-        'Compare the "Used AWBs" sheet with the bill.',
-        {
-          text: "An AWB on the bill that is listed as cancelled:",
-          bullets: [
-            "Highlighted in red = it was printed. It may have reached the courier after all.",
-            "It never reached the courier? Dispute it with Optimus.",
-          ],
-        },
-        'An AWB on the bill that\'s missing from the report: put it on its order in Shopify, or add it with "Add AWBs by hand".',
-        `"Unrecognised courier" sheet: fix the courier in Shopify ("${en.editTracking}"), then refresh.`,
-      ],
-    },
-    {
-      id: "first-month",
-      title: "Bring this month's AWBs into the report",
-      when: "Once, after the report is installed.",
-      steps: [
-        "Open the AWB report, on the current month.",
-        'Press "Refresh from Shopify". AWBs on orders show up by themselves: used ones, and ones on cancelled fulfillments.',
-        "Only AWBs whose tracking was removed from Shopify are missing (for example, orders we delivered). Find them in the AWB list in the Optimus account.",
-        {
-          text: 'Press "Add AWBs by hand".',
-          bullets: [
-            "Status: Cancelled (or Used, if it did go with the courier).",
-            "Issue date: the day from Optimus.",
-            "One AWB per line. You can add the order number after it: 6256347789 1022.",
-            'Note, if you like: "delivered by us".',
-            'Press "Add".',
-          ],
-        },
-        "Compare the report's total with the list in Optimus.",
-      ],
-      notes: [
-        'An AWB added by hand by mistake can be deleted from the table ("Delete") and added again.',
-        "The app never changes the status of AWBs added by hand.",
-      ],
+      when: "In progress. It will be finished later.",
+      inProgress: true,
+      steps: [],
     },
   ],
 };

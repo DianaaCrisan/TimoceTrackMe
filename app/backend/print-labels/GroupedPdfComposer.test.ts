@@ -284,3 +284,43 @@ describe("GroupedPdfComposer", () => {
     ]);
   });
 });
+
+describe("GroupedPdfComposer: labels only", () => {
+  it("prints just the labels, without totals or header pages", async () => {
+    const events: string[] = [];
+    const generateGroupHeaderPDF = vi.fn();
+    const generateTotalsPDF = vi.fn();
+    const composer = new GroupedPdfComposer({
+      appendPDFToDocument: vi.fn(async (bytes: Buffer) => {
+        events.push(bytes.toString());
+      }),
+      generateGroupHeaderPDF,
+      generateTotalsPDF,
+      createDoc: async () => PDFDocument.create(),
+    });
+
+    const { errors, appended } = await composer.compose(
+      [
+        {
+          kind: LabelUnitKind.DELIVERY,
+          orderId: "gid://shopify/Order/1",
+          unitId: "gid://shopify/Fulfillment/1",
+          displayName: "#1203-F1",
+          labelPDF: Buffer.from("LA1"),
+          lineItems: [new LineItem("vA", 1, "Dragon Fruit - 2kg", "10")],
+          trackingNumber: "TN1",
+          errors: [],
+        },
+      ],
+      new Map([["gid://shopify/Order/1", "#1203"]]),
+      t,
+      { labelsOnly: true },
+    );
+
+    expect(errors).toEqual([]);
+    expect(appended).toHaveLength(1);
+    expect(events).toEqual(["LA1"]);
+    expect(generateTotalsPDF).not.toHaveBeenCalled();
+    expect(generateGroupHeaderPDF).not.toHaveBeenCalled();
+  });
+});

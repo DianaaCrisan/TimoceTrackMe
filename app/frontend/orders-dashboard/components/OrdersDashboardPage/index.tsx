@@ -32,10 +32,7 @@ import {
   getScopeFilters,
   type OrdersScope,
 } from "app/commons/orders/OrdersScope";
-import {
-  PACKS_PATH,
-  type FulfillmentPackView,
-} from "app/commons/packs/FulfillmentPack";
+import type { FulfillmentPackView } from "app/commons/packs/FulfillmentPack";
 import { PACK_ACTION_FIELDS } from "app/commons/packs/PackAction";
 import { ConfirmDialog } from "app/frontend/core/components/ConfirmDialog";
 import { PackPickerDialog } from "app/frontend/packs/components/PackPickerDialog";
@@ -167,7 +164,6 @@ type OrdersDashboardPageProps = {
    * Add tracking and print labels only run inside a pack. On the Orders
    * page their buttons give way to a link to the Packs page.
    */
-  jobsOnlyInPacks: boolean;
   orders: OrdersDashboardOrder[];
   pageInfo: PageInfo;
   shopAdminUrl: string;
@@ -182,7 +178,6 @@ export function OrdersDashboardPage({
   scope,
   header,
   targetPacks,
-  jobsOnlyInPacks,
   orders,
   pageInfo,
   shopAdminUrl,
@@ -418,7 +413,9 @@ export function OrdersDashboardPage({
 
   /** Says which pack a selection was made in, for the server to check. */
   const inPack = packId ? { packId } : {};
-  const areJobsBlockedHere = jobsOnlyInPacks && scope.kind === "all";
+  // add tracking and print labels run on a pack's orders only; the Orders
+  // page just lists orders in no pack and adds them to one
+  const offersJobs = scope.kind === "pack";
 
   /** The selection as sent to the server; "all in this tab" stays in the pack. */
   function buildSelection(): OrderSelection {
@@ -714,8 +711,7 @@ export function OrdersDashboardPage({
                 </button>
 
                 <div className="orders-dashboard-page__bulk-actions">
-                  {areJobsBlockedHere ? <JobsOnlyInPacksNotice /> : null}
-                  {(areJobsBlockedHere
+                  {(!offersJobs
                     ? []
                     : BULK_JOB_ACTIONS.filter((action) =>
                         getFilterJobs(activeFilter).includes(action.key),
@@ -788,9 +784,6 @@ export function OrdersDashboardPage({
             isStarting={startingActionKey === ADD_TRACKING_ACTION.key}
             onSubmit={handleFixZips}
             scrollRef={tableScrollRef}
-            blockedNotice={
-              areJobsBlockedHere ? <JobsOnlyInPacksNotice /> : undefined
-            }
           />
         ) : (
           <div
@@ -874,17 +867,6 @@ export function OrdersDashboardPage({
         />
       </div>
     </div>
-  );
-}
-
-/** In place of the job buttons on the Orders page, with "jobs only in packs" on. */
-function JobsOnlyInPacksNotice() {
-  const { t } = useI18n();
-  return (
-    <span className="orders-dashboard-page__bulk-bar-hint">
-      {t("dashboard.jobsOnlyInPacks")}{" "}
-      <Link to={PACKS_PATH}>{t("dashboard.goToPacks")}</Link>
-    </span>
   );
 }
 

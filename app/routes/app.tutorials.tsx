@@ -4,6 +4,7 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { TUTORIALS, type TutorialStep } from "app/commons/tutorials/Tutorials";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
+import "app/frontend/tutorials/TutorialsContents.scss";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -14,8 +15,8 @@ const URL_PATTERN = /(https?:\/\/[^\s]+?)(?=[.,]?(?:\s|$))/g;
 
 /**
  * Step-by-step how-tos for the admin: working a pack, and each AWB case
- * (extra label, delivering ourselves, cancelling, the Optimus website, the
- * monthly bill). The text lives in `app/commons/tutorials/Tutorials.ts`.
+ * (extra label, delivering ourselves, the Optimus website, the monthly
+ * bill). The text lives in `app/commons/tutorials/Tutorials.ts`.
  */
 export default function TutorialsRoute() {
   const { locale, t } = useI18n();
@@ -27,51 +28,82 @@ export default function TutorialsRoute() {
         <s-section>
           <s-stack direction="block" gap="small-200">
             <s-paragraph>{t("tutorials.intro")}</s-paragraph>
-            <s-unordered-list>
-              {tutorials.map((tutorial) => (
-                <s-list-item key={tutorial.id}>
-                  <a
-                    href={`#${tutorial.id}`}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      document
-                        .getElementById(tutorial.id)
-                        ?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                  >
-                    {tutorial.title}
-                  </a>
-                </s-list-item>
+            <nav className="tutorials-contents">
+              {tutorials.map((tutorial, index) => (
+                <button
+                  key={tutorial.id}
+                  type="button"
+                  className={`tutorials-contents__card${
+                    tutorial.inProgress ? " --in-progress" : ""
+                  }`}
+                  onClick={() =>
+                    document
+                      .getElementById(tutorial.id)
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
+                >
+                  <span className="tutorials-contents__number">
+                    {index + 1}
+                  </span>
+                  <span className="tutorials-contents__text">
+                    <span className="tutorials-contents__title">
+                      {tutorial.title}
+                    </span>
+                    <span className="tutorials-contents__when">
+                      {tutorial.inProgress ? null : tutorial.when}
+                    </span>
+                    {tutorial.inProgress ? (
+                      <span className="tutorials-contents__chip">
+                        {t("tutorials.inProgress")}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
               ))}
-            </s-unordered-list>
+            </nav>
           </s-stack>
         </s-section>
 
-        {tutorials.map((tutorial) => (
+        {tutorials.map((tutorial, index) => (
           <div key={tutorial.id} id={tutorial.id}>
-            <s-section heading={tutorial.title}>
+            <s-section heading={`${index + 1}. ${tutorial.title}`}>
               <s-stack direction="block" gap="base">
-                <s-text color="subdued">{tutorial.when}</s-text>
-                <s-ordered-list>
-                  {tutorial.steps.map((step) => (
-                    <s-list-item key={stepText(step)}>
-                      {typeof step === "string" ? (
-                        withLinks(step)
-                      ) : (
-                        <>
-                          {withLinks(step.text)}
-                          <s-unordered-list>
-                            {step.bullets.map((bullet) => (
-                              <s-list-item key={bullet}>
-                                {withLinks(bullet)}
-                              </s-list-item>
-                            ))}
-                          </s-unordered-list>
-                        </>
-                      )}
-                    </s-list-item>
-                  ))}
-                </s-ordered-list>
+                {tutorial.inProgress ? (
+                  <s-stack
+                    direction="inline"
+                    gap="small-200"
+                    alignItems="center"
+                  >
+                    <s-badge tone="warning">
+                      {t("tutorials.inProgress")}
+                    </s-badge>
+                    <s-text color="subdued">{tutorial.when}</s-text>
+                  </s-stack>
+                ) : (
+                  <s-text color="subdued">{tutorial.when}</s-text>
+                )}
+                {tutorial.steps.length > 0 ? (
+                  <s-ordered-list>
+                    {tutorial.steps.map((step) => (
+                      <s-list-item key={stepText(step)}>
+                        {typeof step === "string" ? (
+                          withLinks(step)
+                        ) : (
+                          <>
+                            {withLinks(step.text)}
+                            <s-unordered-list>
+                              {step.bullets.map((bullet) => (
+                                <s-list-item key={bullet}>
+                                  {withLinks(bullet)}
+                                </s-list-item>
+                              ))}
+                            </s-unordered-list>
+                          </>
+                        )}
+                      </s-list-item>
+                    ))}
+                  </s-ordered-list>
+                ) : null}
                 {tutorial.notes ? (
                   <s-banner tone="info" heading={t("tutorials.goodToKnow")}>
                     <s-unordered-list>

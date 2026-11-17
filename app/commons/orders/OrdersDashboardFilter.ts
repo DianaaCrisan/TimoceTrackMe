@@ -20,6 +20,15 @@ export const PACK_DASHBOARD_FILTERS = [
   "unprinted",
 ] as const satisfies readonly OrdersDashboardFilter[];
 
+/**
+ * The Orders page's only tab: orders that still need work and are in no
+ * pack. Everything else happens inside a pack, or from TrackMe's actions on
+ * the Shopify order page.
+ */
+export const UNPACKED_DASHBOARD_FILTERS = [
+  "not_in_pack",
+] as const satisfies readonly OrdersDashboardFilter[];
+
 /** The tab the dashboard opens on: the orders that still need work. */
 export const DEFAULT_ORDERS_DASHBOARD_FILTER: OrdersDashboardFilter =
   "pending_fulfillment";
@@ -65,14 +74,19 @@ export function getFilterJobs(
   return JOBS_BY_FILTER[filter];
 }
 
-/** Falls back to the default tab for anything not in `allowed`. */
+/**
+ * Falls back to the default tab for anything not in `allowed`, or to the
+ * first allowed tab when the default is not one of them.
+ */
 export function parseOrdersDashboardFilter(
   value: string | null | undefined,
   allowed: readonly OrdersDashboardFilter[] = ORDERS_DASHBOARD_FILTERS,
 ): OrdersDashboardFilter {
   return (
     allowed.find((filter) => filter === value) ??
-    DEFAULT_ORDERS_DASHBOARD_FILTER
+    (allowed.includes(DEFAULT_ORDERS_DASHBOARD_FILTER)
+      ? DEFAULT_ORDERS_DASHBOARD_FILTER
+      : allowed[0])
   );
 }
 

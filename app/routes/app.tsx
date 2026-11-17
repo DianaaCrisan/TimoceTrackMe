@@ -11,10 +11,7 @@ import { authenticate } from "../shopify.server";
 import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import { I18nProvider } from "app/frontend/core/i18n/I18nProvider";
-import { UNFULFILLED_REPORT_PATH } from "app/commons/unfulfilled-report/UnfulfilledReport";
-import { PACKS_PATH } from "app/commons/packs/FulfillmentPack";
-import { AWB_REPORT_PATH } from "app/commons/shipping-labels/AwbReport";
-import { TUTORIALS_PATH } from "app/commons/tutorials/Tutorials";
+import { APP_NAV } from "app/commons/navigation/AppNav";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
@@ -47,15 +44,11 @@ export default function App() {
     <AppProvider embedded apiKey={apiKey}>
       <I18nProvider locale={locale}>
         <s-app-nav>
-          <s-link href={PACKS_PATH}>{t("nav.packs")}</s-link>
-          <s-link href="/app/orders-dashboard">{t("nav.orders")}</s-link>
-          <s-link href={UNFULFILLED_REPORT_PATH}>
-            {t("nav.unfulfilledReport")}
-          </s-link>
-          <s-link href={AWB_REPORT_PATH}>{t("nav.awbReport")}</s-link>
-          <s-link href={TUTORIALS_PATH}>{t("nav.tutorials")}</s-link>
-          <s-link href="/app/settings">{t("nav.settings")}</s-link>
-          <s-link href="/app/developer-panel">{t("nav.developerPanel")}</s-link>
+          {APP_NAV.map((entry) => (
+            <s-link key={entry.path} href={entry.path}>
+              {t(entry.label)}
+            </s-link>
+          ))}
         </s-app-nav>
         <Outlet />
       </I18nProvider>

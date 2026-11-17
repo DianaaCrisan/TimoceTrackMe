@@ -26,6 +26,8 @@ type PrintLabelsRequest = {
   timeZone?: string | null;
   /** The user's language: the PDFs' own pages and the file names use it. */
   locale: Locale;
+  /** Only the labels, without the totals and group header pages. */
+  labelsOnly?: boolean;
 };
 
 export type PrintLabelsFile = {
@@ -93,12 +95,13 @@ export async function buildPrintLabels(
   );
   const pickupUnits = allUnits.filter((u) => u.kind === LabelUnitKind.PICKUP);
 
+  const composeOptions = { labelsOnly: request.labelsOnly };
   const [deliveryRes, pickupRes] = await Promise.all([
     deliveryUnits.length
-      ? composer.compose(deliveryUnits, orderNamesById, t)
+      ? composer.compose(deliveryUnits, orderNamesById, t, composeOptions)
       : Promise.resolve(null),
     pickupUnits.length
-      ? composer.compose(pickupUnits, orderNamesById, t)
+      ? composer.compose(pickupUnits, orderNamesById, t, composeOptions)
       : Promise.resolve(null),
   ]);
 

@@ -582,7 +582,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function getEligibleShippingFulfillmentOrders(
+export function getEligibleShippingFulfillmentOrders(
   order: TrackingInputOrder,
 ): TrackingInputFulfillmentOrder[] {
   return order.fulfillmentOrders.filter((fulfillmentOrder) => {

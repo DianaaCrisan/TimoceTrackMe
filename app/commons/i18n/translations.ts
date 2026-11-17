@@ -12,7 +12,7 @@ export type TranslationEntry = string | PluralForms;
 export const en = {
   // navigation
   "nav.packs": "Packs",
-  "nav.orders": "Orders",
+  "nav.orders": "Unpacked orders",
   "nav.unfulfilledReport": "Unfulfilled report",
   "nav.awbReport": "AWB report",
   "nav.tutorials": "Tutorials",
@@ -23,10 +23,17 @@ export const en = {
   "landing.welcome": "Welcome to TrackMe!",
   "landing.intro":
     "This app helps you manage your orders in just a few clicks.",
-  "landing.featureZip": "Solve missing ZIP codes automatically",
-  "landing.featureTracking": "Add tracking numbers in bulk",
-  "landing.featureLabels": "Download and print shipping labels",
-  "landing.openDashboard": "Open Orders Dashboard",
+
+  // home page cards
+  "home.packs": "Work through orders pack by pack: tracking, labels, closing.",
+  "home.orders":
+    "Orders that didn't get into a pack. Add them to one from here.",
+  "home.unfulfilledReport": "Which products still need preparing.",
+  "home.awbReport":
+    "The month's AWBs, used and cancelled, to check the Optimus bill.",
+  "home.tutorials": "What to do, step by step, in each case.",
+  "home.settings": "Parcel weight and pack rules.",
+  "home.developerPanel": "Technical checks: Optimus, file storage, jobs.",
 
   // dashboard tabs
   "filter.all": "All",
@@ -182,7 +189,6 @@ export const en = {
     "The list was refreshed and the selection cleared.",
   "dashboard.allInTabSelected": 'All {count} orders in "{tab}" selected',
   "dashboard.selectedCount": "{count} selected",
-  "dashboard.jobsOnlyInPacks": "Add tracking and print labels run from a pack.",
   "dashboard.goToPacks": "Go to Packs →",
   "dashboard.tabTooLarge":
     "{count} orders in this tab, more than one job takes ({max})",
@@ -208,7 +214,7 @@ export const en = {
   "table.zipCode": "ZIP code",
   "table.noOrders": "No orders found.",
   "table.itemCount": { one: "{count} item", other: "{count} items" },
-  "table.missingZip": "Missing",
+  "table.missingZip": "Add the ZIP code",
   "table.customerNote": "Customer note",
   "table.weight": "Weight",
 
@@ -237,9 +243,6 @@ export const en = {
   "settings.save": "Save",
   "settings.saved": "Settings saved",
   "settings.packScheduleHeading": "Packs",
-  "settings.jobsOnlyInPacks": "Add tracking and print labels only from a pack",
-  "settings.jobsOnlyInPacksDetails":
-    "The Orders page then only lists orders and adds them to packs. Its add tracking and print labels buttons are replaced by a link to Packs.",
   "settings.packScheduleIntro":
     "A new pack always starts when you start working on the filling one. Tick days to also start a new pack at midnight before each of them.",
   "settings.packScheduleDetails":
@@ -271,7 +274,7 @@ export const en = {
   "zipFix.colCounty": "County",
   "zipFix.colProblem": "Problem",
   "zipFix.colCorrectZip": "Correct ZIP",
-  "zipFix.problemMissing": "Missing, not found automatically",
+  "zipFix.problemMissing": "Not found automatically: add the ZIP code",
   "zipFix.problemRejected": "{zip} rejected by Optimus",
   "zipFix.zipInputLabel": "Correct ZIP for order {name}",
   "zipFix.invalidZip": "A ZIP code has 6 digits",
@@ -492,10 +495,23 @@ export const en = {
   "report.timedOut":
     "Shopify took too long to collect the orders. Try again in a minute.",
 
+  // TrackMe on the Shopify order page (extensions)
+  "orderAction.invalidOrder": "This is not an order TrackMe can open.",
+  "orderAction.notFound": "Shopify has no such order.",
+  "orderAction.failed": "TrackMe could not do it: {error}",
+  "orderAction.busy":
+    "A TrackMe job is working on this order right now. Try again when it's done.",
+  "orderAction.nothingToShip":
+    "Nothing to ship by courier on this order: no AWB was made.",
+  "orderAction.zipSolved": "ZIP code solved automatically: {from} → {to}.",
+  "orderAction.noLabel":
+    "No label to print: the order has no AWB yet and is not a pickup order. Add tracking first.",
+
   // tutorials page
   "tutorials.heading": "Tutorials",
   "tutorials.intro": "What to do, step by step, in each case:",
   "tutorials.goodToKnow": "Good to know",
+  "tutorials.inProgress": "In progress",
 
   // AWB report
   "awbReport.heading": "AWB report",
@@ -636,7 +652,7 @@ export type TranslationKey = keyof typeof en;
 export const ro: Record<TranslationKey, TranslationEntry> = {
   // navigation
   "nav.packs": "Pachete",
-  "nav.orders": "Comenzi",
+  "nav.orders": "Comenzi fără pachet",
   "nav.unfulfilledReport": "Raport neexecutate",
   "nav.awbReport": "Raport AWB",
   "nav.tutorials": "Tutoriale",
@@ -647,10 +663,18 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "landing.welcome": "Bun venit în TrackMe!",
   "landing.intro":
     "Această aplicație te ajută să îți gestionezi comenzile în doar câteva clicuri.",
-  "landing.featureZip": "Completează automat codurile poștale lipsă",
-  "landing.featureTracking": "Adaugă numere de tracking în masă",
-  "landing.featureLabels": "Descarcă și printează etichetele de expediere",
-  "landing.openDashboard": "Deschide panoul de comenzi",
+
+  // carduri pe pagina principală
+  "home.packs": "Lucrezi comenzile pe pachete: tracking, etichete, închidere.",
+  "home.orders":
+    "Comenzile care nu au intrat în niciun pachet. Le adaugi într-unul de aici.",
+  "home.unfulfilledReport": "Ce produse mai trebuie pregătite.",
+  "home.awbReport":
+    "AWB-urile lunii, folosite și anulate, pentru verificarea facturii Optimus.",
+  "home.tutorials": "Ce faci, pas cu pas, în fiecare caz.",
+  "home.settings": "Greutatea coletelor și regulile pachetelor.",
+  "home.developerPanel":
+    "Verificări tehnice: Optimus, stocarea fișierelor, sarcini.",
 
   // dashboard tabs
   "filter.all": "Toate",
@@ -833,8 +857,6 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     one: "{count} selectată",
     other: "{count} selectate",
   },
-  "dashboard.jobsOnlyInPacks":
-    "Tracking-ul și printarea etichetelor se fac dintr-un pachet.",
   "dashboard.goToPacks": "Mergi la Pachete →",
   // only shown past the job limit, so always 20 or more: "de comenzi"
   "dashboard.tabTooLarge":
@@ -870,7 +892,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     few: "{count} articole",
     other: "{count} de articole",
   },
-  "table.missingZip": "Lipsește",
+  "table.missingZip": "Adaugă codul poștal",
   "table.customerNote": "Notă client",
   "table.weight": "Greutate",
 
@@ -900,10 +922,6 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "settings.save": "Salvează",
   "settings.saved": "Setările au fost salvate",
   "settings.packScheduleHeading": "Pachete",
-  "settings.jobsOnlyInPacks":
-    "Adaugă tracking și printează etichete doar dintr-un pachet",
-  "settings.jobsOnlyInPacksDetails":
-    "Pagina Comenzi doar listează comenzile și le adaugă în pachete. Butoanele de tracking și printare sunt înlocuite de un link către Pachete.",
   "settings.packScheduleIntro":
     "Un pachet nou pornește mereu când începi lucrul la cel care se umple. Bifează zile ca să pornească un pachet nou și la miezul nopții dinaintea fiecăreia.",
   "settings.packScheduleDetails":
@@ -937,7 +955,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "zipFix.colCounty": "Județ",
   "zipFix.colProblem": "Problemă",
   "zipFix.colCorrectZip": "Cod poștal corect",
-  "zipFix.problemMissing": "Lipsește, negăsit automat",
+  "zipFix.problemMissing": "Negăsit automat: adaugă codul poștal",
   "zipFix.problemRejected": "{zip} respins de Optimus",
   "zipFix.zipInputLabel": "Codul poștal corect pentru comanda {name}",
   "zipFix.invalidZip": "Un cod poștal are 6 cifre",
@@ -1173,10 +1191,24 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "report.timedOut":
     "Shopify a avut nevoie de prea mult timp pentru a aduna comenzile. Încearcă din nou peste un minut.",
 
+  // TrackMe pe pagina comenzii din Shopify (extensii)
+  "orderAction.invalidOrder":
+    "Aceasta nu este o comandă pe care TrackMe o poate deschide.",
+  "orderAction.notFound": "Comanda nu există în Shopify.",
+  "orderAction.failed": "TrackMe nu a reușit: {error}",
+  "orderAction.busy":
+    "O sarcină TrackMe lucrează acum la această comandă. Încearcă din nou după ce se termină.",
+  "orderAction.nothingToShip":
+    "Comanda nu are nimic de trimis prin curier: nu s-a făcut niciun AWB.",
+  "orderAction.zipSolved": "Cod poștal completat automat: {from} → {to}.",
+  "orderAction.noLabel":
+    "Nicio etichetă de printat: comanda nu are încă AWB și nu este cu ridicare personală. Adaugă întâi tracking.",
+
   // tutorials page
   "tutorials.heading": "Tutoriale",
   "tutorials.intro": "Ce faci, pas cu pas, în fiecare caz:",
   "tutorials.goodToKnow": "Bine de știut",
+  "tutorials.inProgress": "În lucru",
 
   // AWB report
   "awbReport.heading": "Raport AWB",

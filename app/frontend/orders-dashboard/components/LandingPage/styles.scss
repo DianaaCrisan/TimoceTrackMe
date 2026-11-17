@@ -1,8 +1,7 @@
 .app-home {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-width: 480px;
+  gap: 12px;
 
   font-family:
     Inter,
@@ -26,20 +25,58 @@
   color: #303030;
 }
 
-.app-home__features {
+.app-home__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.app-home__card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  min-height: 96px;
+  padding: 16px 16px 16px 20px;
+  border-radius: 12px;
+  border-left: 5px solid var(--card-accent);
+  background: var(--card-background);
+  color: #303030;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--card-accent);
+    outline-offset: 2px;
+  }
 }
 
-.app-home__feature {
-  font-size: 14px;
-  color: #616161;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.app-home__card-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--card-accent);
 }
 
-.app-home__cta {
-  margin-top: 8px;
+.app-home__card-description {
+  padding-right: 20px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.app-home__card-arrow {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  font-size: 16px;
+  color: var(--card-accent);
 }

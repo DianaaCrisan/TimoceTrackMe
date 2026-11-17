@@ -47,11 +47,6 @@ model AppSettings {
   /// when the filling one is locked. See `PackSchedule`.
   packStartWeekdays Int[] @default([])
 
-  /// When true, add tracking and print labels run only from inside a pack
-  /// (TrackMe → Packs), never from the Orders page. Enforced by the server,
-  /// not only by hiding buttons.
-  jobsOnlyInPacks Boolean @default(false)
-
   updatedAt DateTime @updatedAt
 }
 

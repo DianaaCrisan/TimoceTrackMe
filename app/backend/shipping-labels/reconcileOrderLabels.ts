@@ -20,6 +20,7 @@ export type OrderSnapshot = {
   id: string;
   name: string;
   createdAt: Date;
+  isCancelled?: boolean;
   fulfillments: FulfillmentSnapshot[];
 };
 
