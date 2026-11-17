@@ -10,12 +10,14 @@ const SEARCH_QUERY_BY_FILTER: Record<OrdersDashboardFilter, string | null> = {
   zip_to_fix:
     `tag:${ZIP_TO_FIX_ORDER_TAG} AND NOT status:cancelled AND ` +
     "(fulfillment_status:unfulfilled OR fulfillment_status:partial)",
-  // Ready to print, not printed yet: an order has a label to print once add
-  // tracking has fulfilled it (fully or in part). Cancelled orders never get
-  // a label, so they would sit here forever.
+  // Ready to print, not printed yet: a delivery order has a label to print
+  // once add tracking has fulfilled it (fully or in part); a pickup order
+  // has one from the start, since add tracking skips it. Cancelled orders
+  // never get a label, so they would sit here forever.
   unprinted:
     `tag_not:${PRINTED_ORDER_TAG} AND NOT status:cancelled AND ` +
-    "(fulfillment_status:fulfilled OR fulfillment_status:partial)",
+    "(fulfillment_status:fulfilled OR fulfillment_status:partial OR " +
+    "delivery_method:pick-up)",
   // Still needs work (something to ship, or a label to print) and in no pack.
   not_in_pack:
     `tag_not:${PACKED_ORDER_TAG} AND NOT status:cancelled AND ` +

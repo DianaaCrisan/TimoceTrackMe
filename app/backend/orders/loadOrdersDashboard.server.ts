@@ -80,6 +80,5 @@ export async function loadOrdersDashboard({
     parcelWeight,
     /** Packs that can take orders: for "Add to pack" and "Move to pack". */
     targetPacks: workingPacks.map(toPackView),
-    jobsOnlyInPacks: settings.jobsOnlyInPacks,
   };
 }

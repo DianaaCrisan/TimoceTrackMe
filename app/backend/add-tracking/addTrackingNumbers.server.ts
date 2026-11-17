@@ -34,6 +34,8 @@ import {
   type ParcelWeightSettings,
 } from "app/commons/settings/ParcelWeightSettings";
 import { formatKilogramsForAwb } from "app/commons/shipping/Weight";
+import { ShippingLabelRepository } from "../shipping-labels/ShippingLabelRepository.server";
+import type { GeneratedLabelInput } from "../shipping-labels/GeneratedLabelInput";
 
 type AddTrackingDeps = {
   getOrders: typeof getOrdersTrackingInputDataInBatches;
@@ -51,6 +53,15 @@ type AddTrackingDeps = {
   ) => Promise<void>;
   addZipToFixTag: typeof addZipToFixTag;
   removeZipToFixTag: typeof removeZipToFixTag;
+  /** For the AWB report. */
+  recordGeneratedLabel: (
+    label: GeneratedLabelInput,
+    generatedAt: Date,
+  ) => Promise<void>;
+  markLabelAddedToShopify: (
+    trackingNumber: string,
+    fulfillmentId: string,
+  ) => Promise<void>;
 };
 
 const defaultDeps: AddTrackingDeps = {
@@ -66,6 +77,10 @@ const defaultDeps: AddTrackingDeps = {
   },
   addZipToFixTag,
   removeZipToFixTag,
+  recordGeneratedLabel: (label, generatedAt) =>
+    ShippingLabelRepository.recordGenerated(label, generatedAt),
+  markLabelAddedToShopify: (trackingNumber, fulfillmentId) =>
+    ShippingLabelRepository.markAddedToShopify(trackingNumber, fulfillmentId),
 };
 
 /** Optimus refused the order's ZIP and it could not be fixed in this run. */
@@ -90,6 +105,10 @@ class ZipProblemError extends Error {}
  * Orders that still fail on their ZIP get the `ZIP_TO_FIX_ORDER_TAG`, so the
  * admin finds them on the "ZIP to fix" tab; every other order processed here
  * loses it.
+ *
+ * Every AWB is saved for the AWB report as soon as Optimus returns it, and
+ * marked once it is on its Shopify fulfillment. Saving never stops shipping:
+ * a failure only adds a warning to the order.
  */
 export async function addTrackingNumbers(
   admin: AdminApiContextWithoutRest,
@@ -229,7 +248,16 @@ async function processOneOrder({
     const limitKg = parcelWeight?.parcelWeightLimitKg ?? null;
 
     const createdTrackingNumbers: string[] = [];
-    const weightWarnings: string[] = [];
+    const warnings: string[] = [];
+    const saveForReport = async (save: () => Promise<void>) => {
+      try {
+        await save();
+      } catch (error) {
+        warnings.push(
+          `Could not save the AWB for the AWB report: ${errorMessage(error)}`,
+        );
+      }
+    };
     let failure: { error: string; isZipProblem: boolean } | undefined;
 
     for (const [index, parcel] of parcels.entries()) {
@@ -246,22 +274,47 @@ async function processOneOrder({
           manualZip !== undefined,
         );
 
-        await deps.addTrackingToFulfillment(admin, shopUrl, {
-          fulfillmentOrderId: parcel.fulfillmentOrderId,
-          fulfillmentOrderLineItems: parcel.items.map(({ id, quantity }) => ({
-            id,
-            quantity,
-          })),
-          trackingNumber: awbResponse.trackingNumber,
-        });
+        const { trackingNumber } = awbResponse;
 
-        createdTrackingNumbers.push(awbResponse.trackingNumber);
+        // before Shopify: Optimus has the AWB even if the next step fails
+        await saveForReport(() =>
+          deps.recordGeneratedLabel(
+            {
+              trackingNumber,
+              orderId: order.id,
+              orderName: order.name,
+              orderCreatedAt: new Date(order.createdAt),
+              fulfillmentOrderId: parcel.fulfillmentOrderId,
+              weightKg: parcel.weightKg,
+              parcelPosition: parcelPosition ?? null,
+            },
+            new Date(),
+          ),
+        );
+
+        const fulfillmentId = await deps.addTrackingToFulfillment(
+          admin,
+          shopUrl,
+          {
+            fulfillmentOrderId: parcel.fulfillmentOrderId,
+            fulfillmentOrderLineItems: parcel.items.map(({ id, quantity }) => ({
+              id,
+              quantity,
+            })),
+            trackingNumber,
+          },
+        );
+
+        createdTrackingNumbers.push(trackingNumber);
+        await saveForReport(() =>
+          deps.markLabelAddedToShopify(trackingNumber, fulfillmentId),
+        );
         const weightWarning = describeWeightWarning(
           parcel,
           parcelLabel,
           limitKg,
         );
-        if (weightWarning) weightWarnings.push(weightWarning);
+        if (weightWarning) warnings.push(weightWarning);
       } catch (parcelError) {
         // Stop at the first failure: the parcels left would carry numbers from
         // a set that is no longer complete. Adding tracking again ships them.
@@ -281,7 +334,7 @@ async function processOneOrder({
         name: order.name,
         trackingNumbers: createdTrackingNumbers,
         zipChange,
-        ...(weightWarnings.length > 0 ? { weightWarnings } : {}),
+        ...(warnings.length > 0 ? { warnings } : {}),
       });
       return;
     }
@@ -293,6 +346,7 @@ async function processOneOrder({
           ]
         : []),
       failure?.error ?? "No tracking numbers were created for this order.",
+      ...warnings,
     ];
 
     failedOrders.push({
@@ -528,7 +582,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function getEligibleShippingFulfillmentOrders(
+export function getEligibleShippingFulfillmentOrders(
   order: TrackingInputOrder,
 ): TrackingInputFulfillmentOrder[] {
   return order.fulfillmentOrders.filter((fulfillmentOrder) => {

@@ -1,0 +1,89 @@
+// The tutorials' table of contents: a grid of numbered cards.
+.tutorials-contents {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.tutorials-contents__card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid #e3e3e3;
+  border-radius: 12px;
+  background: #fff;
+  color: #303030;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease,
+    transform 0.12s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #0b7a75;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0b7a75;
+    outline-offset: 2px;
+  }
+
+  &.--in-progress {
+    background: #fafafa;
+  }
+}
+
+.tutorials-contents__number {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e0f5f5;
+  color: #0b7a75;
+  font-size: 13px;
+  font-weight: 650;
+
+  .--in-progress & {
+    background: #ebebeb;
+    color: #616161;
+  }
+}
+
+.tutorials-contents__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tutorials-contents__title {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 18px;
+}
+
+.tutorials-contents__when {
+  font-size: 12px;
+  line-height: 16px;
+  color: #616161;
+}
+
+.tutorials-contents__chip {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fff1d6;
+  color: #8a5200;
+  font-size: 11px;
+  font-weight: 600;
+}

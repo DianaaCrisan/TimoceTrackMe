@@ -47,11 +47,6 @@ model AppSettings {
   /// when the filling one is locked. See `PackSchedule`.
   packStartWeekdays Int[] @default([])
 
-  /// When true, add tracking and print labels run only from inside a pack
-  /// (TrackMe → Packs), never from the Orders page. Enforced by the server,
-  /// not only by hiding buttons.
-  jobsOnlyInPacks Boolean @default(false)
-
   updatedAt DateTime @updatedAt
 }
 
@@ -107,4 +102,89 @@ model FulfillmentPackOrder {
   taggedAt DateTime?
 
   @@index([packId])
+}
+
+/// One AWB, for the AWB report. See docs/awb-report-plan.md.
+///
+/// The status follows Shopify: USED while the AWB is on an active
+/// fulfillment, CANCELLED otherwise (see `reconcileOrderLabels`). Rows added
+/// by hand in the report (IMPORT) keep the status they were given.
+model ShippingLabel {
+  trackingNumber String @id
+
+  source  ShippingLabelSource
+  courier ShippingLabelCourier
+  /// The courier as typed on the Shopify fulfillment.
+  trackingCompany String?
+
+  /// Shopify order GID, name and creation date. NULL only for AWBs added by
+  /// hand without an order.
+  orderId        String?
+  orderName      String?
+  orderCreatedAt DateTime?
+
+  /// The fulfillment the AWB is on, or was last on.
+  fulfillmentId      String?
+  /// TrackMe only: the fulfillment order the parcel ships from, its weight
+  /// on the AWB, and "2/3" when the order ships as several parcels.
+  fulfillmentOrderId String?
+  weightKg           Float?
+  parcelPosition     String?
+
+  status       ShippingLabelStatus
+  cancelReason ShippingLabelCancelReason?
+  cancelledAt  DateTime?
+
+  /// Decides the report month. TrackMe: when Optimus returned the AWB.
+  /// SHOPIFY: when its fulfillment was created. IMPORT: the day typed in.
+  issuedAt DateTime
+
+  /// Free text, for AWBs added by hand.
+  note String?
+
+  /// Set by print labels.
+  firstPrintedAt DateTime?
+  lastPrintedAt  DateTime?
+  printCount     Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([issuedAt])
+  @@index([orderId])
+}
+
+enum ShippingLabelSource {
+  /// Booked by TrackMe's add tracking.
+  TRACKME
+  /// Found on a Shopify fulfillment: pasted by hand, or added before the
+  /// report existed.
+  SHOPIFY
+  /// Added by hand in the AWB report.
+  IMPORT
+}
+
+enum ShippingLabelCourier {
+  OPTIMUS
+  /// The tracking company on the fulfillment is not one we recognise.
+  UNKNOWN
+}
+
+enum ShippingLabelStatus {
+  USED
+  CANCELLED
+}
+
+enum ShippingLabelCancelReason {
+  FULFILLMENT_CANCELLED
+  TRACKING_REMOVED
+  NEVER_ON_SHOPIFY
+  SET_BY_HAND
+}
+
+/// When the AWB report last read a month again from Shopify.
+model AwbReportSync {
+  /// `YYYY-MM`
+  month    String   @id
+  syncedAt DateTime
 }

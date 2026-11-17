@@ -192,6 +192,49 @@ export type GetOrdersPrintLabelsInputQuery = { nodes: Array<AdminTypes.Maybe<(
     )> }
   )>> };
 
+export type ShippingLabelOrderFieldsFragment = (
+  Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt' | 'cancelledAt'>
+  & { fulfillments: Array<(
+    Pick<AdminTypes.Fulfillment, 'id' | 'status' | 'createdAt' | 'updatedAt'>
+    & { trackingInfo: Array<Pick<AdminTypes.FulfillmentTrackingInfo, 'number' | 'company'>> }
+  )> }
+);
+
+export type ShippingLabelOrderQueryVariables = AdminTypes.Exact<{
+  id: AdminTypes.Scalars['ID']['input'];
+}>;
+
+
+export type ShippingLabelOrderQuery = { order?: AdminTypes.Maybe<(
+    Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt' | 'cancelledAt'>
+    & { fulfillments: Array<(
+      Pick<AdminTypes.Fulfillment, 'id' | 'status' | 'createdAt' | 'updatedAt'>
+      & { trackingInfo: Array<Pick<AdminTypes.FulfillmentTrackingInfo, 'number' | 'company'>> }
+    )> }
+  )> };
+
+export type ShippingLabelOrdersQueryVariables = AdminTypes.Exact<{
+  first: AdminTypes.Scalars['Int']['input'];
+  after?: AdminTypes.InputMaybe<AdminTypes.Scalars['String']['input']>;
+  query?: AdminTypes.InputMaybe<AdminTypes.Scalars['String']['input']>;
+}>;
+
+
+export type ShippingLabelOrdersQuery = { orders: { nodes: Array<(
+      Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt' | 'cancelledAt'>
+      & { fulfillments: Array<(
+        Pick<AdminTypes.Fulfillment, 'id' | 'status' | 'createdAt' | 'updatedAt'>
+        & { trackingInfo: Array<Pick<AdminTypes.FulfillmentTrackingInfo, 'number' | 'company'>> }
+      )> }
+    )>, pageInfo: Pick<AdminTypes.PageInfo, 'hasNextPage' | 'endCursor'> } };
+
+export type ShippingLabelOrderByNameQueryVariables = AdminTypes.Exact<{
+  query: AdminTypes.Scalars['String']['input'];
+}>;
+
+
+export type ShippingLabelOrderByNameQuery = { orders: { nodes: Array<Pick<AdminTypes.Order, 'id' | 'name' | 'createdAt'>> } };
+
 export type SoldOrdersQueryVariables = AdminTypes.Exact<{
   ids: Array<AdminTypes.Scalars['ID']['input']> | AdminTypes.Scalars['ID']['input'];
 }>;
@@ -240,6 +283,9 @@ interface GeneratedQueryTypes {
   "#graphql\n  query OrdersDashboard(\n    $first: Int\n    $last: Int\n    $after: String\n    $before: String\n    $query: String\n  ) {\n    orders(\n      first: $first\n      last: $last\n      after: $after\n      before: $before\n      query: $query\n      sortKey: CREATED_AT\n      reverse: true\n    ) {\n      edges {\n        cursor\n        node {\n          id\n          name\n          createdAt\n          displayFinancialStatus\n          displayFulfillmentStatus\n          currentSubtotalLineItemsQuantity\n          cancelledAt\n          currentTotalWeight\n          note\n          customAttributes {\n            key\n            value\n          }\n\n          shippingAddress {\n            zip\n            address1\n            address2\n            city\n            province\n          }\n          \n          fulfillmentOrders(first: 1) {\n            edges {\n              node {\n                deliveryMethod {\n                  methodType\n                }\n              }\n            }\n          }\n          \n          customer {\n            displayName\n          }\n          \n          netPaymentSet {\n            presentmentMoney {\n              amount\n              currencyCode\n            }\n          }\n        }\n      }\n      pageInfo {\n        hasNextPage\n        hasPreviousPage\n        startCursor\n        endCursor\n      }\n    }\n  }\n": {return: OrdersDashboardQuery, variables: OrdersDashboardQueryVariables},
   "#graphql\n  query OrderIdsForSelection($first: Int!, $after: String, $query: String) {\n    orders(\n      first: $first\n      after: $after\n      query: $query\n      sortKey: CREATED_AT\n      reverse: true\n    ) {\n      nodes {\n        id\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n": {return: OrderIdsForSelectionQuery, variables: OrderIdsForSelectionQueryVariables},
   "#graphql\n  query GetOrdersPrintLabelsInput($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        createdAt\n        email\n        phone\n        confirmationNumber\n        billingAddress {\n          firstName\n          lastName\n          phone\n        }\n        fulfillmentOrders(first: 50) {\n          edges {\n            node {\n              id\n              status\n              deliveryMethod {\n                methodType\n              }\n              lineItems(first: 250) {\n                edges {\n                  node {\n                    id\n                    remainingQuantity\n                    lineItem {\n                      id\n                      name\n                      sku\n                      variant {\n                        id\n                        displayName\n                      }\n                    }\n                  }\n                }\n              }\n            }\n          }\n        }\n\n        fulfillments(first: 50) {\n          id\n          name\n          displayStatus\n          trackingInfo {\n            number\n            company\n            url\n          }\n          fulfillmentLineItems(first: 250) {\n            edges {\n              node {\n                quantity\n                lineItem {\n                  id\n                  name\n                  sku\n                  variant {\n                    id\n                    displayName\n                  }\n                }\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersPrintLabelsInputQuery, variables: GetOrdersPrintLabelsInputQueryVariables},
+  "#graphql\n  #graphql\n  fragment ShippingLabelOrderFields on Order {\n    id\n    name\n    createdAt\n    cancelledAt\n    fulfillments(first: 10) {\n      id\n      status\n      createdAt\n      updatedAt\n      trackingInfo(first: 3) {\n        number\n        company\n      }\n    }\n  }\n\n  query ShippingLabelOrder($id: ID!) {\n    order(id: $id) {\n      ...ShippingLabelOrderFields\n    }\n  }\n": {return: ShippingLabelOrderQuery, variables: ShippingLabelOrderQueryVariables},
+  "#graphql\n  #graphql\n  fragment ShippingLabelOrderFields on Order {\n    id\n    name\n    createdAt\n    cancelledAt\n    fulfillments(first: 10) {\n      id\n      status\n      createdAt\n      updatedAt\n      trackingInfo(first: 3) {\n        number\n        company\n      }\n    }\n  }\n\n  query ShippingLabelOrders($first: Int!, $after: String, $query: String) {\n    orders(first: $first, after: $after, query: $query, sortKey: UPDATED_AT) {\n      nodes {\n        ...ShippingLabelOrderFields\n      }\n      pageInfo {\n        hasNextPage\n        endCursor\n      }\n    }\n  }\n": {return: ShippingLabelOrdersQuery, variables: ShippingLabelOrdersQueryVariables},
+  "#graphql\n  query ShippingLabelOrderByName($query: String!) {\n    orders(first: 5, query: $query) {\n      nodes {\n        id\n        name\n        createdAt\n      }\n    }\n  }\n": {return: ShippingLabelOrderByNameQuery, variables: ShippingLabelOrderByNameQueryVariables},
   "#graphql\n  query SoldOrders($ids: [ID!]!) {\n    nodes(ids: $ids) {\n      ... on Order {\n        id\n        name\n        cancelledAt\n        fulfillmentOrders(first: 1) {\n          nodes {\n            deliveryMethod {\n              methodType\n            }\n          }\n        }\n        lineItems(first: 250) {\n          nodes {\n            name\n            currentQuantity\n            variant {\n              id\n            }\n          }\n          pageInfo {\n            hasNextPage\n          }\n        }\n      }\n    }\n  }\n": {return: SoldOrdersQuery, variables: SoldOrdersQueryVariables},
   "#graphql\n  query GetOrdersShippingInfoBatch($orderIds: [ID!]!) {\n    nodes(ids: $orderIds) {\n      __typename\n      ... on Order {\n        id\n        name\n        shippingAddress {\n          zip\n          address1\n          city\n          provinceCode\n        }\n        shippingLines(first: 2) {\n          edges {\n            node {\n              title\n              taxLines {\n                title\n                ratePercentage\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n": {return: GetOrdersShippingInfoBatchQuery, variables: GetOrdersShippingInfoBatchQueryVariables},
 }
