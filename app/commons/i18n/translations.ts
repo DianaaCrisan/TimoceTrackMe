@@ -15,6 +15,7 @@ export const en = {
   "nav.orders": "Unpacked orders",
   "nav.unfulfilledReport": "Unfulfilled report",
   "nav.awbReport": "AWB report",
+  "nav.documents": "Documents",
   "nav.tutorials": "Tutorials",
   "nav.settings": "Settings",
   "nav.developerPanel": "Developer panel",
@@ -31,7 +32,36 @@ export const en = {
   "home.unfulfilledReport": "Which products still need preparing.",
   "home.awbReport":
     "The month's AWBs, used and cancelled, to check the Optimus bill.",
+  "home.documents": "The label files you printed, newest first.",
   "home.tutorials": "What to do, step by step, in each case.",
+
+  // Documents page
+  "documents.heading": "Documents",
+  "documents.intro":
+    "The documents the app has stored, newest first. They are read from file storage each time: once storage deletes a file (after about 6 months), it is gone from here too.",
+  "documents.category.labels": "Labels",
+  "documents.colStoredAt": "Saved",
+  "documents.colOrders": "Orders",
+  "documents.orderCount": {
+    one: "{count} order",
+    other: "{count} orders",
+  },
+  "documents.ordersNotRecorded": "Not recorded (saved before this list existed)",
+  "documents.colFile": "File",
+  "documents.colSize": "Size",
+  "documents.colDownload": "Download",
+  "documents.download": "Download",
+  "documents.noLink": "No link",
+  "documents.empty": "No documents yet.",
+  "documents.loadFailed": "The documents could not be read from file storage",
+  "documents.accessDenied":
+    "The app's AWS user may save and download files but not list them. Add the s3:ListBucket permission for the bucket to its policy in AWS IAM.",
+  "documents.newer": "Newer",
+  "documents.older": "Older",
+  "documents.pageOf": {
+    one: "Page {page} of {pageCount} · {count} document",
+    other: "Page {page} of {pageCount} · {count} documents",
+  },
   "home.settings": "Parcel weight and pack rules.",
   "home.developerPanel": "Technical checks: Optimus, file storage, jobs.",
 
@@ -39,6 +69,7 @@ export const en = {
   "filter.all": "All",
   "filter.pending_fulfillment": "Pending fulfillment",
   "filter.zip_to_fix": "ZIP to fix",
+  "filter.on_hold": "On hold",
   "filter.unprinted": "Unprinted",
   "filter.not_in_pack": "Not in a pack",
 
@@ -48,6 +79,7 @@ export const en = {
   "pack.status.LOCKED": "In progress",
   "pack.status.CLOSED": "Closed",
   "pack.status.waiting": "Waiting",
+  "pack.status.full": "Full",
   "pack.orderCount": { one: "{count} order", other: "{count} orders" },
   "pack.startedAt": "first order {time}",
   "pack.lockedAt": "started {time}",
@@ -55,10 +87,15 @@ export const en = {
   "pack.progress": "{done} of {total} done · {left} left",
   "pack.progressAllDone": "All {total} done",
   "pack.progressUnavailable": "Progress could not be loaded.",
-  "pack.untagged": {
-    one: "{count} order is not tagged yet, so the pack's tabs do not show it.",
+  "pack.tagging": {
+    one: "{count} order is being updated in Shopify; the pack's tabs show it once that is done.",
     other:
-      "{count} orders are not tagged yet, so the pack's tabs do not show them.",
+      "{count} orders are being updated in Shopify; the pack's tabs show them once that is done.",
+  },
+  "pack.tagFailed": {
+    one: "{count} order could not be tagged, so the pack's tabs may not show it right.",
+    other:
+      "{count} orders could not be tagged, so the pack's tabs may not show them right.",
   },
   "pack.newPack": "New pack",
   "pack.action.lock": "Start working",
@@ -90,6 +127,9 @@ export const en = {
     other: "Move {count} orders to another pack",
   },
   "pack.picker.noOtherPack": "There is no other pack to move to.",
+  // only shown past the limit, so always well above 20
+  "pack.picker.overLimit":
+    "The pack will have {count} orders, over the limit of {limit}. They all go in; new orders then start a new pack.",
   "pack.confirm.lockTitle": "Start working on {name}?",
   "pack.confirm.lockBody":
     "The pack stops taking new orders: the next order starts a new pack. You can still add orders by hand. Next, print its unfulfilled items report, then add tracking.",
@@ -123,6 +163,7 @@ export const en = {
     one: "Tagging {count} order again.",
     other: "Tagging {count} orders again.",
   },
+  "pack.done.updatingShopify": "Updating Shopify…",
   "pack.done.added": {
     one: "{count} order added to {name}.",
     other: "{count} orders added to {name}.",
@@ -178,11 +219,6 @@ export const en = {
   "dashboard.starting": "Starting...",
   "dashboard.dismiss": "Dismiss",
   "dashboard.loading": "Loading...",
-  "dashboard.jobStarted": {
-    one: "{title} started for {count} order. When it finishes, the list refreshes and the result appears under Recent jobs.",
-    other:
-      "{title} started for {count} orders. When it finishes, the list refreshes and the result appears under Recent jobs.",
-  },
   "dashboard.jobFinished": "{title} finished: {details}",
   "dashboard.jobFailed": "{title} failed: {details}",
   "dashboard.listRefreshed":
@@ -190,10 +226,19 @@ export const en = {
   "dashboard.allInTabSelected": 'All {count} orders in "{tab}" selected',
   "dashboard.selectedCount": "{count} selected",
   "dashboard.goToPacks": "Go to Packs →",
-  "dashboard.tabTooLarge":
-    "{count} orders in this tab, more than one job takes ({max})",
-  "dashboard.selectAllInTab": "Select all {count} orders in this tab",
-  "dashboard.deselectAll": "Deselect all",
+  "dashboard.selectedOfTab": '{count} of {total} orders in "{tab}" selected',
+  "dashboard.tagBatchDone": {
+    one: "{count} order updated in Shopify.",
+    other: "{count} orders updated in Shopify.",
+  },
+  "dashboard.tagBatchFailed": {
+    one: "{count} order could not be tagged; use Retry on its pack.",
+    other: "{count} orders could not be tagged; use Retry on their pack.",
+  },
+  "dashboard.stillUpdating":
+    "Shopify is still updating this list. Refresh in a few moments to see the latest.",
+  "dashboard.onHoldHint":
+    "These orders are on hold in Shopify. Add tracking skips them until the hold is released: open the order in Shopify to release it.",
   "dashboard.httpError": "The server answered with HTTP {status}.",
   "dashboard.fixZips": {
     one: "Fix {count} ZIP code",
@@ -201,7 +246,40 @@ export const en = {
   },
 
   // orders table
-  "table.selectAllVisible": "Select all visible orders",
+  "table.selectAllInTab": "Select every order in this tab, on all pages",
+  "table.selectAllUnknown":
+    "The orders in this tab could not be counted, so they cannot all be selected. Tick them by hand.",
+  "table.selectAllTooMany":
+    "This tab has {count} orders, more than one action takes ({max}). Tick orders by hand.",
+  "row.joiningPack": "Being added to {pack}…",
+  "row.leavingPack": "Leaving its pack…",
+  "row.inJob.add-tracking": "Adding AWB…",
+  "row.inJob.print-labels": "Preparing labels…",
+  "row.inJob.other": "Being processed…",
+  "row.stale": "Updating…",
+
+  // background work in progress
+  "activity.addOrders": {
+    one: "Adding {count} order to {pack}",
+    other: "Adding {count} orders to {pack}",
+  },
+  "activity.removeOrders": {
+    one: "Taking {count} order out of its pack",
+    other: "Taking {count} orders out of their pack",
+  },
+  "activity.close": {
+    one: "Moving {count} order left to {pack}",
+    other: "Moving {count} orders left to {pack}",
+  },
+  "activity.retry": {
+    one: "Tagging {count} order of {pack} again",
+    other: "Tagging {count} orders of {pack} again",
+  },
+  "activity.somePack": "a pack",
+  "activity.progress": "{done} of {total}",
+  "activity.failed": "{count} failed",
+  "activity.verifying": "Checking that Shopify shows the change…",
+  "activity.listUpdatesItself": "The list updates on its own when this is done.",
   "table.selectOrder": "Select order {name}",
   "table.order": "Order",
   "table.date": "Date",
@@ -243,6 +321,13 @@ export const en = {
   "settings.save": "Save",
   "settings.saved": "Settings saved",
   "settings.packScheduleHeading": "Packs",
+  "settings.packMaxOrders": "New pack after",
+  "settings.packMaxOrdersSuffix": "orders",
+  "settings.packMaxOrdersDetails":
+    "The recommended value for the current Shopify plan ({plan}): actions on a whole pack take about a minute. The filling pack then waits and new orders start a new pack. It cannot be changed for now.",
+  "settings.packMaxOrdersDetailsNoPlan":
+    "The recommended value for the current Shopify plan: actions on a whole pack take about a minute. The filling pack then waits and new orders start a new pack. It cannot be changed for now.",
+  "settings.packScheduleSectionHeading": "Scheduled new packs",
   "settings.packScheduleIntro":
     "A new pack always starts when you start working on the filling one. Tick days to also start a new pack at midnight before each of them.",
   "settings.packScheduleDetails":
@@ -259,7 +344,7 @@ export const en = {
 
   // "ZIP to fix" tab
   "zipFix.intro":
-    "Rows you edit are ticked; tick a row without editing it to retry it as it is.",
+    "Rows you edit are ticked; a ticked row you did not edit is retried as it is. The header checkbox takes every order in this tab, on all pages, and ZIPs typed on any page are kept.",
   "zipFix.submit": {
     one: "Save & add tracking for {count} order",
     other: "Save & add tracking for {count} orders",
@@ -268,7 +353,7 @@ export const en = {
     one: "{count} ZIP code is not 6 digits",
     other: "{count} ZIP codes are not 6 digits",
   },
-  "zipFix.selectAll": "Select all orders on this page",
+  "zipFix.submitBreakdown": "({fixed} with a corrected ZIP, {retried} retried as they are)",
   "zipFix.colAddress": "Address",
   "zipFix.colCity": "City",
   "zipFix.colCounty": "County",
@@ -393,6 +478,8 @@ export const en = {
       "{count} selected orders are no longer in this pack. Reload the page.",
   },
   "startJob.noOrdersInTab": 'No orders match the "{tab}" tab.',
+  "startJob.allOrdersUpdating":
+    "Every order in this tab is still being updated in Shopify. Try again in a moment.",
   "startJob.tooManyOrders":
     "A job can take at most {max} orders. This selection has more.",
   "startJob.unreadableManualZips":
@@ -655,6 +742,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "nav.orders": "Comenzi fără pachet",
   "nav.unfulfilledReport": "Raport neexecutate",
   "nav.awbReport": "Raport AWB",
+  "nav.documents": "Documente",
   "nav.tutorials": "Tutoriale",
   "nav.settings": "Setări",
   "nav.developerPanel": "Panou pentru dezvoltatori",
@@ -671,8 +759,38 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "home.unfulfilledReport": "Ce produse mai trebuie pregătite.",
   "home.awbReport":
     "AWB-urile lunii, folosite și anulate, pentru verificarea facturii Optimus.",
+  "home.documents": "Fișierele cu etichete printate, cele mai noi primele.",
   "home.tutorials": "Ce faci, pas cu pas, în fiecare caz.",
-  "home.settings": "Greutatea coletelor și regulile pachetelor.",
+
+  // pagina Documente
+  "documents.heading": "Documente",
+  "documents.intro":
+    "Documentele salvate de aplicație, cele mai noi primele. Se citesc de fiecare dată din spațiul de stocare: după ce un fișier e șters de acolo (după aproximativ 6 luni), dispare și de aici.",
+  "documents.category.labels": "Etichete",
+  "documents.colStoredAt": "Salvat",
+  "documents.colOrders": "Comenzi",
+  "documents.orderCount": {
+    one: "{count} comandă",
+    few: "{count} comenzi",
+    other: "{count} de comenzi",
+  },
+  "documents.ordersNotRecorded": "Neînregistrate (salvat înainte de această listă)",
+  "documents.colFile": "Fișier",
+  "documents.colSize": "Mărime",
+  "documents.colDownload": "Descărcare",
+  "documents.download": "Descarcă",
+  "documents.noLink": "Fără link",
+  "documents.empty": "Niciun document încă.",
+  "documents.loadFailed": "Documentele nu au putut fi citite din spațiul de stocare",
+  "documents.accessDenied":
+    "Utilizatorul AWS al aplicației poate salva și descărca fișiere, dar nu le poate lista. Adaugă permisiunea s3:ListBucket pentru bucket în politica lui din AWS IAM.",
+  "documents.newer": "Mai noi",
+  "documents.older": "Mai vechi",
+  "documents.pageOf": {
+    one: "Pagina {page} din {pageCount} · {count} document",
+    few: "Pagina {page} din {pageCount} · {count} documente",
+    other: "Pagina {page} din {pageCount} · {count} de documente",
+  },  "home.settings": "Greutatea coletelor și regulile pachetelor.",
   "home.developerPanel":
     "Verificări tehnice: Optimus, stocarea fișierelor, sarcini.",
 
@@ -680,6 +798,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "filter.all": "Toate",
   "filter.pending_fulfillment": "Neexecutate",
   "filter.zip_to_fix": "Cod poștal de corectat",
+  "filter.on_hold": "În așteptare",
   "filter.unprinted": "Neprintate",
   "filter.not_in_pack": "Fără pachet",
 
@@ -689,6 +808,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "pack.status.LOCKED": "În lucru",
   "pack.status.CLOSED": "Închis",
   "pack.status.waiting": "În așteptare",
+  "pack.status.full": "Plin",
   "pack.orderCount": {
     one: "{count} comandă",
     few: "{count} comenzi",
@@ -700,10 +820,17 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "pack.progress": "{done} din {total} gata · {left} rămase",
   "pack.progressAllDone": "Toate cele {total} sunt gata",
   "pack.progressUnavailable": "Progresul nu a putut fi încărcat.",
-  "pack.untagged": {
-    one: "{count} comandă nu are încă eticheta pachetului, așa că taburile pachetului nu o arată.",
+  "pack.tagging": {
+    one: "{count} comandă se actualizează în Shopify; taburile pachetului o arată după aceea.",
+    few: "{count} comenzi se actualizează în Shopify; taburile pachetului le arată după aceea.",
     other:
-      "{count} comenzi nu au încă eticheta pachetului, așa că taburile pachetului nu le arată.",
+      "{count} de comenzi se actualizează în Shopify; taburile pachetului le arată după aceea.",
+  },
+  "pack.tagFailed": {
+    one: "{count} comandă nu a putut fi etichetată, așa că taburile pachetului s-ar putea să nu o arate corect.",
+    few: "{count} comenzi nu au putut fi etichetate, așa că taburile pachetului s-ar putea să nu le arate corect.",
+    other:
+      "{count} de comenzi nu au putut fi etichetate, așa că taburile pachetului s-ar putea să nu le arate corect.",
   },
   "pack.newPack": "Pachet nou",
   "pack.action.lock": "Începe lucrul",
@@ -739,6 +866,9 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     other: "Mută {count} de comenzi în alt pachet",
   },
   "pack.picker.noOtherPack": "Nu există alt pachet în care să le muți.",
+  // only shown past the limit, so always well above 20: "de comenzi"
+  "pack.picker.overLimit":
+    "Pachetul va avea {count} de comenzi, peste limita de {limit}. Intră toate; comenzile noi pornesc apoi un pachet nou.",
   "pack.confirm.lockTitle": "Începi lucrul la {name}?",
   "pack.confirm.lockBody":
     "Pachetul nu mai primește comenzi noi: următoarea comandă pornește un pachet nou. Poți adăuga în continuare comenzi manual. Apoi printează raportul de produse neexecutate și adaugă tracking-ul.",
@@ -777,6 +907,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     few: "Se reetichetează {count} comenzi.",
     other: "Se reetichetează {count} de comenzi.",
   },
+  "pack.done.updatingShopify": "Se actualizează în Shopify…",
   "pack.done.added": {
     one: "{count} comandă adăugată în {name}.",
     few: "{count} comenzi adăugate în {name}.",
@@ -838,12 +969,6 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "dashboard.starting": "Se pornește...",
   "dashboard.dismiss": "Închide",
   "dashboard.loading": "Se încarcă...",
-  "dashboard.jobStarted": {
-    one: "{title} a pornit pentru {count} comandă. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
-    few: "{title} a pornit pentru {count} comenzi. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
-    other:
-      "{title} a pornit pentru {count} de comenzi. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
-  },
   "dashboard.jobFinished": "{title} s-a terminat: {details}",
   "dashboard.jobFailed": "{title} a eșuat: {details}",
   "dashboard.listRefreshed":
@@ -858,15 +983,22 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     other: "{count} selectate",
   },
   "dashboard.goToPacks": "Mergi la Pachete →",
-  // only shown past the job limit, so always 20 or more: "de comenzi"
-  "dashboard.tabTooLarge":
-    "{count} de comenzi în acest tab, mai multe decât poate prelua o sarcină ({max})",
-  "dashboard.selectAllInTab": {
-    one: "Selectează {count} comandă din acest tab",
-    few: "Selectează toate cele {count} comenzi din acest tab",
-    other: "Selectează toate cele {count} de comenzi din acest tab",
+  "dashboard.selectedOfTab": "{count} din {total} comenzi din „{tab}” selectate",
+  "dashboard.tagBatchDone": {
+    one: "{count} comandă actualizată în Shopify.",
+    few: "{count} comenzi actualizate în Shopify.",
+    other: "{count} de comenzi actualizate în Shopify.",
   },
-  "dashboard.deselectAll": "Deselectează tot",
+  "dashboard.tagBatchFailed": {
+    one: "{count} comandă nu a putut fi etichetată; folosește Reîncearcă din pachetul ei.",
+    few: "{count} comenzi nu au putut fi etichetate; folosește Reîncearcă din pachetul lor.",
+    other:
+      "{count} de comenzi nu au putut fi etichetate; folosește Reîncearcă din pachetul lor.",
+  },
+  "dashboard.stillUpdating":
+    "Shopify încă actualizează lista. Reîmprospătează peste câteva momente ca să vezi ultima variantă.",
+  "dashboard.onHoldHint":
+    "Aceste comenzi sunt în așteptare în Shopify. Adăugarea tracking-ului le sare până când nu mai sunt în așteptare: deschide comanda în Shopify ca să o eliberezi.",
   "dashboard.httpError": "Serverul a răspuns cu HTTP {status}.",
   "dashboard.fixZips": {
     one: "Corectează {count} cod poștal",
@@ -875,7 +1007,45 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   },
 
   // orders table
-  "table.selectAllVisible": "Selectează toate comenzile vizibile",
+  "table.selectAllInTab": "Selectează toate comenzile din acest tab, de pe toate paginile",
+  "table.selectAllUnknown":
+    "Comenzile din acest tab nu au putut fi numărate, deci nu pot fi selectate toate. Bifează-le manual.",
+  // only shown past the job limit, so always 20 or more: "de comenzi"
+  "table.selectAllTooMany":
+    "Acest tab are {count} de comenzi, mai multe decât poate prelua o acțiune ({max}). Bifează comenzile manual.",
+  "row.joiningPack": "Se adaugă în {pack}…",
+  "row.leavingPack": "Se scoate din pachet…",
+  "row.inJob.add-tracking": "Se adaugă AWB…",
+  "row.inJob.print-labels": "Se pregătesc etichetele…",
+  "row.inJob.other": "Se procesează…",
+  "row.stale": "Se actualizează…",
+
+  // background work in progress
+  "activity.addOrders": {
+    one: "Se adaugă {count} comandă în {pack}",
+    few: "Se adaugă {count} comenzi în {pack}",
+    other: "Se adaugă {count} de comenzi în {pack}",
+  },
+  "activity.removeOrders": {
+    one: "Se scoate {count} comandă din pachet",
+    few: "Se scot {count} comenzi din pachet",
+    other: "Se scot {count} de comenzi din pachet",
+  },
+  "activity.close": {
+    one: "Se mută {count} comandă rămasă în {pack}",
+    few: "Se mută {count} comenzi rămase în {pack}",
+    other: "Se mută {count} de comenzi rămase în {pack}",
+  },
+  "activity.retry": {
+    one: "Se reetichetează {count} comandă din {pack}",
+    few: "Se reetichetează {count} comenzi din {pack}",
+    other: "Se reetichetează {count} de comenzi din {pack}",
+  },
+  "activity.somePack": "un pachet",
+  "activity.progress": "{done} din {total}",
+  "activity.failed": "{count} eșuate",
+  "activity.verifying": "Se verifică dacă Shopify arată schimbarea…",
+  "activity.listUpdatesItself": "Lista se actualizează singură când se termină.",
   "table.selectOrder": "Selectează comanda {name}",
   "table.order": "Comandă",
   "table.date": "Dată",
@@ -922,6 +1092,13 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "settings.save": "Salvează",
   "settings.saved": "Setările au fost salvate",
   "settings.packScheduleHeading": "Pachete",
+  "settings.packMaxOrders": "Pachet nou după",
+  "settings.packMaxOrdersSuffix": "comenzi",
+  "settings.packMaxOrdersDetails":
+    "Valoarea recomandată pentru planul Shopify actual ({plan}): acțiunile pe un pachet întreg durează în jur de un minut. Pachetul care se umple așteaptă apoi, iar comenzile noi pornesc un pachet nou. Nu poate fi modificată deocamdată.",
+  "settings.packMaxOrdersDetailsNoPlan":
+    "Valoarea recomandată pentru planul Shopify actual: acțiunile pe un pachet întreg durează în jur de un minut. Pachetul care se umple așteaptă apoi, iar comenzile noi pornesc un pachet nou. Nu poate fi modificată deocamdată.",
+  "settings.packScheduleSectionHeading": "Pachete noi programate",
   "settings.packScheduleIntro":
     "Un pachet nou pornește mereu când începi lucrul la cel care se umple. Bifează zile ca să pornească un pachet nou și la miezul nopții dinaintea fiecăreia.",
   "settings.packScheduleDetails":
@@ -938,7 +1115,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
 
   // tabul „Cod poștal de corectat”
   "zipFix.intro":
-    "Rândurile editate se bifează singure; bifează un rând needitat ca să-l reîncerci așa cum e.",
+    "Rândurile editate se bifează singure; un rând bifat needitat se reîncearcă așa cum e. Bifa din antet ia toate comenzile din acest tab, de pe toate paginile, iar codurile scrise pe orice pagină se păstrează.",
   "zipFix.submit": {
     one: "Salvează și adaugă tracking pentru {count} comandă",
     few: "Salvează și adaugă tracking pentru {count} comenzi",
@@ -949,7 +1126,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     few: "{count} coduri poștale nu au 6 cifre",
     other: "{count} de coduri poștale nu au 6 cifre",
   },
-  "zipFix.selectAll": "Selectează toate comenzile de pe pagină",
+  "zipFix.submitBreakdown": "({fixed} cu cod poștal corectat, {retried} reîncercate așa cum sunt)",
   "zipFix.colAddress": "Adresă",
   "zipFix.colCity": "Localitate",
   "zipFix.colCounty": "Județ",
@@ -1003,7 +1180,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // Shopify fulfillment statuses
   "fulfillmentStatus.FULFILLED": "Executată",
   "fulfillmentStatus.IN_PROGRESS": "În curs",
-  "fulfillmentStatus.ON_HOLD": "Suspendată",
+  "fulfillmentStatus.ON_HOLD": "În așteptare",
   "fulfillmentStatus.OPEN": "Deschisă",
   "fulfillmentStatus.PARTIALLY_FULFILLED": "Executată parțial",
   "fulfillmentStatus.PENDING_FULFILLMENT": "În așteptarea executării",
@@ -1083,6 +1260,8 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
       "{count} de comenzi selectate nu mai sunt în acest pachet. Reîncarcă pagina.",
   },
   "startJob.noOrdersInTab": "Nicio comandă în tabul „{tab}”.",
+  "startJob.allOrdersUpdating":
+    "Toate comenzile din acest tab se actualizează încă în Shopify. Încearcă din nou în câteva momente.",
   "startJob.tooManyOrders":
     "O sarcină poate prelua cel mult {max} de comenzi. Selecția aceasta are mai multe.",
   "startJob.unreadableManualZips":

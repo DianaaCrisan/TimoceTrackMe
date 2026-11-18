@@ -6,6 +6,9 @@ import {
   getRecentJobsSnapshot,
 } from "./jobsSetup.server";
 
+vi.mock("../packs/PackTagSyncRepository.server", () => ({
+  PackTagSyncRepository: { listRecentBatches: vi.fn(async () => []) },
+}));
 vi.mock("../aws-s3/uploadToS3.server", () => ({
   uploadToS3: vi.fn(),
   assertS3Configured: vi.fn(),

@@ -15,6 +15,8 @@ export type AddTrackingNumbersRequest = {
    * limit.
    */
   parcelWeight?: ParcelWeightSettings;
+  /** Called as each order is done with (or given up on), for progress. */
+  onOrderDone?: () => void;
 };
 
 export type AddTrackingNumbersSuccessfulOrder = {

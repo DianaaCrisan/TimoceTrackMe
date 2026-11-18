@@ -6,6 +6,7 @@ export const ORDERS_DASHBOARD_FILTERS = [
   "all",
   "pending_fulfillment",
   "zip_to_fix",
+  "on_hold",
   "unprinted",
   "not_in_pack",
 ] as const;
@@ -17,6 +18,7 @@ export const PACK_DASHBOARD_FILTERS = [
   "all",
   "pending_fulfillment",
   "zip_to_fix",
+  "on_hold",
   "unprinted",
 ] as const satisfies readonly OrdersDashboardFilter[];
 
@@ -29,6 +31,10 @@ export const UNPACKED_DASHBOARD_FILTERS = [
   "not_in_pack",
 ] as const satisfies readonly OrdersDashboardFilter[];
 
+/** Tabs whose count stands out when not zero: they wait on the admin. */
+export const ATTENTION_ORDERS_DASHBOARD_FILTERS: readonly OrdersDashboardFilter[] =
+  ["zip_to_fix", "on_hold"];
+
 /** The tab the dashboard opens on: the orders that still need work. */
 export const DEFAULT_ORDERS_DASHBOARD_FILTER: OrdersDashboardFilter =
   "pending_fulfillment";
@@ -37,6 +43,7 @@ export const DEFAULT_ORDERS_DASHBOARD_FILTER: OrdersDashboardFilter =
 export const COUNTED_ORDERS_DASHBOARD_FILTERS = [
   "pending_fulfillment",
   "zip_to_fix",
+  "on_hold",
   "unprinted",
   "not_in_pack",
 ] as const satisfies readonly OrdersDashboardFilter[];
@@ -47,6 +54,7 @@ const FILTER_LABELS: Record<OrdersDashboardFilter, TranslationKey> = {
   all: "filter.all",
   pending_fulfillment: "filter.pending_fulfillment",
   zip_to_fix: "filter.zip_to_fix",
+  on_hold: "filter.on_hold",
   unprinted: "filter.unprinted",
   not_in_pack: "filter.not_in_pack",
 };
@@ -58,12 +66,14 @@ export type OrdersDashboardJob = "add-tracking" | "print-labels";
  * The jobs each tab offers, so the admin only sees the next step:
  * "Pending fulfillment" ships (pickup orders are skipped by add tracking),
  * "Unprinted" prints. "ZIP to fix" has its own panel, which only adds
- * tracking.
+ * tracking. "On hold" offers none: add tracking skips an order on hold, so
+ * it waits until the hold is released in Shopify.
  */
 const JOBS_BY_FILTER: Record<OrdersDashboardFilter, OrdersDashboardJob[]> = {
   all: ["add-tracking", "print-labels"],
   pending_fulfillment: ["add-tracking"],
   zip_to_fix: ["add-tracking"],
+  on_hold: [],
   unprinted: ["print-labels"],
   not_in_pack: ["add-tracking", "print-labels"],
 };

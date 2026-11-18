@@ -1,6 +1,7 @@
 import type { Locale } from "app/commons/i18n/Locale";
 import type { ManualZips } from "app/commons/orders/ManualZips";
 import type { AdminApiContextWithoutRest } from "../../core/types/AdminApiContextWithoutRest";
+import type { JobProgress } from "../startBackgroundJob.server";
 
 /** What every bulk orders job gets when it starts building its result. */
 export type OrdersJobContext = {
@@ -15,4 +16,6 @@ export type OrdersJobContext = {
   locale?: Locale;
   /** ZIPs the admin typed on the "ZIP to fix" tab (add tracking only). */
   manualZips?: ManualZips;
+  /** How far the job is, for the dashboard. Optional for tests. */
+  progress?: JobProgress;
 };

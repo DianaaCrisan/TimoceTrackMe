@@ -1,3 +1,4 @@
+import type { PackWaitingReason } from "./PackSchedule";
 import { INTL_LOCALE, type Locale } from "../i18n/Locale";
 import type { Translate } from "../i18n/translate";
 import type { OrdersCount } from "../orders/OrdersCount";
@@ -13,17 +14,24 @@ export type FulfillmentPackView = {
   daySequence: number;
   status: FulfillmentPackStatus;
   /**
-   * Open, but a scheduled day has started since its first order: it takes
-   * no new orders and waits for someone to start working on it.
+   * Open, but full or past a scheduled cut: it takes no new orders and waits
+   * for someone to start working on it.
    */
   isWaiting: boolean;
+  /** Why it waits; null when it does not. */
+  waitingReason: PackWaitingReason | null;
   startedAt: string | null;
   lockedAt: string | null;
   closedAt: string | null;
   /** Orders in the pack, from the database. */
   orderCount: number;
-  /** Orders whose tags are not confirmed yet; the pack's tabs miss them. */
-  untaggedCount: number;
+  /**
+   * Orders joining or leaving the pack whose Shopify tags are still being
+   * updated: the pack's tabs do not show them right yet.
+   */
+  taggingCount: number;
+  /** Orders whose tags could not be updated; the Retry button queues them. */
+  tagFailedCount: number;
 };
 
 /**

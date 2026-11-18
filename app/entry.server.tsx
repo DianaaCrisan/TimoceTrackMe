@@ -5,6 +5,10 @@ import { createReadableStreamFromReadable } from "@react-router/node";
 import { type EntryContext } from "react-router";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { packTagWorker } from "./backend/packs/PackTagWorker.server";
+
+// picks up pack tag work left by a restart, then checks the queue every minute
+packTagWorker.start();
 
 export const streamTimeout = 5000;
 

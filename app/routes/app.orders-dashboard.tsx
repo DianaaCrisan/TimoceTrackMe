@@ -28,6 +28,7 @@ export default function OrdersDashboardRoute() {
       <OrdersDashboardPage
         scope={ALL_ORDERS_SCOPE}
         orders={data.orders}
+        rowActivity={data.rowActivity}
         pageInfo={data.pageInfo}
         shopAdminUrl={data.shopAdminUrl}
         activeFilter={data.filter}
@@ -35,6 +36,7 @@ export default function OrdersDashboardRoute() {
         pageNumbers={data.pageNumbers}
         recentJobs={data.recentJobs}
         parcelWeight={data.parcelWeight}
+        packMaxOrders={data.packMaxOrders}
         targetPacks={data.targetPacks}
       />
     </>

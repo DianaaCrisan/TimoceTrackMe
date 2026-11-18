@@ -25,6 +25,13 @@ describe("buildOrdersSearchQuery", () => {
     );
   });
 
+  it("finds orders on hold, inside the pack", () => {
+    expect(buildOrdersSearchQuery("on_hold", "pachet-2026-11-14-1")).toBe(
+      "tag:pachet-2026-11-14-1 AND " +
+        "(fulfillment_status:on_hold AND NOT status:cancelled)",
+    );
+  });
+
   it("keeps the other tabs as they were", () => {
     expect(buildOrdersSearchQuery("all")).toBeNull();
     expect(buildOrdersSearchQuery("pending_fulfillment")).toBe(
@@ -95,5 +102,7 @@ describe("getFilterJobs", () => {
     expect(getFilterJobs("zip_to_fix")).toEqual(["add-tracking"]);
     expect(getFilterJobs("unprinted")).toEqual(["print-labels"]);
     expect(getFilterJobs("all")).toEqual(["add-tracking", "print-labels"]);
+    // add tracking skips an order on hold: nothing to offer until released
+    expect(getFilterJobs("on_hold")).toEqual([]);
   });
 });

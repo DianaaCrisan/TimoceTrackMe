@@ -16,27 +16,45 @@ import {
   isOverWeightLimit,
   type ParcelWeightSettings,
 } from "app/commons/settings/ParcelWeightSettings";
+import type {
+  OrderRowActivities,
+  OrderRowActivity,
+} from "app/commons/orders/OrderRowActivity";
+import type { HeaderCheckboxState } from "app/commons/orders/DashboardSelection";
+import { formatPackName } from "app/commons/packs/FulfillmentPack";
+import type { Translate } from "app/commons/i18n/translate";
+import { isTranslationKey } from "app/commons/i18n/translate";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable/styles.scss";
 
 type OrdersDashboardTableProps = {
   orders: OrdersDashboardOrder[];
   shopAdminUrl: string;
-  selectedOrderIds: string[];
+  isOrderSelected: (orderId: string) => boolean;
+  /** False once the hand-ticked orders reach the job limit. */
   canSelectMore: boolean;
-  allVisibleSelected: boolean;
+  /** Rows being changed: greyed out, with the reason, and not tickable. */
+  rowActivity: OrderRowActivities;
+  /** The checkbox that selects every order in the tab, on all pages. */
+  selectAll: {
+    state: HeaderCheckboxState;
+    /** Why it is off, as its tooltip; null when it works. */
+    disabledReason: string | null;
+    isDisabled: boolean;
+  };
   onToggleOrder: (orderId: string) => void;
-  onToggleAllVisible: () => void;
+  onToggleAll: () => void;
   parcelWeight: ParcelWeightSettings;
 };
 
 export function OrdersDashboardTable({
   orders,
   shopAdminUrl,
-  selectedOrderIds,
+  isOrderSelected,
   canSelectMore,
-  allVisibleSelected,
+  rowActivity,
+  selectAll,
   onToggleOrder,
-  onToggleAllVisible,
+  onToggleAll,
   parcelWeight,
 }: OrdersDashboardTableProps) {
   const { locale, t } = useI18n();
@@ -48,9 +66,16 @@ export function OrdersDashboardTable({
           <th className="orders-dashboard-table__checkbox-header-cell">
             <input
               type="checkbox"
-              checked={allVisibleSelected}
-              onChange={onToggleAllVisible}
-              aria-label={t("table.selectAllVisible")}
+              checked={selectAll.state === "checked"}
+              ref={(input) => {
+                if (input) {
+                  input.indeterminate = selectAll.state === "indeterminate";
+                }
+              }}
+              disabled={selectAll.isDisabled}
+              title={selectAll.disabledReason ?? t("table.selectAllInTab")}
+              onChange={onToggleAll}
+              aria-label={t("table.selectAllInTab")}
             />
           </th>
           <th className="orders-dashboard-table__header-cell">
@@ -98,8 +123,11 @@ export function OrdersDashboardTable({
           </tr>
         ) : (
           orders.map((order) => {
-            const isSelected = selectedOrderIds.includes(order.id);
-            const isDisabled = !isSelected && !canSelectMore;
+            const activity = rowActivity[order.id];
+            // a row being changed is never part of the selection
+            const isSelected = !activity && isOrderSelected(order.id);
+            const isDisabled =
+              Boolean(activity) || (!isSelected && !canSelectMore);
             const isShipping =
               order.fulfillmentOrders.edges[0]?.node?.deliveryMethod
                 ?.methodType === DeliveryMethodTypeDTO.SHIPPING.toString();
@@ -117,6 +145,7 @@ export function OrdersDashboardTable({
                 key={order.id}
                 className={`orders-dashboard-table__row
                   ${isSelected ? " --selected" : ""}
+                  ${activity ? " --busy" : ""}
                   ${order.cancelledAt ? " --cancelled" : ""}
                   ${isHeavy && shippedParcelCount === null ? " --heavy" : ""}
                 `}
@@ -140,6 +169,11 @@ export function OrdersDashboardTable({
                   >
                     {order.name}
                   </a>
+                  {activity ? (
+                    <span className="orders-dashboard-table__row-activity">
+                      {formatRowActivity(activity, t)}
+                    </span>
+                  ) : null}
                 </td>
 
                 <td className="orders-dashboard-table__body-cell">
@@ -225,4 +259,19 @@ export function OrdersDashboardTable({
       </tbody>
     </table>
   );
+}
+
+function formatRowActivity(activity: OrderRowActivity, t: Translate): string {
+  switch (activity.kind) {
+    case "joiningPack":
+      return t("row.joiningPack", { pack: formatPackName(activity.pack, t) });
+    case "leavingPack":
+      return t("row.leavingPack");
+    case "inJob": {
+      const key = `row.inJob.${activity.job}`;
+      return t(isTranslationKey(key) ? key : "row.inJob.other");
+    }
+    case "stale":
+      return t("row.stale");
+  }
 }

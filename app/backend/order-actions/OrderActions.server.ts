@@ -63,7 +63,7 @@ export class OrderActions {
     locale: Locale,
   ): Promise<OrderAddTrackingResponse> {
     const t = createTranslator(locale);
-    const lock = orderJobLocks.tryLock([orderId]);
+    const lock = orderJobLocks.tryLock([orderId], "add-tracking");
     if (!lock.isLocked) {
       return { ok: false, error: t("orderAction.busy") };
     }

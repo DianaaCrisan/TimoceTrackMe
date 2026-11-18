@@ -15,8 +15,9 @@ import { readNewOrderWebhook } from "app/backend/packs/readNewOrderWebhook";
  *   under Orders → Not in a pack.
  * - 500: the database write failed. A retry can fix that.
  *
- * Tagging runs after the answer; a tag failure leaves the order in its pack,
- * marked untagged, for the pack's Retry button.
+ * The tag work is queued with the database write and runs after the answer;
+ * a tag failure leaves the order in its pack, marked failed, for the pack's
+ * Retry button.
  */
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, session, payload } = await authenticate.webhook(request);

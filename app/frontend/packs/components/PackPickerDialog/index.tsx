@@ -18,6 +18,10 @@ type PackPickerDialogProps = {
   packs: FulfillmentPackView[];
   /** The pack the orders are in now, left out of the choices. */
   currentPackId?: string;
+  /** How many orders are being added, to warn past `packMaxOrders`. */
+  orderCount: number;
+  /** The pack size limit; adding past it is allowed, with a warning. */
+  packMaxOrders: number;
   isBusy: boolean;
   /** A pack ID, or `FILLING_PACK_TARGET` for a new pack. */
   onConfirm: (target: string) => void;
@@ -34,6 +38,8 @@ export function PackPickerDialog({
   confirmLabel,
   packs,
   currentPackId,
+  orderCount,
+  packMaxOrders,
   isBusy,
   onConfirm,
   onCancel,
@@ -49,6 +55,15 @@ export function PackPickerDialog({
     null;
 
   const [target, setTarget] = useState<string | null>(defaultTarget);
+
+  // a selection is never split across packs: past the limit, the pack just
+  // takes it all and waits, and the next new order starts a new pack
+  const targetOrderCount =
+    target === FILLING_PACK_TARGET
+      ? 0
+      : (choices.find((pack) => pack.id === target)?.orderCount ?? 0);
+  const totalAfter = targetOrderCount + orderCount;
+  const isOverLimit = target !== null && totalAfter > packMaxOrders;
   useEffect(() => {
     if (isOpen) setTarget(defaultTarget);
     // only reset when the dialog opens
@@ -61,7 +76,8 @@ export function PackPickerDialog({
       title={title}
       confirmLabel={confirmLabel}
       cancelLabel={t("pack.action.cancel")}
-      isConfirmDisabled={isBusy || target === null}
+      isConfirmDisabled={target === null}
+      isConfirmLoading={isBusy}
       onConfirm={() => target && onConfirm(target)}
       onCancel={onCancel}
     >
@@ -80,9 +96,11 @@ export function PackPickerDialog({
               </span>
               <span className="pack-picker__details">
                 {t(
-                  pack.isWaiting
-                    ? "pack.status.waiting"
-                    : `pack.status.${pack.status}`,
+                  pack.waitingReason === "full"
+                    ? "pack.status.full"
+                    : pack.isWaiting
+                      ? "pack.status.waiting"
+                      : `pack.status.${pack.status}`,
                 )}{" "}
                 ·{" "}
                 {t("pack.orderCount", { count: pack.orderCount })}
@@ -106,6 +124,14 @@ export function PackPickerDialog({
       </ul>
       {choices.length === 0 && hasFillingPack ? (
         <p>{t("pack.picker.noOtherPack")}</p>
+      ) : null}
+      {isOverLimit ? (
+        <p className="pack-picker__warning">
+          {t("pack.picker.overLimit", {
+            count: totalAfter,
+            limit: packMaxOrders,
+          })}
+        </p>
       ) : null}
     </ConfirmDialog>
   );
