@@ -44,6 +44,9 @@ export function contradictsTab(
         isCancelled ||
         order.displayFulfillmentStatus === "FULFILLED"
       );
+    case "on_hold":
+      // the search matches this very status: anything else has been released
+      return order.displayFulfillmentStatus !== "ON_HOLD" || isCancelled;
     case "unprinted":
       return hasTag(PRINTED_ORDER_TAG) || isCancelled;
     case "not_in_pack":

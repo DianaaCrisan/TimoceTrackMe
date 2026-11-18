@@ -19,6 +19,7 @@ import {
   useRevalidator,
 } from "react-router";
 import {
+  ATTENTION_ORDERS_DASHBOARD_FILTERS,
   COUNTED_ORDERS_DASHBOARD_FILTERS,
   formatOrdersDashboardFilter,
   getFilterJobs,
@@ -161,6 +162,9 @@ type PendingTrackingReview = {
 /** Has its own panel instead of the orders table and bulk actions. */
 const ZIP_TO_FIX_FILTER: OrdersDashboardFilter = "zip_to_fix";
 
+/** Shows why its orders cannot be shipped yet. */
+const ON_HOLD_FILTER: OrdersDashboardFilter = "on_hold";
+
 function isCountedFilter(
   filter: OrdersDashboardFilter,
 ): filter is CountedOrdersDashboardFilter {
@@ -265,7 +269,8 @@ export function OrdersDashboardPage({
     const count = tabCounts[filter] ?? null;
     // orders waiting on the admin stand out
     const needsAttention =
-      filter === ZIP_TO_FIX_FILTER && (count?.count ?? 0) > 0;
+      ATTENTION_ORDERS_DASHBOARD_FILTERS.includes(filter) &&
+      (count?.count ?? 0) > 0;
     return count ? (
       <span
         className={`orders-dashboard-page__tab-count${
@@ -291,7 +296,10 @@ export function OrdersDashboardPage({
 
   const isAnyActionBlocked =
     startingActionKey !== null || isRefreshingOrders || packAction.isBusy;
-  const isLoading = isAnyActionBlocked || isNavigating;
+  // the bar is about the table only: its rows are being loaded (a tab or
+  // page change, a reload). Starting a job shows on its button, a pack
+  // action on its dialog, and work in the background on the banner.
+  const isLoadingRows = isRefreshingOrders || isNavigating;
   const isZipToFixTab = activeFilter === ZIP_TO_FIX_FILTER;
 
   // reset scroll position when going to the next page
@@ -305,13 +313,15 @@ export function OrdersDashboardPage({
     setSelection((current) => toggleOrder(current, orderId, { tabCount }));
   };
 
+  /**
+   * The header checkbox is the only way to clear the selection. Where it
+   * cannot select the whole tab (too many orders, count unknown), it still
+   * clears what was ticked by hand.
+   */
   const handleToggleAll = () => {
-    if (selectAllBlocker) return;
-    setSelection(toggleAll);
-  };
-
-  const handleDeselectAll = () => {
-    setSelection(NO_SELECTION);
+    setSelection((current) =>
+      selectAllBlocker ? NO_SELECTION : toggleAll(current),
+    );
   };
 
   // a newer notice restarts the timer, through the cleanup
@@ -712,15 +722,6 @@ export function OrdersDashboardPage({
                     {selectionText}
                   </div>
 
-                  <button
-                    type="button"
-                    className="orders-dashboard-page__link-button"
-                    disabled={isAnyActionBlocked}
-                    onClick={handleDeselectAll}
-                  >
-                    {t("dashboard.deselectAll")}
-                  </button>
-
                   <div className="orders-dashboard-page__bulk-actions">
                     {(!offersJobs
                       ? []
@@ -785,7 +786,16 @@ export function OrdersDashboardPage({
             </div>
           </div>
 
-          <LoadingBar isActive={isLoading} label={t("dashboard.loading")} />
+          <LoadingBar
+            isActive={isLoadingRows}
+            label={t("dashboard.loading")}
+          />
+
+          {activeFilter === ON_HOLD_FILTER ? (
+            <div className="orders-dashboard-page__tab-hint">
+              {t("dashboard.onHoldHint")}
+            </div>
+          ) : null}
 
           {isZipToFixTab ? (
             <ZipFixPanel
@@ -816,7 +826,9 @@ export function OrdersDashboardPage({
                 selectAll={{
                   state: headerCheckboxState(selection),
                   isDisabled:
-                    selectAllBlocker !== null || isAnyActionBlocked,
+                    (selectAllBlocker !== null &&
+                      selection.kind === "none") ||
+                    isAnyActionBlocked,
                   disabledReason: selectAllBlockedReason,
                 }}
                 onToggleOrder={handleToggleOrder}
@@ -867,7 +879,7 @@ export function OrdersDashboardPage({
           title={t("pack.confirm.removeTitle", { count: selectedCount })}
           confirmLabel={t("pack.action.removeFromPack")}
           cancelLabel={t("pack.action.cancel")}
-          isConfirmDisabled={packAction.isBusy}
+          isConfirmLoading={packAction.isBusy}
           onConfirm={handleRemoveFromPack}
           onCancel={() => setOpenPackDialog(null)}
         >

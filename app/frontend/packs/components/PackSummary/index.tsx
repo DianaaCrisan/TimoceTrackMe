@@ -224,7 +224,7 @@ export function PackSummary({ pack, progress, linksToPack }: PackSummaryProps) {
               : t("pack.action.delete")
         }
         cancelLabel={t("pack.action.cancel")}
-        isConfirmDisabled={isBusy}
+        isConfirmLoading={isBusy}
         onConfirm={handleConfirm}
         onCancel={() => setConfirming(null)}
       >

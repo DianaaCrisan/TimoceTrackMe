@@ -76,7 +76,8 @@ export function PackPickerDialog({
       title={title}
       confirmLabel={confirmLabel}
       cancelLabel={t("pack.action.cancel")}
-      isConfirmDisabled={isBusy || target === null}
+      isConfirmDisabled={target === null}
+      isConfirmLoading={isBusy}
       onConfirm={() => target && onConfirm(target)}
       onCancel={onCancel}
     >

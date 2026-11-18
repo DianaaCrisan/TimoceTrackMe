@@ -137,9 +137,11 @@ export function ZipFixPanel({
     setSelection((current) => toggleOrder(current, orderId, { tabCount }));
   };
 
+  /** Selects the whole tab, or clears the selection (also when it cannot select it all). */
   const handleToggleAll = () => {
-    if (isSelectAllBlocked) return;
-    setSelection(toggleAll);
+    setSelection((current) =>
+      isSelectAllBlocked ? NO_SELECTION : toggleAll(current),
+    );
   };
 
   /** Focuses the next ZIP input up or down, skipping rows being processed. */
@@ -213,16 +215,6 @@ export function ZipFixPanel({
               {t("zipFix.invalidCount", { count: invalidCount })}
             </span>
           ) : null}
-          {selectedCount > 0 ? (
-            <button
-              type="button"
-              className="orders-dashboard-page__link-button"
-              disabled={isBusy}
-              onClick={() => setSelection(NO_SELECTION)}
-            >
-              {t("dashboard.deselectAll")}
-            </button>
-          ) : null}
           <button
             type="button"
             className="zip-fix-panel__submit"
@@ -260,7 +252,10 @@ export function ZipFixPanel({
                         input.indeterminate = headerState === "indeterminate";
                       }
                     }}
-                    disabled={isSelectAllBlocked || isBusy}
+                    disabled={
+                      (isSelectAllBlocked && selection.kind === "none") ||
+                      isBusy
+                    }
                     title={selectAllBlockedReason ?? t("table.selectAllInTab")}
                     onChange={handleToggleAll}
                     aria-label={t("table.selectAllInTab")}

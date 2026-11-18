@@ -113,6 +113,24 @@ describe("contradictsTab", () => {
     ).toBe(false);
   });
 
+  it("flags an order on 'On hold' once the hold is released", () => {
+    const inPack = { tags: ["pachet-a"] };
+    expect(
+      contradictsTab(
+        order({ ...inPack, displayFulfillmentStatus: "ON_HOLD" }),
+        "on_hold",
+        "pachet-a",
+      ),
+    ).toBe(false);
+    expect(
+      contradictsTab(
+        order({ ...inPack, displayFulfillmentStatus: "UNFULFILLED" }),
+        "on_hold",
+        "pachet-a",
+      ),
+    ).toBe(true);
+  });
+
   it("never flags an order on 'All' that is in the pack", () => {
     expect(
       contradictsTab(

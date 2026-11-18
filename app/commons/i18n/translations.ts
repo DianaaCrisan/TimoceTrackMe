@@ -39,6 +39,7 @@ export const en = {
   "filter.all": "All",
   "filter.pending_fulfillment": "Pending fulfillment",
   "filter.zip_to_fix": "ZIP to fix",
+  "filter.on_hold": "On hold",
   "filter.unprinted": "Unprinted",
   "filter.not_in_pack": "Not in a pack",
 
@@ -195,7 +196,6 @@ export const en = {
   "dashboard.allInTabSelected": 'All {count} orders in "{tab}" selected',
   "dashboard.selectedCount": "{count} selected",
   "dashboard.goToPacks": "Go to Packs →",
-  "dashboard.deselectAll": "Deselect all",
   "dashboard.selectedOfTab": '{count} of {total} orders in "{tab}" selected',
   "dashboard.tagBatchDone": {
     one: "{count} order updated in Shopify.",
@@ -207,6 +207,8 @@ export const en = {
   },
   "dashboard.stillUpdating":
     "Shopify is still updating this list. Refresh in a few moments to see the latest.",
+  "dashboard.onHoldHint":
+    "These orders are on hold in Shopify. Add tracking skips them until the hold is released: open the order in Shopify to release it.",
   "dashboard.httpError": "The server answered with HTTP {status}.",
   "dashboard.fixZips": {
     one: "Fix {count} ZIP code",
@@ -735,6 +737,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "filter.all": "Toate",
   "filter.pending_fulfillment": "Neexecutate",
   "filter.zip_to_fix": "Cod poștal de corectat",
+  "filter.on_hold": "În așteptare",
   "filter.unprinted": "Neprintate",
   "filter.not_in_pack": "Fără pachet",
 
@@ -919,7 +922,6 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     other: "{count} selectate",
   },
   "dashboard.goToPacks": "Mergi la Pachete →",
-  "dashboard.deselectAll": "Deselectează tot",
   "dashboard.selectedOfTab": "{count} din {total} comenzi din „{tab}” selectate",
   "dashboard.tagBatchDone": {
     one: "{count} comandă actualizată în Shopify.",
@@ -934,6 +936,8 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   },
   "dashboard.stillUpdating":
     "Shopify încă actualizează lista. Reîmprospătează peste câteva momente ca să vezi ultima variantă.",
+  "dashboard.onHoldHint":
+    "Aceste comenzi sunt în așteptare în Shopify. Adăugarea tracking-ului le sare până când nu mai sunt în așteptare: deschide comanda în Shopify ca să o eliberezi.",
   "dashboard.httpError": "Serverul a răspuns cu HTTP {status}.",
   "dashboard.fixZips": {
     one: "Corectează {count} cod poștal",
@@ -1115,7 +1119,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   // Shopify fulfillment statuses
   "fulfillmentStatus.FULFILLED": "Executată",
   "fulfillmentStatus.IN_PROGRESS": "În curs",
-  "fulfillmentStatus.ON_HOLD": "Suspendată",
+  "fulfillmentStatus.ON_HOLD": "În așteptare",
   "fulfillmentStatus.OPEN": "Deschisă",
   "fulfillmentStatus.PARTIALLY_FULFILLED": "Executată parțial",
   "fulfillmentStatus.PENDING_FULFILLMENT": "În așteptarea executării",
