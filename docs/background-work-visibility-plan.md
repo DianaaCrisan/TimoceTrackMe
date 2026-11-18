@@ -312,6 +312,19 @@ Code:
 exclusions round-trip through `appendOrderSelection` → `parseOrderSelection`,
 and `resolveOrderIds` with exclusions.
 
+### Where it shows
+
+- Orders page and pack pages (`OrdersDashboardPage`): banner, greyed-out
+  rows, select all, one reload when the followed work is done.
+- Packs page: the same banner. It follows the tag work of the actions taken
+  there (close with leftovers, retry) and reloads the packs once it is done.
+  Tagging nothing reports (a single new order) gets the 3/6/12 s reloads.
+- Developer panel: Recent jobs reads the same hook.
+
+`usePackAction` follows the batch its action started, through the page's
+`BackgroundActivityContext`, so the pack summary inside a pack page needs no
+wiring of its own.
+
 ### Quick wins in the same phase
 
 - Pack toast: "45 comenzi adăugate în X. Se actualizează în Shopify…"

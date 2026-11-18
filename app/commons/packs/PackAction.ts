@@ -24,7 +24,10 @@ export const PACK_ACTION_FIELDS = {
 /** Adds orders to the filling pack, starting one if none is filling. */
 export const FILLING_PACK_TARGET = "filling";
 
-/** The message is ready to show, in the admin's language. */
+/**
+ * The message is ready to show, in the admin's language. `tagBatchId`: the
+ * tag work the action started, for the page to follow until it is done.
+ */
 export type PackActionResponse =
-  | { ok: true; message: string }
+  | { ok: true; message: string; tagBatchId?: string | null }
   | { ok: false; error: string };

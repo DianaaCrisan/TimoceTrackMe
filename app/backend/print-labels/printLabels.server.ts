@@ -28,6 +28,8 @@ type PrintLabelsRequest = {
   locale: Locale;
   /** Only the labels, without the totals and group header pages. */
   labelsOnly?: boolean;
+  /** Called as each order's labels are fetched (or failed), for progress. */
+  onOrderDone?: () => void;
 };
 
 export type PrintLabelsFile = {
@@ -85,6 +87,8 @@ export async function buildPrintLabels(
             orderIds: [order.id],
             message: `Order ${order.name}: ${error instanceof Error ? error.message : String(error)}`,
           });
+        } finally {
+          request.onOrderDone?.();
         }
       }),
     ),

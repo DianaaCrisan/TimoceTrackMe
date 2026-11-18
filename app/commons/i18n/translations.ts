@@ -128,6 +128,7 @@ export const en = {
     one: "Tagging {count} order again.",
     other: "Tagging {count} orders again.",
   },
+  "pack.done.updatingShopify": "Updating Shopify…",
   "pack.done.added": {
     one: "{count} order added to {name}.",
     other: "{count} orders added to {name}.",
@@ -183,11 +184,6 @@ export const en = {
   "dashboard.starting": "Starting...",
   "dashboard.dismiss": "Dismiss",
   "dashboard.loading": "Loading...",
-  "dashboard.jobStarted": {
-    one: "{title} started for {count} order. When it finishes, the list refreshes and the result appears under Recent jobs.",
-    other:
-      "{title} started for {count} orders. When it finishes, the list refreshes and the result appears under Recent jobs.",
-  },
   "dashboard.jobFinished": "{title} finished: {details}",
   "dashboard.jobFailed": "{title} failed: {details}",
   "dashboard.listRefreshed":
@@ -195,10 +191,18 @@ export const en = {
   "dashboard.allInTabSelected": 'All {count} orders in "{tab}" selected',
   "dashboard.selectedCount": "{count} selected",
   "dashboard.goToPacks": "Go to Packs →",
-  "dashboard.tabTooLarge":
-    "{count} orders in this tab, more than one job takes ({max})",
-  "dashboard.selectAllInTab": "Select all {count} orders in this tab",
   "dashboard.deselectAll": "Deselect all",
+  "dashboard.selectedOfTab": '{count} of {total} orders in "{tab}" selected',
+  "dashboard.tagBatchDone": {
+    one: "{count} order updated in Shopify.",
+    other: "{count} orders updated in Shopify.",
+  },
+  "dashboard.tagBatchFailed": {
+    one: "{count} order could not be tagged; use Retry on its pack.",
+    other: "{count} orders could not be tagged; use Retry on their pack.",
+  },
+  "dashboard.stillUpdating":
+    "Shopify is still updating this list. Refresh in a few moments to see the latest.",
   "dashboard.httpError": "The server answered with HTTP {status}.",
   "dashboard.fixZips": {
     one: "Fix {count} ZIP code",
@@ -206,7 +210,40 @@ export const en = {
   },
 
   // orders table
-  "table.selectAllVisible": "Select all visible orders",
+  "table.selectAllInTab": "Select every order in this tab, on all pages",
+  "table.selectAllUnknown":
+    "The orders in this tab could not be counted, so they cannot all be selected. Tick them by hand.",
+  "table.selectAllTooMany":
+    "This tab has {count} orders, more than one action takes ({max}). Tick orders by hand.",
+  "row.joiningPack": "Being added to {pack}…",
+  "row.leavingPack": "Leaving its pack…",
+  "row.inJob.add-tracking": "Adding AWB…",
+  "row.inJob.print-labels": "Preparing labels…",
+  "row.inJob.other": "Being processed…",
+  "row.stale": "Updating…",
+
+  // background work in progress
+  "activity.addOrders": {
+    one: "Adding {count} order to {pack}",
+    other: "Adding {count} orders to {pack}",
+  },
+  "activity.removeOrders": {
+    one: "Taking {count} order out of its pack",
+    other: "Taking {count} orders out of their pack",
+  },
+  "activity.close": {
+    one: "Moving {count} order left to {pack}",
+    other: "Moving {count} orders left to {pack}",
+  },
+  "activity.retry": {
+    one: "Tagging {count} order of {pack} again",
+    other: "Tagging {count} orders of {pack} again",
+  },
+  "activity.somePack": "a pack",
+  "activity.progress": "{done} of {total}",
+  "activity.failed": "{count} failed",
+  "activity.verifying": "Checking that Shopify shows the change…",
+  "activity.listUpdatesItself": "The list updates on its own when this is done.",
   "table.selectOrder": "Select order {name}",
   "table.order": "Order",
   "table.date": "Date",
@@ -791,6 +828,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     few: "Se reetichetează {count} comenzi.",
     other: "Se reetichetează {count} de comenzi.",
   },
+  "pack.done.updatingShopify": "Se actualizează în Shopify…",
   "pack.done.added": {
     one: "{count} comandă adăugată în {name}.",
     few: "{count} comenzi adăugate în {name}.",
@@ -852,12 +890,6 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "dashboard.starting": "Se pornește...",
   "dashboard.dismiss": "Închide",
   "dashboard.loading": "Se încarcă...",
-  "dashboard.jobStarted": {
-    one: "{title} a pornit pentru {count} comandă. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
-    few: "{title} a pornit pentru {count} comenzi. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
-    other:
-      "{title} a pornit pentru {count} de comenzi. Când se termină, lista se reîmprospătează, iar rezultatul apare la Sarcini recente.",
-  },
   "dashboard.jobFinished": "{title} s-a terminat: {details}",
   "dashboard.jobFailed": "{title} a eșuat: {details}",
   "dashboard.listRefreshed":
@@ -872,15 +904,21 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     other: "{count} selectate",
   },
   "dashboard.goToPacks": "Mergi la Pachete →",
-  // only shown past the job limit, so always 20 or more: "de comenzi"
-  "dashboard.tabTooLarge":
-    "{count} de comenzi în acest tab, mai multe decât poate prelua o sarcină ({max})",
-  "dashboard.selectAllInTab": {
-    one: "Selectează {count} comandă din acest tab",
-    few: "Selectează toate cele {count} comenzi din acest tab",
-    other: "Selectează toate cele {count} de comenzi din acest tab",
-  },
   "dashboard.deselectAll": "Deselectează tot",
+  "dashboard.selectedOfTab": "{count} din {total} comenzi din „{tab}” selectate",
+  "dashboard.tagBatchDone": {
+    one: "{count} comandă actualizată în Shopify.",
+    few: "{count} comenzi actualizate în Shopify.",
+    other: "{count} de comenzi actualizate în Shopify.",
+  },
+  "dashboard.tagBatchFailed": {
+    one: "{count} comandă nu a putut fi etichetată; folosește Reîncearcă din pachetul ei.",
+    few: "{count} comenzi nu au putut fi etichetate; folosește Reîncearcă din pachetul lor.",
+    other:
+      "{count} de comenzi nu au putut fi etichetate; folosește Reîncearcă din pachetul lor.",
+  },
+  "dashboard.stillUpdating":
+    "Shopify încă actualizează lista. Reîmprospătează peste câteva momente ca să vezi ultima variantă.",
   "dashboard.httpError": "Serverul a răspuns cu HTTP {status}.",
   "dashboard.fixZips": {
     one: "Corectează {count} cod poștal",
@@ -889,7 +927,45 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   },
 
   // orders table
-  "table.selectAllVisible": "Selectează toate comenzile vizibile",
+  "table.selectAllInTab": "Selectează toate comenzile din acest tab, de pe toate paginile",
+  "table.selectAllUnknown":
+    "Comenzile din acest tab nu au putut fi numărate, deci nu pot fi selectate toate. Bifează-le manual.",
+  // only shown past the job limit, so always 20 or more: "de comenzi"
+  "table.selectAllTooMany":
+    "Acest tab are {count} de comenzi, mai multe decât poate prelua o acțiune ({max}). Bifează comenzile manual.",
+  "row.joiningPack": "Se adaugă în {pack}…",
+  "row.leavingPack": "Se scoate din pachet…",
+  "row.inJob.add-tracking": "Se adaugă AWB…",
+  "row.inJob.print-labels": "Se pregătesc etichetele…",
+  "row.inJob.other": "Se procesează…",
+  "row.stale": "Se actualizează…",
+
+  // background work in progress
+  "activity.addOrders": {
+    one: "Se adaugă {count} comandă în {pack}",
+    few: "Se adaugă {count} comenzi în {pack}",
+    other: "Se adaugă {count} de comenzi în {pack}",
+  },
+  "activity.removeOrders": {
+    one: "Se scoate {count} comandă din pachet",
+    few: "Se scot {count} comenzi din pachet",
+    other: "Se scot {count} de comenzi din pachet",
+  },
+  "activity.close": {
+    one: "Se mută {count} comandă rămasă în {pack}",
+    few: "Se mută {count} comenzi rămase în {pack}",
+    other: "Se mută {count} de comenzi rămase în {pack}",
+  },
+  "activity.retry": {
+    one: "Se reetichetează {count} comandă din {pack}",
+    few: "Se reetichetează {count} comenzi din {pack}",
+    other: "Se reetichetează {count} de comenzi din {pack}",
+  },
+  "activity.somePack": "un pachet",
+  "activity.progress": "{done} din {total}",
+  "activity.failed": "{count} eșuate",
+  "activity.verifying": "Se verifică dacă Shopify arată schimbarea…",
+  "activity.listUpdatesItself": "Lista se actualizează singură când se termină.",
   "table.selectOrder": "Selectează comanda {name}",
   "table.order": "Comandă",
   "table.date": "Dată",

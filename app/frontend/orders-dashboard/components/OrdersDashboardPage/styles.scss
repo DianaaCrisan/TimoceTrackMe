@@ -205,11 +205,6 @@ $font-color: rgb(48, 48, 48);
   white-space: nowrap;
 }
 
-.orders-dashboard-page__bulk-bar-hint {
-  white-space: nowrap;
-  color: #6d7175;
-}
-
 .orders-dashboard-page__notice {
   flex: none;
   display: flex;
@@ -231,6 +226,11 @@ $font-color: rgb(48, 48, 48);
   &.--critical {
     background: #fed3d1;
     border: 1px solid #8e0b21;
+  }
+
+  &.--info {
+    background: #eaf4ff;
+    border: 1px solid #b4d5f0;
   }
 }
 

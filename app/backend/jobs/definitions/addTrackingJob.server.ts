@@ -30,6 +30,7 @@ export async function buildAddTrackingArtifact(
     orderIds: ctx.orderIds,
     manualZips: ctx.manualZips,
     parcelWeight: await SettingsRepository.getParcelWeight(),
+    onOrderDone: ctx.progress?.orderDone,
   });
 
   const rowsById = new Map<string, OrderResultRow>();
@@ -69,6 +70,7 @@ export async function buildAddTrackingArtifact(
 
   // finish only once Shopify's search shows the change, so the dashboard's
   // reload already lists the orders in their new tabs
+  ctx.progress?.verifying();
   await waitForSearchIndex(ctx.admin, [
     ...searchIndexChecks(
       "NOT fulfillment_status:unfulfilled",

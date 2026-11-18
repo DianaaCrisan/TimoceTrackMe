@@ -1,10 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import prisma from "app/db.server";
+import {
+  isPackTagBatchKind,
+  type PackTagBatchKind,
+  type PackTagBatchView,
+} from "app/commons/packs/PackTagBatchView";
 
 type Db = Prisma.TransactionClient;
-
-/** The admin action a batch of tag work comes from. */
-export type PackTagBatchKind = "addOrders" | "removeOrders" | "close" | "retry";
 
 /** One order to bring in line; `staleTag`: the pack tag it just lost. */
 export type TagChange = { orderId: string; staleTag?: string };
@@ -239,6 +241,121 @@ export const PackTagSyncRepository = {
       targets.byPackTag.set(packTag, ids);
     }
     return targets;
+  },
+
+  /**
+   * Batches still running, and those finished since `finishedSince`, newest
+   * first: what the dashboard's progress shows.
+   */
+  async listRecentBatches(
+    finishedSince: Date,
+    limit = 20,
+  ): Promise<PackTagBatchView[]> {
+    const batches = await prisma.packTagBatch.findMany({
+      where: {
+        OR: [{ finishedAt: null }, { finishedAt: { gte: finishedSince } }],
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        kind: true,
+        packId: true,
+        orderCount: true,
+        failedCount: true,
+        createdAt: true,
+        taggedAt: true,
+        finishedAt: true,
+      },
+    });
+    if (batches.length === 0) return [];
+
+    const packIds = [
+      ...new Set(batches.flatMap((batch) => batch.packId ?? [])),
+    ];
+    const [pendingCounts, packs] = await Promise.all([
+      prisma.packTagSync.groupBy({
+        by: ["batchId"],
+        where: {
+          batchId: { in: batches.map((batch) => batch.id) },
+          status: "PENDING",
+        },
+        _count: { _all: true },
+      }),
+      prisma.fulfillmentPack.findMany({
+        where: { id: { in: packIds } },
+        select: { id: true, day: true, daySequence: true },
+      }),
+    ]);
+    const pendingByBatchId = new Map(
+      pendingCounts.map((row) => [row.batchId, row._count._all]),
+    );
+    const packById = new Map(packs.map((pack) => [pack.id, pack]));
+
+    return batches.map((batch) => {
+      const pack = batch.packId ? packById.get(batch.packId) : undefined;
+      const pendingCount = pendingByBatchId.get(batch.id) ?? 0;
+      return {
+        id: batch.id,
+        kind: isPackTagBatchKind(batch.kind) ? batch.kind : "addOrders",
+        pack: pack
+          ? {
+              id: pack.id,
+              day: pack.day.toISOString().slice(0, 10),
+              daySequence: pack.daySequence,
+            }
+          : null,
+        orderCount: batch.orderCount,
+        doneCount: Math.max(
+          0,
+          batch.orderCount - pendingCount - batch.failedCount,
+        ),
+        failedCount: batch.failedCount,
+        createdAt: batch.createdAt.toISOString(),
+        taggedAt: batch.taggedAt?.toISOString() ?? null,
+        finishedAt: batch.finishedAt?.toISOString() ?? null,
+      };
+    });
+  },
+
+  /**
+   * Orders among these whose tags are still being updated, with the pack
+   * the database has them in now (null: leaving their pack).
+   */
+  async findPendingOrders(
+    orderIds: string[],
+  ): Promise<
+    Map<string, { day: string; daySequence: number } | null>
+  > {
+    const pending = new Map<string, { day: string; daySequence: number } | null>();
+    if (orderIds.length === 0) return pending;
+
+    const syncs = await prisma.packTagSync.findMany({
+      where: { orderId: { in: orderIds }, status: "PENDING" },
+      select: { orderId: true },
+    });
+    if (syncs.length === 0) return pending;
+
+    const memberships = await prisma.fulfillmentPackOrder.findMany({
+      where: { orderId: { in: syncs.map((sync) => sync.orderId) } },
+      select: {
+        orderId: true,
+        pack: { select: { day: true, daySequence: true } },
+      },
+    });
+    const packByOrderId = new Map(
+      memberships.map((row) => [
+        row.orderId,
+        {
+          day: row.pack.day.toISOString().slice(0, 10),
+          daySequence: row.pack.daySequence,
+        },
+      ]),
+    );
+    for (const sync of syncs) {
+      pending.set(sync.orderId, packByOrderId.get(sync.orderId) ?? null);
+    }
+    return pending;
   },
 
   /** Finished batches are only kept for the progress shown right after. */

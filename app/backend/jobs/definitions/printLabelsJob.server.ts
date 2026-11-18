@@ -45,6 +45,7 @@ export async function buildPrintLabelsArtifact(
     orderIds: ctx.orderIds,
     timeZone: ctx.timeZone,
     locale,
+    onOrderDone: ctx.progress?.orderDone,
   });
 
   const orderErrors = [...result.errorsByOrderId.values()].flat();
@@ -82,6 +83,7 @@ export async function buildPrintLabelsArtifact(
 
   // finish only once Shopify's search shows the printed tag, so the
   // dashboard's reload no longer lists these orders as unprinted
+  ctx.progress?.verifying();
   await waitForSearchIndex(
     ctx.admin,
     searchIndexChecks(

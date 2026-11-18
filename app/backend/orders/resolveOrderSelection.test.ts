@@ -75,6 +75,34 @@ describe("parseOrderSelection", () => {
     });
   });
 
+  it("reads a whole-tab selection with the orders unticked in it", () => {
+    const formData = new FormData();
+    appendOrderSelection(formData, {
+      mode: "filter",
+      filter: "unprinted",
+      excludedOrderIds: [orderGid(4), orderGid(5), orderGid(4)],
+      packId: "pack-1",
+    });
+
+    expect(parseOrderSelection(formData)).toEqual({
+      mode: "filter",
+      filter: "unprinted",
+      excludedOrderIds: [orderGid(4), orderGid(5)],
+      packId: "pack-1",
+    });
+  });
+
+  it("refuses unticked entries that are not order IDs", () => {
+    const formData = new FormData();
+    appendOrderSelection(formData, {
+      mode: "filter",
+      filter: "unprinted",
+      excludedOrderIds: ["gid://shopify/Product/1"],
+    });
+
+    expect(() => parseOrderSelection(formData)).toThrow(RequestError);
+  });
+
   it("keeps ticked orders tied to the pack they were picked in", () => {
     const formData = new FormData();
     appendOrderSelection(formData, {
@@ -162,6 +190,30 @@ describe("resolveOrderIds", () => {
         filter: "not_in_pack",
       }),
     ).rejects.toThrow("still being updated in Shopify");
+  });
+
+  it("leaves out the orders unticked after selecting the whole tab", async () => {
+    vi.mocked(runGraphQL).mockResolvedValueOnce(ordersPage([1, 2, 3], null));
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "filter",
+        filter: "not_in_pack",
+        excludedOrderIds: [orderGid(2)],
+      }),
+    ).resolves.toEqual([orderGid(1), orderGid(3)]);
+  });
+
+  it("refuses a whole tab with every order unticked", async () => {
+    vi.mocked(runGraphQL).mockResolvedValueOnce(ordersPage([1], null));
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "filter",
+        filter: "not_in_pack",
+        excludedOrderIds: [orderGid(1)],
+      }),
+    ).rejects.toThrow(RequestError);
   });
 
   it("does not filter ticked orders: the admin picked them", async () => {

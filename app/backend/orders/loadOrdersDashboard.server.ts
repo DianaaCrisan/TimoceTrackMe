@@ -10,6 +10,9 @@ import {
 } from "app/commons/pagination/PageNumbers";
 import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { getRecentJobsSnapshot } from "../jobs/jobsSetup.server";
+import { orderJobLocks } from "../jobs/OrderJobLocks";
+import { PackTagSyncRepository } from "../packs/PackTagSyncRepository.server";
+import { buildRowActivities } from "./buildRowActivities";
 import { PackRepository, toPackView } from "../packs/PackRepository.server";
 import { SettingsRepository } from "../settings/SettingsRepository.server";
 import { getOrdersCount } from "./getOrdersCount.server";
@@ -54,6 +57,21 @@ export async function loadOrdersDashboard({
       SettingsRepository.get(),
       PackRepository.list(),
     ]);
+  const visibleOrderIds = data.orders.map((order) => order.id);
+  const rowActivity = buildRowActivities({
+    jobOwners: orderJobLocks.findOwners(visibleOrderIds),
+    pendingTags: await PackTagSyncRepository.findPendingOrders(
+      visibleOrderIds,
+    ).catch((error) => {
+      // the list still shows; only the greyed-out rows are missing
+      console.error(
+        "AppError[OrdersDashboard] could not read the pending pack tags.",
+        error,
+      );
+      return new Map();
+    }),
+    staleOrderIds: data.staleOrderIds,
+  });
   const shopAdminUrl = ShopifyUtils.getShopAdminUrl(shop);
   const parcelWeight = {
     parcelWeightLimitKg: settings.parcelWeightLimitKg,
@@ -61,13 +79,14 @@ export async function loadOrdersDashboard({
   };
 
   return {
-    ...data,
     orders: await withShippedParcelCounts(
       admin,
       shopAdminUrl,
       data.orders,
       parcelWeight,
     ),
+    pageInfo: data.pageInfo,
+    rowActivity,
     filter,
     ordersCount,
     pageNumbers: buildPageNumbers({

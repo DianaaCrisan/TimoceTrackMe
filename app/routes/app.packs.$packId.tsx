@@ -55,6 +55,7 @@ export default function PackRoute() {
           />
         }
         orders={data.orders}
+        rowActivity={data.rowActivity}
         pageInfo={data.pageInfo}
         shopAdminUrl={data.shopAdminUrl}
         activeFilter={data.filter}

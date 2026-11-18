@@ -1,6 +1,7 @@
 import type {
   AddPackTagsMutation,
   RemovePackTagsMutation,
+  SwapPackTagsMutation,
 } from "app/types/admin.generated";
 import type { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithoutRest";
 import { runGraphQL } from "../graphql/throttle-handling/helpers/runGraphQL";
@@ -55,8 +56,6 @@ const SWAP_PACK_TAGS_MUTATION = `#graphql
   }
 `;
 
-type SwapPackTagsResult = RemovePackTagsMutation & AddPackTagsMutation;
-
 /** Sends one order's tag calls, with retries. Throws if they fail. */
 export async function applyTagSync(
   admin: AdminApiContextWithoutRest,
@@ -68,7 +67,7 @@ export async function applyTagSync(
 
   await withRetries(async () => {
     if (remove.length > 0 && add.length > 0) {
-      const data = await runGraphQL<SwapPackTagsResult>(
+      const data = await runGraphQL<SwapPackTagsMutation>(
         admin,
         shopUrl,
         "SwapPackTags",

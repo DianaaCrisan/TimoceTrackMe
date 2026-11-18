@@ -4,6 +4,7 @@ import { OrderJobLocks } from "./OrderJobLocks";
 import {
   startBackgroundJob,
   type JobArtifact,
+  type JobProgress,
   type StartBackgroundJobInput,
 } from "./startBackgroundJob.server";
 
@@ -192,6 +193,39 @@ describe("startBackgroundJob", () => {
     await finished;
 
     expect(deps.locks.tryLock(["order-1", "order-2"]).isLocked).toBe(true);
+  });
+
+  it("records how far the job is while it runs", async () => {
+    const { deps, finished } = setup();
+    let finishBuild!: () => void;
+    const build = (progress: JobProgress) =>
+      new Promise<JobArtifact>((resolve) => {
+        progress.orderDone();
+        finishBuild = () => {
+          progress.verifying();
+          expect(deps.registry.list()[0]).toMatchObject({
+            processedCount: 2,
+            isVerifying: true,
+          });
+          resolve(artifact);
+        };
+      });
+
+    startBackgroundJob(jobInput({ build }), deps);
+    expect(deps.registry.list()[0]).toMatchObject({
+      status: "running",
+      processedCount: 1,
+    });
+    expect(deps.locks.findOwners(["order-1"]).get("order-1")).toBe(
+      "print-labels",
+    );
+
+    finishBuild();
+    await finished;
+    expect(deps.registry.list()[0]).toMatchObject({
+      status: "succeeded",
+      isVerifying: false,
+    });
   });
 
   it("fails the request, without locking, when S3 is not configured", () => {
