@@ -16,6 +16,16 @@ export type JobArtifact = {
   summary?: string;
   /** Orders now on the "ZIP to fix" tab because of this job. */
   zipToFixCount?: number;
+  /** Stored with the file in S3, e.g. which orders it holds. */
+  metadata?: Record<string, string>;
+};
+
+/** Lets a running job say how far it is, for the dashboard's progress. */
+export type JobProgress = {
+  /** One more order done (or given up on). */
+  orderDone: () => void;
+  /** The work is done; the job now waits for Shopify search. */
+  verifying: () => void;
 };
 
 export type StartBackgroundJobInput = {
@@ -23,7 +33,7 @@ export type StartBackgroundJobInput = {
   /** Shown in the jobs list and the failure file, e.g. "Add tracking numbers". */
   title: string;
   orderIds: string[];
-  build: () => Promise<JobArtifact>;
+  build: (progress: JobProgress) => Promise<JobArtifact>;
   /** Name of the text file stored when the job fails. `FAILED_<job>.txt` if unset. */
   failureFileName?: string;
 };
@@ -71,7 +81,7 @@ export function startBackgroundJob(
 ): StartBackgroundJobResult {
   deps.assertS3Configured();
 
-  const lock = deps.locks.tryLock(input.orderIds);
+  const lock = deps.locks.tryLock(input.orderIds, input.job);
   if (!lock.isLocked) {
     return { isStarted: false, busyOrderIds: lock.busyOrderIds };
   }
@@ -86,6 +96,7 @@ export function startBackgroundJob(
     orderCount: input.orderIds.length,
     startedAt: startedAt.toISOString(),
     status: "running",
+    processedCount: 0,
   });
 
   void runJob(input, id, startedAt, deps)
@@ -106,8 +117,22 @@ async function runJob(
   startedAt: Date,
   deps: Deps,
 ): Promise<void> {
+  let processedCount = 0;
+  const progress: JobProgress = {
+    orderDone: () => {
+      processedCount = Math.min(processedCount + 1, input.orderIds.length);
+      deps.registry.update(id, { processedCount });
+    },
+    verifying: () => {
+      deps.registry.update(id, {
+        processedCount: input.orderIds.length,
+        isVerifying: true,
+      });
+    },
+  };
+
   try {
-    const artifact = await input.build();
+    const artifact = await input.build(progress);
     const key = buildJobFileKey({
       job: input.job,
       startedAt,
@@ -119,10 +144,12 @@ async function runJob(
       buf: artifact.buf,
       key,
       contentType: artifact.contentType,
+      ...(artifact.metadata ? { metadata: artifact.metadata } : {}),
     });
 
     deps.registry.update(id, {
       status: "succeeded",
+      isVerifying: false,
       finishedAt: deps.now().toISOString(),
       s3Key: key,
       fileName: artifact.fileName,
@@ -164,6 +191,7 @@ async function runJob(
 
     deps.registry.update(id, {
       status: "failed",
+      isVerifying: false,
       finishedAt: failedAt.toISOString(),
       s3Key: storedFailureKey,
       fileName: storedFailureKey ? failureFileName : undefined,

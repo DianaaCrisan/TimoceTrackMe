@@ -74,6 +74,24 @@ $font-color: rgb(48, 48, 48);
       text-decoration: line-through;
     }
   }
+
+  // being changed in the background: shown, but faded and not tickable
+  &.--busy > td {
+    opacity: 0.5;
+  }
+
+  &.--busy > td:nth-child(2) {
+    opacity: 1;
+  }
+}
+
+.orders-dashboard-table__row-activity {
+  display: block;
+  margin-top: 2px;
+  color: #2c6ecb;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .orders-dashboard-table__row:hover {

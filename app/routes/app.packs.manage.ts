@@ -82,12 +82,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           t,
         );
         return ok(
-          result.movedTo
-            ? t("pack.done.closedAndMoved", {
-                count: result.movedCount,
-                name: packName(result.movedTo),
-              })
-            : t("pack.done.closed"),
+          joinParts([
+            result.movedTo
+              ? t("pack.done.closedAndMoved", {
+                  count: result.movedCount,
+                  name: packName(result.movedTo),
+                })
+              : t("pack.done.closed"),
+            result.tagBatchId ? t("pack.done.updatingShopify") : null,
+          ]),
+          result.tagBatchId,
         );
       }
       case "reopen":
@@ -97,12 +101,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         await PackRepository.delete(packId(), t);
         return ok(t("pack.done.deleted"));
       case "retryTagging": {
-        const { orderCount } = await PackService.retryTagging(
+        const { orderCount, tagBatchId } = await PackService.retryTagging(
           context,
           packId(),
           t,
         );
-        return ok(t("pack.done.retryingTags", { count: orderCount }));
+        return ok(
+          t("pack.done.retryingTags", { count: orderCount }),
+          tagBatchId,
+        );
       }
       case "addOrders": {
         const target = formData.get(PACK_ACTION_FIELDS.target);
@@ -128,7 +135,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                   count: result.inClosedPackCount,
                 })
               : null,
+            result.tagBatchId ? t("pack.done.updatingShopify") : null,
           ]),
+          result.tagBatchId,
         );
       }
       case "removeOrders": {
@@ -144,7 +153,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                   count: result.inClosedPackCount,
                 })
               : null,
+            result.tagBatchId ? t("pack.done.updatingShopify") : null,
           ]),
+          result.tagBatchId,
         );
       }
     }
@@ -173,8 +184,8 @@ function joinParts(parts: (string | null)[]): string {
   return parts.filter(Boolean).join(" ");
 }
 
-function ok(message: string): Response {
-  return respond(200, { ok: true, message });
+function ok(message: string, tagBatchId: string | null = null): Response {
+  return respond(200, { ok: true, message, tagBatchId });
 }
 
 function respond(status: number, body: PackActionResponse): Response {

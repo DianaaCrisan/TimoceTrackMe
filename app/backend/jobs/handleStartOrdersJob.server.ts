@@ -68,8 +68,9 @@ export async function handleStartOrdersJob(
       title: definition.title,
       orderIds,
       failureFileName: buildFailureFileName(definition.job, t),
-      build: () =>
+      build: (progress) =>
         definition.buildArtifact({
+          progress,
           admin: jobAdmin,
           shopUrl,
           orderIds,

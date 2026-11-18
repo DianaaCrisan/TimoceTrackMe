@@ -15,6 +15,7 @@ import {
   type PackProgress,
 } from "app/commons/packs/FulfillmentPack";
 import { PACK_ACTION_FIELDS } from "app/commons/packs/PackAction";
+import type { PackWaitingReason } from "app/commons/packs/PackSchedule";
 import type { TranslationKey } from "app/commons/i18n/translations";
 import { Badge, type BadgeTone } from "app/frontend/core/components/Badge";
 import { ConfirmDialog } from "app/frontend/core/components/ConfirmDialog";
@@ -31,10 +32,15 @@ const STATUS_DISPLAY: Record<
   CLOSED: { label: "pack.status.CLOSED", tone: "success" },
 };
 
-/** An open pack past a scheduled day: no new orders, not started either. */
-const WAITING_DISPLAY: { label: TranslationKey; tone: BadgeTone } = {
-  label: "pack.status.waiting",
-  tone: "warning",
+/** An open pack that takes no new orders and is not started either. */
+const WAITING_DISPLAY: Record<
+  PackWaitingReason,
+  { label: TranslationKey; tone: BadgeTone }
+> = {
+  // past a scheduled day
+  schedule: { label: "pack.status.waiting", tone: "warning" },
+  // at the pack size limit
+  full: { label: "pack.status.full", tone: "warning" },
 };
 
 type ConfirmKind = "lock" | "close" | "delete";
@@ -64,8 +70,8 @@ export function PackSummary({ pack, progress, linksToPack }: PackSummaryProps) {
   const [confirming, setConfirming] = useState<ConfirmKind | null>(null);
 
   const name = formatPackName(pack, t);
-  const status = pack.isWaiting
-    ? WAITING_DISPLAY
+  const status = pack.waitingReason
+    ? WAITING_DISPLAY[pack.waitingReason]
     : STATUS_DISPLAY[pack.status];
   const leftCount = progress ? countLeftInPack(progress) : null;
   const packFields = { [PACK_ACTION_FIELDS.packId]: pack.id };
@@ -179,9 +185,15 @@ export function PackSummary({ pack, progress, linksToPack }: PackSummaryProps) {
 
       {progress ? <PackProgressBar progress={progress} /> : null}
 
-      {pack.untaggedCount > 0 ? (
+      {pack.taggingCount > 0 ? (
+        <div className="pack-summary__info">
+          {t("pack.tagging", { count: pack.taggingCount })}
+        </div>
+      ) : null}
+
+      {pack.tagFailedCount > 0 ? (
         <div className="pack-summary__warning">
-          {t("pack.untagged", { count: pack.untaggedCount })}
+          {t("pack.tagFailed", { count: pack.tagFailedCount })}
           <button
             type="button"
             className="pack-summary__link-button"
@@ -212,7 +224,7 @@ export function PackSummary({ pack, progress, linksToPack }: PackSummaryProps) {
               : t("pack.action.delete")
         }
         cancelLabel={t("pack.action.cancel")}
-        isConfirmDisabled={isBusy}
+        isConfirmLoading={isBusy}
         onConfirm={handleConfirm}
         onCancel={() => setConfirming(null)}
       >

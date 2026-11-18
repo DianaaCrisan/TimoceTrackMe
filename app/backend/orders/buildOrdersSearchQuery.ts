@@ -10,6 +10,9 @@ const SEARCH_QUERY_BY_FILTER: Record<OrdersDashboardFilter, string | null> = {
   zip_to_fix:
     `tag:${ZIP_TO_FIX_ORDER_TAG} AND NOT status:cancelled AND ` +
     "(fulfillment_status:unfulfilled OR fulfillment_status:partial)",
+  // On hold in Shopify (displayFulfillmentStatus ON_HOLD): add tracking
+  // skips them until the hold is released, so they get their own tab.
+  on_hold: "fulfillment_status:on_hold AND NOT status:cancelled",
   // Ready to print, not printed yet: a delivery order has a label to print
   // once add tracking has fulfilled it (fully or in part); a pickup order
   // has one from the start, since add tracking skips it. Cancelled orders

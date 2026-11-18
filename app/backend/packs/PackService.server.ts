@@ -12,12 +12,13 @@ import {
 } from "../orders/buildOrdersSearchQuery";
 import { countOrdersMatching } from "../orders/getOrdersCount.server";
 import { fetchOrderIdsMatching } from "../orders/resolveOrderSelection.server";
-import { startPackTagging } from "./PackOrderTags.server";
 import {
   PackRepository,
   toPackView,
   type PackTarget,
 } from "./PackRepository.server";
+import { PackTagSyncRepository } from "./PackTagSyncRepository.server";
+import { packTagWorker } from "./PackTagWorker.server";
 
 /** Who is asking: tagging runs after the request, on the shop's own session. */
 type ShopContext = { shop: string; shopUrl: string };
@@ -28,22 +29,27 @@ export type AddOrdersResult = {
   movedCount: number;
   alreadyInPackCount: number;
   inClosedPackCount: number;
+  /** The tag work's batch, for its progress; null if nothing changed. */
+  tagBatchId: string | null;
 };
 
 export type RemoveOrdersResult = {
   removedCount: number;
   notInPackCount: number;
   inClosedPackCount: number;
+  tagBatchId: string | null;
 };
 
 export type ClosePackResult = {
   movedCount: number;
   movedTo: FulfillmentPackView | null;
+  tagBatchId: string | null;
 };
 
 /**
  * Pack changes, kept in step with Shopify: the database changes first (it
- * decides which pack an order is in), then the tags follow in the background.
+ * decides which pack an order is in) and queues the tag work in the same
+ * transaction; `packTagWorker` then updates the tags in the background.
  */
 export class PackService {
   static async addOrders(
@@ -52,17 +58,13 @@ export class PackService {
     target: PackTarget,
     t: Translate,
   ): Promise<AddOrdersResult> {
-    const { plan, targetPack } = await PackRepository.addOrders(
+    const { plan, targetPack, tagBatchId } = await PackRepository.addOrders(
       orderIds,
       target,
+      context,
       t,
     );
-
-    startPackTagging(context.shop, context.shopUrl, {
-      targetPack,
-      joining: plan.orderIdsToInsert,
-      moving: plan.ordersToMove,
-    });
+    packTagWorker.kick();
 
     return {
       pack: toPackView(targetPack),
@@ -70,6 +72,7 @@ export class PackService {
       movedCount: plan.ordersToMove.length,
       alreadyInPackCount: plan.alreadyInTarget.length,
       inClosedPackCount: plan.inClosedPack.length,
+      tagBatchId,
     };
   }
 
@@ -85,13 +88,10 @@ export class PackService {
     | { kind: "assigned"; pack: FulfillmentPackView; isNewPack: boolean }
     | { kind: "alreadyInPack" }
   > {
-    const result = await PackRepository.assignNewOrder(orderId);
+    const result = await PackRepository.assignNewOrder(orderId, context);
     if (result.kind === "alreadyInPack") return result;
 
-    startPackTagging(context.shop, context.shopUrl, {
-      targetPack: result.pack,
-      joining: [orderId],
-    });
+    packTagWorker.kick();
     return {
       kind: "assigned",
       pack: toPackView(result.pack),
@@ -103,16 +103,17 @@ export class PackService {
     context: ShopContext,
     orderIds: string[],
   ): Promise<RemoveOrdersResult> {
-    const plan = await PackRepository.removeOrders(orderIds);
-
-    startPackTagging(context.shop, context.shopUrl, {
-      leaving: plan.ordersToRemove,
-    });
+    const { plan, tagBatchId } = await PackRepository.removeOrders(
+      orderIds,
+      context,
+    );
+    packTagWorker.kick();
 
     return {
       removedCount: plan.ordersToRemove.length,
       notInPackCount: plan.notInPack.length,
       inClosedPackCount: plan.inClosedPack.length,
+      tagBatchId,
     };
   }
 
@@ -147,41 +148,38 @@ export class PackService {
       context.shopUrl,
       buildPackDoneQuery(pack.orderTag),
     );
-    const { movedOrders, movedTo } = await PackRepository.close(
+    const { movedOrders, movedTo, tagBatchId } = await PackRepository.close(
       packId,
       { doneOrderIds, moveLeftovers },
+      context,
       t,
     );
-
-    if (movedTo) {
-      startPackTagging(context.shop, context.shopUrl, {
-        targetPack: movedTo,
-        moving: movedOrders,
-      });
-    }
+    if (tagBatchId) packTagWorker.kick();
 
     return {
       movedCount: movedOrders.length,
       movedTo: movedTo ? toPackView(movedTo) : null,
+      tagBatchId,
     };
   }
 
-  /** Tags the pack's orders whose tags are missing. */
+  /**
+   * Queues again the pack's orders whose tags are not right: failed ones,
+   * and any never queued. Orders still pending are left to the worker.
+   */
   static async retryTagging(
     context: ShopContext,
     packId: string,
     t: Translate,
-  ): Promise<{ orderCount: number }> {
+  ): Promise<{ orderCount: number; tagBatchId: string | null }> {
     const pack = await PackRepository.getOrThrow(packId, t);
-    const orderIds = await PackRepository.getUntaggedOrderIds(packId);
+    const { batchId, orderCount } = await PackTagSyncRepository.requeueForPack(
+      context.shop,
+      pack,
+    );
+    if (batchId) packTagWorker.kick();
 
-    if (orderIds.length > 0) {
-      startPackTagging(context.shop, context.shopUrl, {
-        targetPack: pack,
-        joining: orderIds,
-      });
-    }
-    return { orderCount: orderIds.length };
+    return { orderCount, tagBatchId: batchId };
   }
 
   /** Total and done, counted on the pack's tag. A failed count is null. */
@@ -205,4 +203,3 @@ export class PackService {
     return { total, done };
   }
 }
-

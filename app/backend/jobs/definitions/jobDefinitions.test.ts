@@ -12,6 +12,7 @@ import {
 } from "../../print-labels/printLabels.server";
 import type { OrdersJobContext } from "./OrdersJobContext";
 import { buildPrintLabelsArtifact } from "./printLabelsJob.server";
+import { decodeOrderListMetadata } from "../../documents/orderListMetadata";
 
 vi.mock("../../orders/waitForSearchIndex.server", () => ({
   searchIndexChecks: vi.fn(() => []),
@@ -125,6 +126,12 @@ describe("buildPrintLabelsArtifact", () => {
     );
     expect(artifact.fileName).toBe("labels_13-Nov-2026_12-00.zip");
     expect(artifact.summary).toBe("2 labels for 1 orders");
+    // the Documents page shows which orders the zip holds: only the printed
+    // ones, each once even with two labels
+    expect(decodeOrderListMetadata(artifact.metadata)).toEqual({
+      ranges: "#1001",
+      count: 1,
+    });
     expect(artifact.hasErrors).toBe(false);
     expect(Object.keys(zip.files).sort()).toEqual([
       "print-labels-results.xlsx",

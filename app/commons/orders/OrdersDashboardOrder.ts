@@ -10,7 +10,7 @@ type OrdersDashboardNode =
  */
 export type OrdersDashboardOrder = Omit<
   OrdersDashboardNode,
-  "note" | "customAttributes" | "currentTotalWeight"
+  "note" | "customAttributes" | "currentTotalWeight" | "tags"
 > &
   CustomerNote & {
     /**

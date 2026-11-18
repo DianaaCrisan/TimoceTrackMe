@@ -4,6 +4,7 @@ import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { SettingsRepository } from "app/backend/settings/SettingsRepository.server";
+import { getShopPlanName } from "app/backend/settings/getShopPlanName.server";
 import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import {
@@ -24,15 +25,21 @@ const PACK_SCHEDULE_INTENT = "packSchedule";
 
 /** How the shop works with the app, set by the shop's admin. */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
 
-  const settings = await SettingsRepository.get();
+  const [settings, planName] = await Promise.all([
+    SettingsRepository.get(),
+    getShopPlanName(admin),
+  ]);
   return {
     parcelWeight: {
       parcelWeightLimitKg: settings.parcelWeightLimitKg,
       autoSplitHeavyOrders: settings.autoSplitHeavyOrders,
     },
     packStartWeekdays: settings.packStartWeekdays,
+    // read-only for now: no form sends it, and the action never writes it
+    packMaxOrders: settings.packMaxOrders,
+    planName,
   };
 };
 
@@ -67,7 +74,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
-  const { parcelWeight, packStartWeekdays } = useLoaderData<typeof loader>();
+  const { parcelWeight, packStartWeekdays, packMaxOrders, planName } =
+    useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const scheduleFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
@@ -135,6 +143,25 @@ export default function SettingsPage() {
       </s-section>
 
       <s-section heading={t("settings.packScheduleHeading")}>
+        <s-stack direction="block" gap="base">
+          {/* outside the form and without a name: never sent */}
+          <s-box maxInlineSize="200px">
+            <s-number-field
+              label={t("settings.packMaxOrders")}
+              value={String(packMaxOrders)}
+              suffix={t("settings.packMaxOrdersSuffix")}
+              readOnly
+            />
+          </s-box>
+          <s-text color="subdued">
+            {planName
+              ? t("settings.packMaxOrdersDetails", { plan: planName })
+              : t("settings.packMaxOrdersDetailsNoPlan")}
+          </s-text>
+        </s-stack>
+      </s-section>
+
+      <s-section heading={t("settings.packScheduleSectionHeading")}>
         <scheduleFetcher.Form method="post">
           <input type="hidden" name={LOCALE_PARAM} value={locale} />
           <input

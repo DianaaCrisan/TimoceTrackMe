@@ -16,6 +16,7 @@ import {
 import { DEFAULT_LOCALE } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import type { JobArtifact } from "../startBackgroundJob.server";
+import { encodeOrderListMetadata } from "../../documents/orderListMetadata";
 import type { OrdersJobContext } from "./OrdersJobContext";
 
 export const PRINT_LABELS_JOB = {
@@ -45,6 +46,7 @@ export async function buildPrintLabelsArtifact(
     orderIds: ctx.orderIds,
     timeZone: ctx.timeZone,
     locale,
+    onOrderDone: ctx.progress?.orderDone,
   });
 
   const orderErrors = [...result.errorsByOrderId.values()].flat();
@@ -82,6 +84,7 @@ export async function buildPrintLabelsArtifact(
 
   // finish only once Shopify's search shows the printed tag, so the
   // dashboard's reload no longer lists these orders as unprinted
+  ctx.progress?.verifying();
   await waitForSearchIndex(
     ctx.admin,
     searchIndexChecks(
@@ -170,6 +173,12 @@ export async function buildPrintLabelsArtifact(
     buf: await zip.generateAsync({ type: "nodebuffer" }),
     fileName: `${t("fileName.labelsZip")}_${result.timestamp}.zip`,
     contentType: "application/zip",
+    // the Documents page lists which orders each zip holds
+    metadata: encodeOrderListMetadata(
+      result.printedUnits.map(
+        (unit) => result.orderNamesById.get(unit.orderId) ?? "",
+      ),
+    ),
     hasErrors:
       failedOrderCount > 0 ||
       markingFailureCount > 0 ||

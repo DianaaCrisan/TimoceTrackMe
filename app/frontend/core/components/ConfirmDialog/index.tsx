@@ -9,6 +9,11 @@ type ConfirmDialogProps = {
   confirmLabel: string;
   cancelLabel: string;
   isConfirmDisabled?: boolean;
+  /**
+   * The confirmed action's request is on its way: the confirm button shows
+   * a spinner, and the dialog cannot be closed until the answer arrives.
+   */
+  isConfirmLoading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -24,6 +29,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   isConfirmDisabled = false,
+  isConfirmLoading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -44,7 +50,7 @@ export function ConfirmDialog({
       // Esc closes a native dialog; keep React's state in step
       onCancel={(event) => {
         event.preventDefault();
-        onCancel();
+        if (!isConfirmLoading) onCancel();
       }}
     >
       {isOpen ? (
@@ -55,16 +61,23 @@ export function ConfirmDialog({
             <button
               type="button"
               className="confirm-dialog__secondary"
+              disabled={isConfirmLoading}
               onClick={onCancel}
             >
               {cancelLabel}
             </button>
             <button
               type="button"
-              className="confirm-dialog__primary"
-              disabled={isConfirmDisabled}
+              className={`confirm-dialog__primary${
+                isConfirmLoading ? " --loading" : ""
+              }`}
+              disabled={isConfirmDisabled || isConfirmLoading}
+              aria-busy={isConfirmLoading}
               onClick={onConfirm}
             >
+              {isConfirmLoading ? (
+                <span className="confirm-dialog__spinner" aria-hidden="true" />
+              ) : null}
               {confirmLabel}
             </button>
           </div>

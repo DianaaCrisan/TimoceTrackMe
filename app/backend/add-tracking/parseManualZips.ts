@@ -9,8 +9,13 @@ import { RequestError } from "../core/errors/RequestError";
 
 /**
  * The ZIPs the admin typed, from the add tracking form. Unset when the form
- * has none. Refuses ZIPs for orders outside the job and ZIPs that are not six
- * digits, so nothing wrong is ever written to an order.
+ * has none. Refuses ZIPs that are not six digits, so nothing wrong is ever
+ * written to an order.
+ *
+ * A ZIP for an order outside the job is dropped, never written: with "every
+ * order in the tab" the server decides the job's orders, and one the admin
+ * typed a ZIP for may have left the tab, or be left out while it is being
+ * changed.
  */
 export function parseManualZips(
   formData: FormData,
@@ -35,9 +40,10 @@ export function parseManualZips(
   const manualZips: ManualZips = {};
 
   for (const [orderId, zip] of Object.entries(parsed)) {
-    if (!jobOrderIds.has(orderId) || typeof zip !== "string") {
+    if (typeof zip !== "string") {
       throw new RequestError(400, t("startJob.unreadableManualZips"));
     }
+    if (!jobOrderIds.has(orderId)) continue;
     if (!isValidZip(zip)) {
       throw new RequestError(400, t("startJob.invalidManualZip", { zip }));
     }

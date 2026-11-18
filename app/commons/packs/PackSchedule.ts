@@ -37,6 +37,45 @@ export function hasScheduledCutSince(
   return false;
 }
 
+/**
+ * How many orders a filling pack takes before it waits. Matches the column's
+ * default; read-only for now. 200 keeps actions on a whole pack (move it,
+ * add tracking) to about a minute on a Standard Shopify plan, well under the
+ * 1000-order job limit. See docs/background-work-visibility-plan.md.
+ */
+export const DEFAULT_PACK_MAX_ORDERS = 200;
+
+/** Why an open pack takes no new orders. */
+export type PackWaitingReason = "full" | "schedule";
+
+/**
+ * Why an open pack waits instead of taking new orders, or null when it
+ * takes them:
+ * - `full`: it holds `packMaxOrders` orders or more
+ * - `schedule`: a scheduled cut has happened since its first order
+ *
+ * Only the choice of the filling pack follows this. The admin can still add
+ * orders to any pack by hand, past the limit too.
+ */
+export function getWaitingReason(
+  pack: { status: string; startedAt: Date | null },
+  orderCount: number,
+  rules: { startWeekdays: readonly number[]; packMaxOrders: number | null },
+  now: Date,
+): PackWaitingReason | null {
+  if (pack.status !== "OPEN") return null;
+  if (rules.packMaxOrders !== null && orderCount >= rules.packMaxOrders) {
+    return "full";
+  }
+  if (
+    pack.startedAt !== null &&
+    hasScheduledCutSince(pack.startedAt, now, rules.startWeekdays)
+  ) {
+    return "schedule";
+  }
+  return null;
+}
+
 /** `YYYY-MM-DD` plus `days`. Calendar arithmetic, in UTC to dodge DST. */
 export function addDays(day: string, days: number): string {
   const date = new Date(`${day}T00:00:00.000Z`);

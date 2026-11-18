@@ -13,7 +13,14 @@ const admin = {} as AdminApiContextWithoutRest;
 describe("getTabCounts", () => {
   it("counts every counted tab the page shows", async () => {
     const countOrders = vi.fn(async (_admin: unknown, filter: string) => ({
-      count: filter === "unprinted" ? 4 : filter === "zip_to_fix" ? 3 : 12,
+      count:
+        filter === "unprinted"
+          ? 4
+          : filter === "zip_to_fix"
+            ? 3
+            : filter === "on_hold"
+              ? 1
+              : 12,
       isAtLeast: false,
     }));
 
@@ -25,10 +32,11 @@ describe("getTabCounts", () => {
     ).resolves.toEqual({
       pending_fulfillment: { count: 12, isAtLeast: false },
       zip_to_fix: { count: 3, isAtLeast: false },
+      on_hold: { count: 1, isAtLeast: false },
       unprinted: { count: 4, isAtLeast: false },
       not_in_pack: { count: 12, isAtLeast: false },
     });
-    expect(countOrders).toHaveBeenCalledTimes(4);
+    expect(countOrders).toHaveBeenCalledTimes(5);
   });
 
   it("inside a pack, counts only the pack's orders and skips Not in a pack", async () => {
@@ -43,6 +51,7 @@ describe("getTabCounts", () => {
     expect(Object.keys(counts)).toEqual([
       "pending_fulfillment",
       "zip_to_fix",
+      "on_hold",
       "unprinted",
     ]);
     expect(countOrders).toHaveBeenCalledWith(
@@ -64,6 +73,7 @@ describe("getTabCounts", () => {
     ).resolves.toEqual({
       pending_fulfillment: { count: 12, isAtLeast: false },
       zip_to_fix: { count: 12, isAtLeast: false },
+      on_hold: { count: 12, isAtLeast: false },
       unprinted: null,
     });
   });

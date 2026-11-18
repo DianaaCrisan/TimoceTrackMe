@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useFetcher, useRevalidator } from "react-router";
+import { useFetcher } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { LOCALE_PARAM } from "app/commons/i18n/Locale";
 import { PACKS_MANAGE_PATH } from "app/commons/packs/FulfillmentPack";
@@ -9,33 +9,32 @@ import {
   type PackActionResponse,
 } from "app/commons/packs/PackAction";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
+import {
+  useBackgroundActivityContext,
+  type BackgroundActivity,
+} from "app/frontend/jobs/hooks/useBackgroundActivity";
 
 /**
- * Tags are added in the background and Shopify search lags behind them, so
- * the page reloads once more after this long to show where orders landed.
- */
-const TAGS_CATCH_UP_MS = 5000;
-
-/**
- * Sends a pack action and shows the server's answer as a toast. The page's
- * data reloads on its own after the action, and once more after
- * `TAGS_CATCH_UP_MS`.
+ * Sends a pack action and shows the server's answer as a toast.
+ *
+ * The page's data reloads on its own after the action, which already shows
+ * the orders it moved as being updated. The Shopify tags follow in the
+ * background: the page's background activity (`activity`, or the one from
+ * context) follows that work and reloads the page once it is done.
  */
 export function usePackAction(
   onSuccess?: (response: Extract<PackActionResponse, { ok: true }>) => void,
+  activity?: BackgroundActivity | null,
 ) {
   const fetcher = useFetcher<PackActionResponse>();
-  const revalidator = useRevalidator();
   const shopify = useAppBridge();
   const { locale } = useI18n();
 
+  const contextActivity = useBackgroundActivityContext();
+  const followRef = useRef((activity ?? contextActivity)?.follow);
+  followRef.current = (activity ?? contextActivity)?.follow;
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
-  const revalidateRef = useRef(revalidator.revalidate);
-  revalidateRef.current = revalidator.revalidate;
-
-  const catchUpTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  useEffect(() => () => clearTimeout(catchUpTimerRef.current), []);
 
   useEffect(() => {
     const response = fetcher.data;
@@ -47,12 +46,10 @@ export function usePackAction(
     }
 
     shopify.toast.show(response.message, { duration: 6000 });
+    if (response.tagBatchId) {
+      followRef.current?.({ batchId: response.tagBatchId });
+    }
     onSuccessRef.current?.(response);
-    clearTimeout(catchUpTimerRef.current);
-    catchUpTimerRef.current = setTimeout(
-      () => revalidateRef.current(),
-      TAGS_CATCH_UP_MS,
-    );
   }, [fetcher.data, shopify]);
 
   function submit(

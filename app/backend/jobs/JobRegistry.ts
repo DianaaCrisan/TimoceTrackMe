@@ -10,6 +10,10 @@ export type JobRecord = {
   startedAt: string;
   finishedAt?: string;
   status: JobStatus;
+  /** Orders the job is done with so far, while it runs. */
+  processedCount?: number;
+  /** Set once the work is done and the job waits for Shopify search. */
+  isVerifying?: boolean;
   /** The result file, or the FAILED_ file for a failed job. */
   s3Key?: string;
   /** The name the file downloads under. */

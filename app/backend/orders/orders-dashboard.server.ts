@@ -8,6 +8,7 @@ import { AdminApiContextWithoutRest } from "../core/types/AdminApiContextWithout
 import { FetchResponseBody } from "@shopify/admin-api-client";
 import type { OrdersDashboardFilter } from "app/commons/orders/OrdersDashboardFilter";
 import { buildOrdersSearchQuery } from "./buildOrdersSearchQuery";
+import { contradictsTab } from "./contradictsTab";
 import { toCustomerNote } from "app/commons/orders/CustomerNote";
 import { toKilograms } from "app/commons/shipping/Weight";
 
@@ -16,6 +17,11 @@ const ORDER_PAGE_SIZE = 50;
 type OrdersDashboardData = {
   orders: OrdersDashboardOrder[];
   pageInfo: PageInfo;
+  /**
+   * Listed only because Shopify search lags: their own fields rule out the
+   * tab (see `contradictsTab`).
+   */
+  staleOrderIds: string[];
 };
 
 type OrdersDashboardPaginationInput = {
@@ -54,6 +60,7 @@ const ORDERS_DASHBOARD_QUERY = `#graphql
           currentSubtotalLineItemsQuantity
           cancelledAt
           currentTotalWeight
+          tags
           note
           customAttributes {
             key
@@ -135,6 +142,7 @@ export async function getOrdersDashboardData(
 
   if (!ordersConnection) {
     return {
+      staleOrderIds: [],
       orders: [],
       pageInfo: {
         hasNextPage: false,
@@ -145,10 +153,14 @@ export async function getOrdersDashboardData(
     };
   }
 
+  const packTag = pagination.packTag ?? null;
   return {
     orders: ordersConnection.edges.map((edge) =>
       toOrdersDashboardOrder(edge.node),
     ),
+    staleOrderIds: ordersConnection.edges
+      .filter((edge) => contradictsTab(edge.node, pagination.filter, packTag))
+      .map((edge) => edge.node.id),
     pageInfo: {
       hasNextPage: ordersConnection.pageInfo.hasNextPage,
       hasPreviousPage: ordersConnection.pageInfo.hasPreviousPage,
