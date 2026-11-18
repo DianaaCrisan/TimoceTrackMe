@@ -22,8 +22,13 @@ export type FulfillmentPackView = {
   closedAt: string | null;
   /** Orders in the pack, from the database. */
   orderCount: number;
-  /** Orders whose tags are not confirmed yet; the pack's tabs miss them. */
-  untaggedCount: number;
+  /**
+   * Orders joining or leaving the pack whose Shopify tags are still being
+   * updated: the pack's tabs do not show them right yet.
+   */
+  taggingCount: number;
+  /** Orders whose tags could not be updated; the Retry button queues them. */
+  tagFailedCount: number;
 };
 
 /**

@@ -104,6 +104,64 @@ model FulfillmentPackOrder {
   @@index([packId])
 }
 
+/// An order whose Shopify tags may not match its pack yet. Written in the
+/// same transaction as the pack change, so a restart loses no tag work. The
+/// worker (`PackTagWorker`) brings the tags in line with
+/// FulfillmentPackOrder as it is when the worker gets there, then deletes
+/// the row. See docs/background-work-visibility-plan.md.
+model PackTagSync {
+  /// Shopify order GID.
+  orderId     String            @id
+  /// The shop whose offline session tags the order.
+  shop        String
+  /// Pack tags that may still be on the order and must go: the packs it
+  /// left since its tags were last right.
+  staleTags   String[]          @default([])
+  status      PackTagSyncStatus @default(PENDING)
+  /// Worker runs that failed on this order.
+  attempts    Int               @default(0)
+  lastError   String?
+  /// Bumped on every new change, so the worker never deletes a row that
+  /// changed while it was tagging the order.
+  version     Int               @default(0)
+  requestedAt DateTime          @default(now())
+  batch       PackTagBatch?     @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  /// The admin action this belongs to; NULL for a new order from the webhook.
+  batchId     String?
+
+  @@index([status, requestedAt])
+  @@index([batchId])
+}
+
+enum PackTagSyncStatus {
+  /// Waiting for the worker.
+  PENDING
+  /// Gave up after retries; the pack's Retry button queues it again.
+  FAILED
+}
+
+/// One admin action's tag work, for its progress.
+model PackTagBatch {
+  id          String        @id @default(cuid())
+  shop        String
+  /// addOrders | removeOrders | close | retry
+  kind        String
+  /// The pack the orders joined; NULL when they left their pack.
+  packId      String?
+  /// Every order of the action, for the search-index check at the end.
+  orderIds    String[]
+  orderCount  Int
+  failedCount Int           @default(0)
+  createdAt   DateTime      @default(now())
+  /// Every order tagged, or given up on.
+  taggedAt    DateTime?
+  /// Shopify search shows the result, or the wait for it timed out.
+  finishedAt  DateTime?
+  syncs       PackTagSync[]
+
+  @@index([finishedAt])
+}
+
 /// One AWB, for the AWB report. See docs/awb-report-plan.md.
 ///
 /// The status follows Shopify: USED while the AWB is on an active

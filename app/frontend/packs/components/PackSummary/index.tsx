@@ -179,9 +179,15 @@ export function PackSummary({ pack, progress, linksToPack }: PackSummaryProps) {
 
       {progress ? <PackProgressBar progress={progress} /> : null}
 
-      {pack.untaggedCount > 0 ? (
+      {pack.taggingCount > 0 ? (
+        <div className="pack-summary__info">
+          {t("pack.tagging", { count: pack.taggingCount })}
+        </div>
+      ) : null}
+
+      {pack.tagFailedCount > 0 ? (
         <div className="pack-summary__warning">
-          {t("pack.untagged", { count: pack.untaggedCount })}
+          {t("pack.tagFailed", { count: pack.tagFailedCount })}
           <button
             type="button"
             className="pack-summary__link-button"

@@ -55,10 +55,15 @@ export const en = {
   "pack.progress": "{done} of {total} done · {left} left",
   "pack.progressAllDone": "All {total} done",
   "pack.progressUnavailable": "Progress could not be loaded.",
-  "pack.untagged": {
-    one: "{count} order is not tagged yet, so the pack's tabs do not show it.",
+  "pack.tagging": {
+    one: "{count} order is being updated in Shopify; the pack's tabs show it once that is done.",
     other:
-      "{count} orders are not tagged yet, so the pack's tabs do not show them.",
+      "{count} orders are being updated in Shopify; the pack's tabs show them once that is done.",
+  },
+  "pack.tagFailed": {
+    one: "{count} order could not be tagged, so the pack's tabs may not show it right.",
+    other:
+      "{count} orders could not be tagged, so the pack's tabs may not show them right.",
   },
   "pack.newPack": "New pack",
   "pack.action.lock": "Start working",
@@ -393,6 +398,8 @@ export const en = {
       "{count} selected orders are no longer in this pack. Reload the page.",
   },
   "startJob.noOrdersInTab": 'No orders match the "{tab}" tab.',
+  "startJob.allOrdersUpdating":
+    "Every order in this tab is still being updated in Shopify. Try again in a moment.",
   "startJob.tooManyOrders":
     "A job can take at most {max} orders. This selection has more.",
   "startJob.unreadableManualZips":
@@ -700,10 +707,17 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "pack.progress": "{done} din {total} gata · {left} rămase",
   "pack.progressAllDone": "Toate cele {total} sunt gata",
   "pack.progressUnavailable": "Progresul nu a putut fi încărcat.",
-  "pack.untagged": {
-    one: "{count} comandă nu are încă eticheta pachetului, așa că taburile pachetului nu o arată.",
+  "pack.tagging": {
+    one: "{count} comandă se actualizează în Shopify; taburile pachetului o arată după aceea.",
+    few: "{count} comenzi se actualizează în Shopify; taburile pachetului le arată după aceea.",
     other:
-      "{count} comenzi nu au încă eticheta pachetului, așa că taburile pachetului nu le arată.",
+      "{count} de comenzi se actualizează în Shopify; taburile pachetului le arată după aceea.",
+  },
+  "pack.tagFailed": {
+    one: "{count} comandă nu a putut fi etichetată, așa că taburile pachetului s-ar putea să nu o arate corect.",
+    few: "{count} comenzi nu au putut fi etichetate, așa că taburile pachetului s-ar putea să nu le arate corect.",
+    other:
+      "{count} de comenzi nu au putut fi etichetate, așa că taburile pachetului s-ar putea să nu le arate corect.",
   },
   "pack.newPack": "Pachet nou",
   "pack.action.lock": "Începe lucrul",
@@ -1083,6 +1097,8 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
       "{count} de comenzi selectate nu mai sunt în acest pachet. Reîncarcă pagina.",
   },
   "startJob.noOrdersInTab": "Nicio comandă în tabul „{tab}”.",
+  "startJob.allOrdersUpdating":
+    "Toate comenzile din acest tab se actualizează încă în Shopify. Încearcă din nou în câteva momente.",
   "startJob.tooManyOrders":
     "O sarcină poate prelua cel mult {max} de comenzi. Selecția aceasta are mai multe.",
   "startJob.unreadableManualZips":

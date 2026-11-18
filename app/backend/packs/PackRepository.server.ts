@@ -10,6 +10,7 @@ import {
 import { hasScheduledCutSince } from "app/commons/packs/PackSchedule";
 import { RequestError } from "../core/errors/RequestError";
 import { SETTINGS_SINGLETON_ID } from "../settings/SettingsRepository.server";
+import { PackTagSyncRepository } from "./PackTagSyncRepository.server";
 import {
   planAddToPack,
   planRemoveFromPack,
@@ -33,6 +34,12 @@ export function toPackView(record: PackRecord): FulfillmentPackView {
 
 /** Where orders go: an existing pack, or the filling pack (made if missing). */
 export type PackTarget = { kind: "pack"; packId: string } | { kind: "filling" };
+
+/**
+ * The shop whose orders change. The tag work for a change is queued in the
+ * same transaction (see `PackTagSyncRepository`), for that shop's session.
+ */
+export type TagWorkShop = { shop: string };
 
 const CLOSED_PACKS_SHOWN = 20;
 
@@ -145,8 +152,13 @@ export class PackRepository {
       doneOrderIds,
       moveLeftovers,
     }: { doneOrderIds: string[]; moveLeftovers: boolean },
+    { shop }: TagWorkShop,
     t: Translate,
-  ): Promise<{ movedOrders: OrderLeavingPack[]; movedTo: PackRecord | null }> {
+  ): Promise<{
+    movedOrders: OrderLeavingPack[];
+    movedTo: PackRecord | null;
+    tagBatchId: string | null;
+  }> {
     return withPacksLock(async (tx) => {
       const pack = await getInTx(tx, packId, t);
       if (pack.status !== "LOCKED") {
@@ -170,11 +182,21 @@ export class PackRepository {
         );
       }
 
+      const movedOrders = leftoverIds.map((orderId) => ({
+        orderId,
+        fromTag: pack.orderTag,
+      }));
       let movedTo: FulfillmentPack | null = null;
+      let tagBatchId: string | null = null;
       if (leftoverIds.length > 0) {
         movedTo = (await findFillingPack(tx)) ?? (await createPack(tx));
         await moveRows(tx, leftoverIds, movedTo);
         await markStarted(tx, movedTo);
+        tagBatchId = await PackTagSyncRepository.enqueue(tx, {
+          shop,
+          changes: movedOrders.map(toTagChange),
+          batch: { kind: "close", packId: movedTo.id },
+        });
       }
 
       await tx.fulfillmentPack.update({
@@ -183,11 +205,9 @@ export class PackRepository {
       });
 
       return {
-        movedOrders: leftoverIds.map((orderId) => ({
-          orderId,
-          fromTag: pack.orderTag,
-        })),
+        movedOrders,
         movedTo: movedTo ? await toRecord(tx, movedTo) : null,
+        tagBatchId,
       };
     });
   }
@@ -227,8 +247,13 @@ export class PackRepository {
   static async addOrders(
     orderIds: string[],
     target: PackTarget,
+    { shop }: TagWorkShop,
     t: Translate,
-  ): Promise<{ plan: AddToPackPlan; targetPack: PackRecord }> {
+  ): Promise<{
+    plan: AddToPackPlan;
+    targetPack: PackRecord;
+    tagBatchId: string | null;
+  }> {
     return withPacksLock(async (tx) => {
       const targetPack =
         target.kind === "pack"
@@ -258,8 +283,20 @@ export class PackRepository {
       if (plan.orderIdsToInsert.length + plan.ordersToMove.length > 0) {
         await markStarted(tx, targetPack);
       }
+      const tagBatchId = await PackTagSyncRepository.enqueue(tx, {
+        shop,
+        changes: [
+          ...plan.orderIdsToInsert.map((orderId) => ({ orderId })),
+          ...plan.ordersToMove.map(toTagChange),
+        ],
+        batch: { kind: "addOrders", packId: targetPack.id },
+      });
 
-      return { plan, targetPack: await toRecord(tx, targetPack) };
+      return {
+        plan,
+        targetPack: await toRecord(tx, targetPack),
+        tagBatchId,
+      };
     });
   }
 
@@ -272,6 +309,7 @@ export class PackRepository {
    */
   static async assignNewOrder(
     orderId: string,
+    { shop }: TagWorkShop,
   ): Promise<
     | { kind: "assigned"; pack: PackRecord; isNewPack: boolean }
     | { kind: "alreadyInPack" }
@@ -288,6 +326,12 @@ export class PackRepository {
         data: { orderId, packId: pack.id },
       });
       await markStarted(tx, pack);
+      // no batch: a single new order has no progress to show
+      await PackTagSyncRepository.enqueue(tx, {
+        shop,
+        changes: [{ orderId }],
+        batch: null,
+      });
 
       return {
         kind: "assigned",
@@ -298,7 +342,10 @@ export class PackRepository {
   }
 
   /** Takes orders out of their pack. Orders in a closed pack stay. */
-  static async removeOrders(orderIds: string[]): Promise<RemoveFromPackPlan> {
+  static async removeOrders(
+    orderIds: string[],
+    { shop }: TagWorkShop,
+  ): Promise<{ plan: RemoveFromPackPlan; tagBatchId: string | null }> {
     return withPacksLock(async (tx) => {
       const plan = planRemoveFromPack(
         orderIds,
@@ -309,8 +356,45 @@ export class PackRepository {
           orderId: { in: plan.ordersToRemove.map((order) => order.orderId) },
         },
       });
-      return plan;
+      const tagBatchId = await PackTagSyncRepository.enqueue(tx, {
+        shop,
+        changes: plan.ordersToRemove.map(toTagChange),
+        batch: { kind: "removeOrders", packId: null },
+      });
+      return { plan, tagBatchId };
     });
+  }
+
+  /**
+   * The orders, from a Shopify search, that really belong where the search
+   * found them: in `packId`, or in no pack when it is null. Orders whose
+   * tags are still being updated are left out too: the search shows them
+   * where they were.
+   */
+  static async filterSettledOrders(
+    orderIds: string[],
+    packId: string | null,
+  ): Promise<string[]> {
+    const [memberships, pending] = await Promise.all([
+      prisma.fulfillmentPackOrder.findMany({
+        where: { orderId: { in: orderIds } },
+        select: { orderId: true, packId: true },
+      }),
+      prisma.packTagSync.findMany({
+        where: { orderId: { in: orderIds }, status: "PENDING" },
+        select: { orderId: true },
+      }),
+    ]);
+    const packIdByOrderId = new Map(
+      memberships.map((row) => [row.orderId, row.packId]),
+    );
+    const pendingIds = new Set(pending.map((row) => row.orderId));
+
+    return orderIds.filter(
+      (orderId) =>
+        !pendingIds.has(orderId) &&
+        (packIdByOrderId.get(orderId) ?? null) === packId,
+    );
   }
 
   static async getOrderIds(packId: string): Promise<string[]> {
@@ -320,26 +404,11 @@ export class PackRepository {
     });
     return rows.map((row) => row.orderId);
   }
+}
 
-  static async getUntaggedOrderIds(packId: string): Promise<string[]> {
-    const rows = await prisma.fulfillmentPackOrder.findMany({
-      where: { packId, taggedAt: null },
-      select: { orderId: true },
-    });
-    return rows.map((row) => row.orderId);
-  }
-
-  /**
-   * Records that the pack's tags are on these orders. Only for rows still in
-   * that pack: an order moved on meanwhile needs the new pack's tags instead.
-   */
-  static async markTagged(packId: string, orderIds: string[]): Promise<void> {
-    if (orderIds.length === 0) return;
-    await prisma.fulfillmentPackOrder.updateMany({
-      where: { packId, orderId: { in: orderIds } },
-      data: { taggedAt: new Date() },
-    });
-  }
+/** An order leaving a pack: its old pack's tag has to come off. */
+function toTagChange(order: OrderLeavingPack) {
+  return { orderId: order.orderId, staleTag: order.fromTag };
 }
 
 /**
@@ -470,17 +539,13 @@ async function toRecords(
 
   const packIds = packs.map((pack) => pack.id);
   const now = new Date();
-  const [orderCounts, untaggedCounts, startWeekdays] = await Promise.all([
+  const [orderCounts, tagCounts, startWeekdays] = await Promise.all([
     db.fulfillmentPackOrder.groupBy({
       by: ["packId"],
       where: { packId: { in: packIds } },
       _count: { _all: true },
     }),
-    db.fulfillmentPackOrder.groupBy({
-      by: ["packId"],
-      where: { packId: { in: packIds }, taggedAt: null },
-      _count: { _all: true },
-    }),
+    PackTagSyncRepository.countByPack(db, packIds),
     readPackStartWeekdays(db),
   ]);
   const countFor = (
@@ -498,7 +563,8 @@ async function toRecords(
     lockedAt: pack.lockedAt?.toISOString() ?? null,
     closedAt: pack.closedAt?.toISOString() ?? null,
     orderCount: countFor(orderCounts, pack.id),
-    untaggedCount: countFor(untaggedCounts, pack.id),
+    taggingCount: tagCounts.get(pack.id)?.pending ?? 0,
+    tagFailedCount: tagCounts.get(pack.id)?.failed ?? 0,
     orderTag: pack.orderTag,
   }));
 }

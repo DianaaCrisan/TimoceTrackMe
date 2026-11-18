@@ -102,6 +102,14 @@ a.pack-summary__name:hover {
   color: #4a4a4a;
 }
 
+.pack-summary__info {
+  padding: 6px 10px;
+  border: 1px solid #b4d5f0;
+  border-radius: 8px;
+  background: #eaf4ff;
+  color: #0b3a5c;
+}
+
 .pack-summary__warning {
   display: flex;
   align-items: center;

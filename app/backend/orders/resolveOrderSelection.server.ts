@@ -121,7 +121,18 @@ export async function resolveOrderIds(
     );
   }
 
-  return orderIds;
+  if (selection.mode === "ids") return orderIds;
+
+  // Shopify search lags behind pack changes, so "all in this tab" can list
+  // orders that already left it, or whose tags are still being updated
+  const settledIds = await PackRepository.filterSettledOrders(
+    orderIds,
+    selection.packId ?? null,
+  );
+  if (settledIds.length === 0) {
+    throw new RequestError(409, t("startJob.allOrdersUpdating"));
+  }
+  return settledIds;
 }
 
 /**
