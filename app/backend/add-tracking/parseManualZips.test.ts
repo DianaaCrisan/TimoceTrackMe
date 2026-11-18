@@ -32,9 +32,20 @@ describe("parseManualZips", () => {
     ).toThrow(RequestError);
   });
 
-  it("refuses a ZIP for an order outside the job, and unreadable JSON", () => {
+  it("drops a ZIP for an order outside the job instead of writing it", () => {
+    expect(
+      parseManualZips(form(JSON.stringify({ [A]: "400123", [B]: "500001" })), [
+        A,
+      ]),
+    ).toEqual({ [A]: "400123" });
+    expect(
+      parseManualZips(form(JSON.stringify({ [B]: "500001" })), [A]),
+    ).toBeUndefined();
+  });
+
+  it("refuses unreadable JSON", () => {
     expect(() =>
-      parseManualZips(form(JSON.stringify({ [B]: "400123" })), [A]),
+      parseManualZips(form(JSON.stringify({ [A]: 400123 })), [A]),
     ).toThrow(RequestError);
     expect(() => parseManualZips(form("not json"), [A])).toThrow(RequestError);
     expect(() => parseManualZips(form("[]"), [A])).toThrow(RequestError);

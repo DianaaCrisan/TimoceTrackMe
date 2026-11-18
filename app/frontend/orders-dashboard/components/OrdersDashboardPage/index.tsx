@@ -524,14 +524,29 @@ export function OrdersDashboardPage({
     );
   }
 
-  /** Add tracking for the orders ticked on the ZIP to fix tab. */
-  function handleFixZips(orderIds: string[], manualZips: ManualZips) {
-    return startJob(
-      ADD_TRACKING_ACTION,
-      { mode: "ids", orderIds, ...(packId ? { packId } : {}) },
-      manualZips,
+  /**
+   * Add tracking for the orders selected on the ZIP to fix tab, with the
+   * ZIPs typed for them. The panel keeps its own selection: its rows are a
+   * form, and it sends the typed ZIPs along.
+   */
+  async function handleFixZips(
+    zipSelection: DashboardSelection,
+    manualZips: ManualZips,
+  ): Promise<boolean> {
+    const orderSelection = toOrderSelection(
+      zipSelection,
+      activeFilter,
+      packId,
     );
+    if (!orderSelection) return false;
+    return startJob(ADD_TRACKING_ACTION, orderSelection, manualZips);
   }
+
+  const selectAllBlockedReason = formatSelectAllBlocker(
+    selectAllBlocker,
+    ordersCount,
+    t,
+  );
 
   /** Adds or moves the selected orders to `target` (a pack ID or a new pack). */
   function handleAddToPack(target: string) {
@@ -775,6 +790,10 @@ export function OrdersDashboardPage({
               shopAdminUrl={shopAdminUrl}
               isBusy={isAnyActionBlocked}
               isStarting={startingActionKey === ADD_TRACKING_ACTION.key}
+              ordersCount={ordersCount}
+              selectAllBlockedReason={selectAllBlockedReason}
+              isSelectAllBlocked={selectAllBlocker !== null}
+              rowActivity={rowActivity}
               onSubmit={handleFixZips}
               scrollRef={tableScrollRef}
             />
@@ -795,11 +814,7 @@ export function OrdersDashboardPage({
                   state: headerCheckboxState(selection),
                   isDisabled:
                     selectAllBlocker !== null || isAnyActionBlocked,
-                  disabledReason: formatSelectAllBlocker(
-                    selectAllBlocker,
-                    ordersCount,
-                    t,
-                  ),
+                  disabledReason: selectAllBlockedReason,
                 }}
                 onToggleOrder={handleToggleOrder}
                 onToggleAll={handleToggleAll}

@@ -301,7 +301,7 @@ export const en = {
 
   // "ZIP to fix" tab
   "zipFix.intro":
-    "Rows you edit are ticked; tick a row without editing it to retry it as it is.",
+    "Rows you edit are ticked; a ticked row you did not edit is retried as it is. The header checkbox takes every order in this tab, on all pages, and ZIPs typed on any page are kept.",
   "zipFix.submit": {
     one: "Save & add tracking for {count} order",
     other: "Save & add tracking for {count} orders",
@@ -310,7 +310,7 @@ export const en = {
     one: "{count} ZIP code is not 6 digits",
     other: "{count} ZIP codes are not 6 digits",
   },
-  "zipFix.selectAll": "Select all orders on this page",
+  "zipFix.submitBreakdown": "({fixed} with a corrected ZIP, {retried} retried as they are)",
   "zipFix.colAddress": "Address",
   "zipFix.colCity": "City",
   "zipFix.colCounty": "County",
@@ -1028,7 +1028,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
 
   // tabul „Cod poștal de corectat”
   "zipFix.intro":
-    "Rândurile editate se bifează singure; bifează un rând needitat ca să-l reîncerci așa cum e.",
+    "Rândurile editate se bifează singure; un rând bifat needitat se reîncearcă așa cum e. Bifa din antet ia toate comenzile din acest tab, de pe toate paginile, iar codurile scrise pe orice pagină se păstrează.",
   "zipFix.submit": {
     one: "Salvează și adaugă tracking pentru {count} comandă",
     few: "Salvează și adaugă tracking pentru {count} comenzi",
@@ -1039,7 +1039,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     few: "{count} coduri poștale nu au 6 cifre",
     other: "{count} de coduri poștale nu au 6 cifre",
   },
-  "zipFix.selectAll": "Selectează toate comenzile de pe pagină",
+  "zipFix.submitBreakdown": "({fixed} cu cod poștal corectat, {retried} reîncercate așa cum sunt)",
   "zipFix.colAddress": "Adresă",
   "zipFix.colCity": "Localitate",
   "zipFix.colCounty": "Județ",

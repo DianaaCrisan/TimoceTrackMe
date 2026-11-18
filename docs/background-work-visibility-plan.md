@@ -290,8 +290,14 @@ Edge cases:
 - **Greyed-out (pending) rows** are not in the selection. The server's
   selection guard (phase 1) leaves them out, and the banner or toast reports
   the real number acted on.
-- **The ZIP to fix tab is out of scope.** Its panel has a ZIP input per row, so
-  its own checkbox keeps selecting just the visible page.
+- **The ZIP to fix tab works the same way.** Its header checkbox also takes
+  every order in the tab. ZIPs typed on any page are kept until they are
+  sent (or the tab changes) and go along with the selection. Selected orders
+  whose ZIP was not touched are retried as they are, so the button says how
+  many of each: "… pentru 23 comenzi (5 cu cod poștal corectat, 18
+  reîncercate așa cum sunt)". Only typed ZIPs are checked for 6 digits. The
+  server drops a typed ZIP whose order is no longer in the job instead of
+  refusing the whole request.
 
 Code:
 
