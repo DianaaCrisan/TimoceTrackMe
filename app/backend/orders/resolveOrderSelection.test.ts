@@ -18,7 +18,11 @@ vi.mock("../graphql/throttle-handling/helpers/runGraphQL", () => ({
 }));
 
 vi.mock("../packs/PackRepository.server", () => ({
-  PackRepository: { getOrThrow: vi.fn(), getOrderIds: vi.fn() },
+  PackRepository: {
+    getOrThrow: vi.fn(),
+    getOrderIds: vi.fn(),
+    filterSettledOrders: vi.fn(),
+  },
 }));
 
 const admin = {} as AdminApiContextWithoutRest;
@@ -71,6 +75,34 @@ describe("parseOrderSelection", () => {
     });
   });
 
+  it("reads a whole-tab selection with the orders unticked in it", () => {
+    const formData = new FormData();
+    appendOrderSelection(formData, {
+      mode: "filter",
+      filter: "unprinted",
+      excludedOrderIds: [orderGid(4), orderGid(5), orderGid(4)],
+      packId: "pack-1",
+    });
+
+    expect(parseOrderSelection(formData)).toEqual({
+      mode: "filter",
+      filter: "unprinted",
+      excludedOrderIds: [orderGid(4), orderGid(5)],
+      packId: "pack-1",
+    });
+  });
+
+  it("refuses unticked entries that are not order IDs", () => {
+    const formData = new FormData();
+    appendOrderSelection(formData, {
+      mode: "filter",
+      filter: "unprinted",
+      excludedOrderIds: ["gid://shopify/Product/1"],
+    });
+
+    expect(() => parseOrderSelection(formData)).toThrow(RequestError);
+  });
+
   it("keeps ticked orders tied to the pack they were picked in", () => {
     const formData = new FormData();
     appendOrderSelection(formData, {
@@ -105,6 +137,91 @@ describe("parseOrderSelection", () => {
 describe("resolveOrderIds", () => {
   beforeEach(() => {
     vi.mocked(runGraphQL).mockReset();
+    // by default every order found is where the search says it is
+    vi.mocked(PackRepository.filterSettledOrders).mockReset();
+    vi.mocked(PackRepository.filterSettledOrders).mockImplementation(
+      async (orderIds) => orderIds,
+    );
+  });
+
+  it("leaves out tab orders the database has elsewhere or still tagging", async () => {
+    vi.mocked(runGraphQL).mockResolvedValueOnce(ordersPage([1, 2, 3], null));
+    vi.mocked(PackRepository.filterSettledOrders).mockResolvedValueOnce([
+      orderGid(1),
+      orderGid(3),
+    ]);
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "filter",
+        filter: "not_in_pack",
+      }),
+    ).resolves.toEqual([orderGid(1), orderGid(3)]);
+    expect(PackRepository.filterSettledOrders).toHaveBeenCalledWith(
+      [orderGid(1), orderGid(2), orderGid(3)],
+      null,
+    );
+  });
+
+  it("checks a pack's tab against that pack", async () => {
+    vi.mocked(PackRepository.getOrThrow).mockResolvedValueOnce({
+      orderTag: "pachet-2026-11-14-1",
+    } as PackRecord);
+    vi.mocked(runGraphQL).mockResolvedValueOnce(ordersPage([7], null));
+
+    await resolveOrderIds(admin, SHOP_URL, {
+      mode: "filter",
+      filter: "all",
+      packId: "pack-1",
+    });
+    expect(PackRepository.filterSettledOrders).toHaveBeenCalledWith(
+      [orderGid(7)],
+      "pack-1",
+    );
+  });
+
+  it("says so when every order in the tab is still being updated", async () => {
+    vi.mocked(runGraphQL).mockResolvedValueOnce(ordersPage([1], null));
+    vi.mocked(PackRepository.filterSettledOrders).mockResolvedValueOnce([]);
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "filter",
+        filter: "not_in_pack",
+      }),
+    ).rejects.toThrow("still being updated in Shopify");
+  });
+
+  it("leaves out the orders unticked after selecting the whole tab", async () => {
+    vi.mocked(runGraphQL).mockResolvedValueOnce(ordersPage([1, 2, 3], null));
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "filter",
+        filter: "not_in_pack",
+        excludedOrderIds: [orderGid(2)],
+      }),
+    ).resolves.toEqual([orderGid(1), orderGid(3)]);
+  });
+
+  it("refuses a whole tab with every order unticked", async () => {
+    vi.mocked(runGraphQL).mockResolvedValueOnce(ordersPage([1], null));
+
+    await expect(
+      resolveOrderIds(admin, SHOP_URL, {
+        mode: "filter",
+        filter: "not_in_pack",
+        excludedOrderIds: [orderGid(1)],
+      }),
+    ).rejects.toThrow(RequestError);
+  });
+
+  it("does not filter ticked orders: the admin picked them", async () => {
+    await resolveOrderIds(admin, SHOP_URL, {
+      mode: "ids",
+      orderIds: [orderGid(1)],
+    });
+    expect(PackRepository.filterSettledOrders).not.toHaveBeenCalled();
   });
 
   it("returns ticked orders as they are", async () => {

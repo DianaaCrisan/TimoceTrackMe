@@ -16,6 +16,7 @@ import {
 import { ReadOnlyField } from "app/frontend/core/components/ReadOnlyField";
 import { ResponseViewer } from "app/frontend/core/components/ResponseViewer";
 import { RecentJobsSection } from "app/frontend/jobs/components/RecentJobsSection";
+import { useBackgroundActivity } from "app/frontend/jobs/hooks/useBackgroundActivity";
 import { LOCALE_PARAM, resolveLocale } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import { useI18n } from "app/frontend/core/i18n/I18nProvider";
@@ -129,6 +130,7 @@ export default function DeveloperPanelPage() {
   const awbStatusFetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
   const { locale, t } = useI18n();
+  const activity = useBackgroundActivity({ initialSnapshot: recentJobs });
 
   const isSendingOptimusTest = optimusFetcher.state !== "idle";
   const isCheckingAwbStatus = awbStatusFetcher.state !== "idle";
@@ -160,16 +162,19 @@ export default function DeveloperPanelPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optimusFetcher.data, shopify]);
 
+  const { refresh: refreshJobs } = activity;
   useEffect(() => {
     if (!s3TestFetcher.data) return;
 
+    // the test upload is a job: show it in the list straight away
+    refreshJobs();
     shopify.toast.show(
       s3TestFetcher.data.ok
         ? t("developer.testUploadStarted")
         : t("developer.testUploadCouldNotStart"),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s3TestFetcher.data, shopify]);
+  }, [s3TestFetcher.data, shopify, refreshJobs]);
 
   return (
     <s-page heading={t("developer.heading")}>
@@ -292,10 +297,7 @@ export default function DeveloperPanelPage() {
           </s-stack>
         </s-section>
 
-        <RecentJobsSection
-          initialSnapshot={recentJobs}
-          refreshSignal={s3TestFetcher.data}
-        />
+        <RecentJobsSection activity={activity} />
       </s-stack>
     </s-page>
   );

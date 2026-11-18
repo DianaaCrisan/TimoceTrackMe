@@ -55,6 +55,7 @@ export default function PackRoute() {
           />
         }
         orders={data.orders}
+        rowActivity={data.rowActivity}
         pageInfo={data.pageInfo}
         shopAdminUrl={data.shopAdminUrl}
         activeFilter={data.filter}
@@ -62,6 +63,7 @@ export default function PackRoute() {
         pageNumbers={data.pageNumbers}
         recentJobs={data.recentJobs}
         parcelWeight={data.parcelWeight}
+        packMaxOrders={data.packMaxOrders}
         targetPacks={data.targetPacks}
       />
     </>

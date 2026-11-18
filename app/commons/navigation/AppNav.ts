@@ -2,6 +2,7 @@ import type { TranslationKey } from "../i18n/translations";
 import { ORDERS_DASHBOARD_PATH } from "../orders/OrdersDashboardFilter";
 import { PACKS_PATH } from "../packs/FulfillmentPack";
 import { AWB_REPORT_PATH } from "../shipping-labels/AwbReport";
+import { DOCUMENTS_PATH } from "../documents/Documents";
 import { TUTORIALS_PATH } from "../tutorials/Tutorials";
 import { UNFULFILLED_REPORT_PATH } from "../unfulfilled-report/UnfulfilledReport";
 
@@ -39,6 +40,12 @@ export const APP_NAV: AppNavEntry[] = [
     label: "nav.awbReport",
     description: "home.awbReport",
     color: { background: "#F3E8FD", accent: "#7B2CBF" },
+  },
+  {
+    path: DOCUMENTS_PATH,
+    label: "nav.documents",
+    description: "home.documents",
+    color: { background: "#FCEFE3", accent: "#B4540A" },
   },
   {
     path: TUTORIALS_PATH,

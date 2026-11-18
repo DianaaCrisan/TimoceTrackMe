@@ -149,22 +149,26 @@ export async function addTrackingNumbers(
   await Promise.all(
     request.orderIds.map((orderId) =>
       scheduleWithProgress(pool, progress, orderId, async () => {
-        const manualZip = manualZipResults.get(orderId);
-        // the ZIP could not be saved, so the order already failed
-        if (manualZip?.isSaveFailed) return;
+        try {
+          const manualZip = manualZipResults.get(orderId);
+          // the ZIP could not be saved, so the order already failed
+          if (manualZip?.isSaveFailed) return;
 
-        await processOneOrder({
-          admin,
-          shopUrl,
-          orderId,
-          order: ordersById.get(orderId),
-          zipRecovery,
-          manualZip,
-          parcelWeight: request.parcelWeight,
-          deps,
-          successfulOrders,
-          failedOrders,
-        });
+          await processOneOrder({
+            admin,
+            shopUrl,
+            orderId,
+            order: ordersById.get(orderId),
+            zipRecovery,
+            manualZip,
+            parcelWeight: request.parcelWeight,
+            deps,
+            successfulOrders,
+            failedOrders,
+          });
+        } finally {
+          request.onOrderDone?.();
+        }
       }),
     ),
   );

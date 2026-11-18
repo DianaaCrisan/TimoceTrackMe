@@ -6,6 +6,7 @@ import type { RecentJobsSnapshot } from "app/commons/jobs/RecentJobView";
 import type { S3SetupStatus } from "app/commons/jobs/S3SetupStatus";
 import { translateEn, type Translate } from "app/commons/i18n/translate";
 import { buildFailureFileName } from "./buildFailureFileName";
+import { PackTagSyncRepository } from "../packs/PackTagSyncRepository.server";
 import { jobRegistry } from "./JobRegistry";
 import {
   startBackgroundJob,
@@ -47,15 +48,31 @@ export const DOWNLOAD_LINK_EXPIRES_IN_SECONDS = 60 * 60;
  * every call, so one is never older than the last time the list loaded.
  */
 export async function getRecentJobsSnapshot(): Promise<RecentJobsSnapshot> {
-  const jobs = await Promise.all(
-    jobRegistry.list().map(async (record) => ({
-      ...record,
-      downloadUrl: await signDownloadUrl(record.s3Key, record.fileName),
-    })),
-  );
+  // taken first, so nothing that changes while the rest loads looks older
+  const generatedAt = Date.now();
+  const [jobs, tagBatches] = await Promise.all([
+    Promise.all(
+      jobRegistry.list().map(async (record) => ({
+        ...record,
+        downloadUrl: await signDownloadUrl(record.s3Key, record.fileName),
+      })),
+    ),
+    PackTagSyncRepository.listRecentBatches(
+      new Date(generatedAt - FINISHED_TAG_BATCHES_SHOWN_MS),
+    ).catch((error) => {
+      console.error(
+        "AppError[RecentJobs] could not load the pack tag batches.",
+        error,
+      );
+      return [];
+    }),
+  ]);
 
-  return { jobs, generatedAt: Date.now() };
+  return { jobs, tagBatches, generatedAt };
 }
+
+/** Long enough for a page that was polling to see the batch finish. */
+const FINISHED_TAG_BATCHES_SHOWN_MS = 10 * 60 * 1000;
 
 async function signDownloadUrl(
   key: string | undefined,

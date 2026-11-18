@@ -52,19 +52,35 @@ export function parseOrderSelection(
 
   if (mode === "filter") {
     const filter = formData.get(ORDER_SELECTION_FIELDS.filter);
+    const excludedOrderIds = readOrderIds(
+      formData,
+      ORDER_SELECTION_FIELDS.excludedOrderIds,
+      t,
+    );
     return {
       mode: "filter",
       filter: parseOrdersDashboardFilter(
         typeof filter === "string" ? filter : null,
       ),
+      ...(excludedOrderIds.length > 0 ? { excludedOrderIds } : {}),
       ...inPack,
     };
   }
 
-  const orderIds = formData
-    .getAll(ORDER_SELECTION_FIELDS.orderIds)
-    .map(String)
-    .filter(Boolean);
+  return {
+    mode: "ids",
+    orderIds: readOrderIds(formData, ORDER_SELECTION_FIELDS.orderIds, t),
+    ...inPack,
+  };
+}
+
+/** Order GIDs from a form field, without duplicates. Refuses anything else. */
+function readOrderIds(
+  formData: FormData,
+  field: string,
+  t: Translate,
+): string[] {
+  const orderIds = formData.getAll(field).map(String).filter(Boolean);
 
   const invalidIds = orderIds.filter((id) => !ORDER_GID_PATTERN.test(id));
   if (invalidIds.length > 0) {
@@ -73,8 +89,7 @@ export function parseOrderSelection(
       t("startJob.invalidOrderIds", { ids: invalidIds.join(", ") }),
     );
   }
-
-  return { mode: "ids", orderIds: Array.from(new Set(orderIds)), ...inPack };
+  return Array.from(new Set(orderIds));
 }
 
 /** The order IDs a job should run on. Refuses an empty or oversized selection. */
@@ -121,7 +136,24 @@ export async function resolveOrderIds(
     );
   }
 
-  return orderIds;
+  if (selection.mode === "ids") return orderIds;
+
+  const excluded = new Set(selection.excludedOrderIds);
+  const keptIds = orderIds.filter((orderId) => !excluded.has(orderId));
+  if (keptIds.length === 0) {
+    throw new RequestError(400, t("startJob.noOrdersSelected"));
+  }
+
+  // Shopify search lags behind pack changes, so "all in this tab" can list
+  // orders that already left it, or whose tags are still being updated
+  const settledIds = await PackRepository.filterSettledOrders(
+    keptIds,
+    selection.packId ?? null,
+  );
+  if (settledIds.length === 0) {
+    throw new RequestError(409, t("startJob.allOrdersUpdating"));
+  }
+  return settledIds;
 }
 
 /**

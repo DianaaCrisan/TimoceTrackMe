@@ -16,10 +16,23 @@ import {
   normalizeZip,
   type ManualZips,
 } from "app/commons/orders/ManualZips";
+import {
+  countSelected,
+  headerCheckboxState,
+  isOrderSelected,
+  NO_SELECTION,
+  toggleAll,
+  toggleOrder,
+  type DashboardSelection,
+} from "app/commons/orders/DashboardSelection";
+import type { OrderRowActivities } from "app/commons/orders/OrderRowActivity";
 import "app/frontend/orders-dashboard/components/OrdersDashboardTable/styles.scss";
 import "app/frontend/orders-dashboard/components/ZipFixPanel/styles.scss";
 
 type Order = OrdersDashboardOrder;
+
+/** A ZIP the admin typed, with the order's ZIP when they started typing. */
+type ZipDraft = { value: string; originalZip: string };
 
 type ZipFixPanelProps = {
   orders: Order[];
@@ -27,8 +40,18 @@ type ZipFixPanelProps = {
   /** Another job is starting or the list is reloading. */
   isBusy: boolean;
   isStarting: boolean;
+  /** The tab's order count, for "every order in the tab". */
+  ordersCount: { count: number; isAtLeast: boolean } | null;
+  /** Why the whole tab cannot be selected (too many, not counted); null if it can. */
+  selectAllBlockedReason: string | null;
+  isSelectAllBlocked: boolean;
+  /** Rows being worked on (add tracking running on them): not tickable. */
+  rowActivity: OrderRowActivities;
   /** Starts add tracking; resolves to whether the job started. */
-  onSubmit: (orderIds: string[], manualZips: ManualZips) => Promise<boolean>;
+  onSubmit: (
+    selection: DashboardSelection,
+    manualZips: ManualZips,
+  ) => Promise<boolean>;
   scrollRef?: Ref<HTMLDivElement>;
 };
 
@@ -37,76 +60,88 @@ type ZipFixPanelProps = {
  * ZIP, with its address, so the admin can correct the ZIPs in one go and add
  * tracking again with one click.
  *
- * Each row's ZIP starts as the order's current one. Editing a row ticks it;
- * ticked rows are sent, and only edited ZIPs are saved to the orders. Enter
- * and the arrow keys move between rows, so a list can be typed straight down.
+ * Each row's ZIP starts as the order's current one. Editing a row ticks it.
+ * Selecting works as on the other tabs: the header checkbox takes every
+ * order in the tab, on all pages. ZIPs typed on any page are kept and sent;
+ * selected orders whose ZIP was not touched are retried as they are, the
+ * ZIP solver trying again.
+ *
+ * Enter and the arrow keys move between rows, so a list can be typed
+ * straight down.
  */
 export function ZipFixPanel({
   orders,
   shopAdminUrl,
   isBusy,
   isStarting,
+  ordersCount,
+  selectAllBlockedReason,
+  isSelectAllBlocked,
+  rowActivity,
   onSubmit,
   scrollRef,
 }: ZipFixPanelProps) {
   const { t } = useI18n();
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [tickedIds, setTickedIds] = useState<string[]>([]);
-  // sent with a job that is still running: locked until the list reloads
-  const [pendingIds, setPendingIds] = useState<string[]>([]);
-  const pendingIdsRef = useRef(pendingIds);
-  pendingIdsRef.current = pendingIds;
+  // by order, across pages: changing page keeps what was typed
+  const [drafts, setDrafts] = useState<Record<string, ZipDraft>>({});
+  const [selection, setSelection] = useState<DashboardSelection>(NO_SELECTION);
+  // sent with a job that just started: locked until the list reloads and
+  // shows them as being worked on
+  const [sentIds, setSentIds] = useState<string[]>([]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // A reload keeps what the admin is typing, except for the orders just sent
-  // (their saved ZIP now shows as the current one) and orders that left.
   useEffect(() => {
-    const visibleIds = new Set(orders.map((order) => order.id));
-    const sentIds = pendingIdsRef.current;
-    const keep = (id: string) => visibleIds.has(id) && !sentIds.includes(id);
-
-    setDrafts((current) =>
-      Object.fromEntries(Object.entries(current).filter(([id]) => keep(id))),
-    );
-    setTickedIds((current) => current.filter(keep));
-    setPendingIds([]);
+    setSentIds([]);
   }, [orders]);
 
+  const tabCount = ordersCount?.count ?? 0;
+  const isRowBusy = (orderId: string) =>
+    sentIds.includes(orderId) || Boolean(rowActivity[orderId]);
+  const isTicked = (orderId: string) =>
+    !isRowBusy(orderId) && isOrderSelected(selection, orderId);
+
   const currentZip = (order: Order) => order.shippingAddress?.zip ?? "";
-  const valueOf = (order: Order) => drafts[order.id] ?? currentZip(order);
-  const isEdited = (order: Order) =>
-    normalizeZip(valueOf(order)) !== currentZip(order);
+  const valueOf = (order: Order) => drafts[order.id]?.value ?? currentZip(order);
+  const isDraftEdited = (draft: ZipDraft | undefined) =>
+    draft !== undefined && normalizeZip(draft.value) !== draft.originalZip;
 
-  const editableOrders = orders.filter(
-    (order) => !pendingIds.includes(order.id),
+  // what would be sent: typed ZIPs of selected orders, on any page
+  const editedSelected = Object.entries(drafts).filter(
+    ([orderId, draft]) =>
+      isOrderSelected(selection, orderId) &&
+      !sentIds.includes(orderId) &&
+      isDraftEdited(draft),
   );
-  const tickedOrders = editableOrders.filter((order) =>
-    tickedIds.includes(order.id),
-  );
-  const invalidCount = tickedOrders.filter(
-    (order) => !isValidZip(valueOf(order)),
+  const invalidCount = editedSelected.filter(
+    ([, draft]) => !isValidZip(draft.value),
   ).length;
-  const allTicked =
-    editableOrders.length > 0 && tickedOrders.length === editableOrders.length;
-  const canSubmit = tickedOrders.length > 0 && invalidCount === 0 && !isBusy;
+  const selectedCount = countSelected(selection, tabCount);
+  const fixedCount = editedSelected.length;
+  const retriedCount = Math.max(0, selectedCount - fixedCount);
+  const canSubmit = selectedCount > 0 && invalidCount === 0 && !isBusy;
 
-  const handleZipChange = (orderId: string, value: string) => {
-    setDrafts((current) => ({ ...current, [orderId]: value }));
-    setTickedIds((current) =>
-      current.includes(orderId) ? current : [...current, orderId],
-    );
+  const handleZipChange = (order: Order, value: string) => {
+    setDrafts((current) => ({
+      ...current,
+      [order.id]: {
+        value,
+        originalZip: current[order.id]?.originalZip ?? currentZip(order),
+      },
+    }));
+    if (!isOrderSelected(selection, order.id)) {
+      setSelection((current) => toggleOrder(current, order.id, { tabCount }));
+    }
   };
 
   const handleToggle = (orderId: string) => {
-    setTickedIds((current) =>
-      current.includes(orderId)
-        ? current.filter((id) => id !== orderId)
-        : [...current, orderId],
-    );
+    setSelection((current) => toggleOrder(current, orderId, { tabCount }));
   };
 
+  /** Selects the whole tab, or clears the selection (also when it cannot select it all). */
   const handleToggleAll = () => {
-    setTickedIds(allTicked ? [] : editableOrders.map((order) => order.id));
+    setSelection((current) =>
+      isSelectAllBlocked ? NO_SELECTION : toggleAll(current),
+    );
   };
 
   /** Focuses the next ZIP input up or down, skipping rows being processed. */
@@ -141,18 +176,33 @@ export function ZipFixPanel({
   const handleSubmit = async () => {
     if (!canSubmit) return;
 
-    const orderIds = tickedOrders.map((order) => order.id);
     const manualZips: ManualZips = Object.fromEntries(
-      tickedOrders
-        .filter(isEdited)
-        .map((order) => [order.id, normalizeZip(valueOf(order))]),
+      editedSelected.map(([orderId, draft]) => [
+        orderId,
+        normalizeZip(draft.value),
+      ]),
     );
+    const sentSelection = selection;
 
-    if (await onSubmit(orderIds, manualZips)) {
-      setPendingIds(orderIds);
-      setTickedIds((current) => current.filter((id) => !orderIds.includes(id)));
+    if (await onSubmit(sentSelection, manualZips)) {
+      setSentIds(
+        orders
+          .filter((order) => isOrderSelected(sentSelection, order.id))
+          .map((order) => order.id),
+      );
+      // the sent ZIPs are saved to the orders: their own ZIP shows from now on
+      setDrafts((current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(
+            ([orderId]) => !isOrderSelected(sentSelection, orderId),
+          ),
+        ),
+      );
+      setSelection(NO_SELECTION);
     }
   };
+
+  const headerState = headerCheckboxState(selection);
 
   return (
     <div className="zip-fix-panel">
@@ -174,7 +224,14 @@ export function ZipFixPanel({
             <img src={deliveryIcon} alt="" width={20} height={20} />
             {isStarting
               ? t("dashboard.starting")
-              : t("zipFix.submit", { count: tickedOrders.length })}
+              : `${t("zipFix.submit", { count: selectedCount })}${
+                  selectedCount > 0 && retriedCount > 0
+                    ? ` ${t("zipFix.submitBreakdown", {
+                        fixed: fixedCount,
+                        retried: retriedCount,
+                      })}`
+                    : ""
+                }`}
           </button>
         </div>
       </div>
@@ -189,10 +246,19 @@ export function ZipFixPanel({
                 <th className="orders-dashboard-table__checkbox-header-cell">
                   <input
                     type="checkbox"
-                    checked={allTicked}
-                    disabled={editableOrders.length === 0}
+                    checked={headerState === "checked"}
+                    ref={(input) => {
+                      if (input) {
+                        input.indeterminate = headerState === "indeterminate";
+                      }
+                    }}
+                    disabled={
+                      (isSelectAllBlocked && selection.kind === "none") ||
+                      isBusy
+                    }
+                    title={selectAllBlockedReason ?? t("table.selectAllInTab")}
                     onChange={handleToggleAll}
-                    aria-label={t("zipFix.selectAll")}
+                    aria-label={t("table.selectAllInTab")}
                   />
                 </th>
                 <th className="orders-dashboard-table__header-cell">
@@ -225,23 +291,25 @@ export function ZipFixPanel({
             <tbody>
               {orders.map((order, index) => {
                 const address = order.shippingAddress;
-                const isPending = pendingIds.includes(order.id);
-                const isTicked = !isPending && tickedIds.includes(order.id);
+                const isPending = isRowBusy(order.id);
+                const isRowTicked = isTicked(order.id);
                 const value = valueOf(order);
-                const isInvalid = isTicked && !isValidZip(value);
+                const isEdited = isDraftEdited(drafts[order.id]);
+                // only a typed ZIP is checked; an untouched one is retried
+                const isInvalid = isRowTicked && isEdited && !isValidZip(value);
                 const zip = currentZip(order);
 
                 return (
                   <tr
                     key={order.id}
                     className={`orders-dashboard-table__row${
-                      isTicked ? " --selected" : ""
+                      isRowTicked ? " --selected" : ""
                     }${isPending ? " zip-fix-panel__row--pending" : ""}`}
                   >
                     <td className="orders-dashboard-table__checkbox-cell">
                       <input
                         type="checkbox"
-                        checked={isTicked}
+                        checked={isRowTicked}
                         disabled={isPending}
                         onChange={() => handleToggle(order.id)}
                         aria-label={t("table.selectOrder", {
@@ -316,7 +384,7 @@ export function ZipFixPanel({
                             maxLength={8}
                             className={`zip-fix-panel__zip-input${
                               isInvalid ? " --invalid" : ""
-                            }${isEdited(order) ? " --edited" : ""}`}
+                            }${isEdited ? " --edited" : ""}`}
                             value={value}
                             placeholder="000000"
                             title={
@@ -327,7 +395,7 @@ export function ZipFixPanel({
                               name: order.name,
                             })}
                             onChange={(event) =>
-                              handleZipChange(order.id, event.target.value)
+                              handleZipChange(order, event.target.value)
                             }
                             onKeyDown={(event) => handleKeyDown(event, index)}
                           />
