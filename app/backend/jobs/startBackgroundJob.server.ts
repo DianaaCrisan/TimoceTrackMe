@@ -16,6 +16,8 @@ export type JobArtifact = {
   summary?: string;
   /** Orders now on the "ZIP to fix" tab because of this job. */
   zipToFixCount?: number;
+  /** Stored with the file in S3, e.g. which orders it holds. */
+  metadata?: Record<string, string>;
 };
 
 /** Lets a running job say how far it is, for the dashboard's progress. */
@@ -142,6 +144,7 @@ async function runJob(
       buf: artifact.buf,
       key,
       contentType: artifact.contentType,
+      ...(artifact.metadata ? { metadata: artifact.metadata } : {}),
     });
 
     deps.registry.update(id, {

@@ -16,6 +16,7 @@ import {
 import { DEFAULT_LOCALE } from "app/commons/i18n/Locale";
 import { createTranslator } from "app/commons/i18n/translate";
 import type { JobArtifact } from "../startBackgroundJob.server";
+import { encodeOrderListMetadata } from "../../documents/orderListMetadata";
 import type { OrdersJobContext } from "./OrdersJobContext";
 
 export const PRINT_LABELS_JOB = {
@@ -172,6 +173,12 @@ export async function buildPrintLabelsArtifact(
     buf: await zip.generateAsync({ type: "nodebuffer" }),
     fileName: `${t("fileName.labelsZip")}_${result.timestamp}.zip`,
     contentType: "application/zip",
+    // the Documents page lists which orders each zip holds
+    metadata: encodeOrderListMetadata(
+      result.printedUnits.map(
+        (unit) => result.orderNamesById.get(unit.orderId) ?? "",
+      ),
+    ),
     hasErrors:
       failedOrderCount > 0 ||
       markingFailureCount > 0 ||

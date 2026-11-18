@@ -15,6 +15,7 @@ export const en = {
   "nav.orders": "Unpacked orders",
   "nav.unfulfilledReport": "Unfulfilled report",
   "nav.awbReport": "AWB report",
+  "nav.documents": "Documents",
   "nav.tutorials": "Tutorials",
   "nav.settings": "Settings",
   "nav.developerPanel": "Developer panel",
@@ -31,7 +32,36 @@ export const en = {
   "home.unfulfilledReport": "Which products still need preparing.",
   "home.awbReport":
     "The month's AWBs, used and cancelled, to check the Optimus bill.",
+  "home.documents": "The label files you printed, newest first.",
   "home.tutorials": "What to do, step by step, in each case.",
+
+  // Documents page
+  "documents.heading": "Documents",
+  "documents.intro":
+    "The documents the app has stored, newest first. They are read from file storage each time: once storage deletes a file (after about 6 months), it is gone from here too.",
+  "documents.category.labels": "Labels",
+  "documents.colStoredAt": "Saved",
+  "documents.colOrders": "Orders",
+  "documents.orderCount": {
+    one: "{count} order",
+    other: "{count} orders",
+  },
+  "documents.ordersNotRecorded": "Not recorded (saved before this list existed)",
+  "documents.colFile": "File",
+  "documents.colSize": "Size",
+  "documents.colDownload": "Download",
+  "documents.download": "Download",
+  "documents.noLink": "No link",
+  "documents.empty": "No documents yet.",
+  "documents.loadFailed": "The documents could not be read from file storage",
+  "documents.accessDenied":
+    "The app's AWS user may save and download files but not list them. Add the s3:ListBucket permission for the bucket to its policy in AWS IAM.",
+  "documents.newer": "Newer",
+  "documents.older": "Older",
+  "documents.pageOf": {
+    one: "Page {page} of {pageCount} · {count} document",
+    other: "Page {page} of {pageCount} · {count} documents",
+  },
   "home.settings": "Parcel weight and pack rules.",
   "home.developerPanel": "Technical checks: Optimus, file storage, jobs.",
 
@@ -712,6 +742,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "nav.orders": "Comenzi fără pachet",
   "nav.unfulfilledReport": "Raport neexecutate",
   "nav.awbReport": "Raport AWB",
+  "nav.documents": "Documente",
   "nav.tutorials": "Tutoriale",
   "nav.settings": "Setări",
   "nav.developerPanel": "Panou pentru dezvoltatori",
@@ -728,8 +759,38 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "home.unfulfilledReport": "Ce produse mai trebuie pregătite.",
   "home.awbReport":
     "AWB-urile lunii, folosite și anulate, pentru verificarea facturii Optimus.",
+  "home.documents": "Fișierele cu etichete printate, cele mai noi primele.",
   "home.tutorials": "Ce faci, pas cu pas, în fiecare caz.",
-  "home.settings": "Greutatea coletelor și regulile pachetelor.",
+
+  // pagina Documente
+  "documents.heading": "Documente",
+  "documents.intro":
+    "Documentele salvate de aplicație, cele mai noi primele. Se citesc de fiecare dată din spațiul de stocare: după ce un fișier e șters de acolo (după aproximativ 6 luni), dispare și de aici.",
+  "documents.category.labels": "Etichete",
+  "documents.colStoredAt": "Salvat",
+  "documents.colOrders": "Comenzi",
+  "documents.orderCount": {
+    one: "{count} comandă",
+    few: "{count} comenzi",
+    other: "{count} de comenzi",
+  },
+  "documents.ordersNotRecorded": "Neînregistrate (salvat înainte de această listă)",
+  "documents.colFile": "Fișier",
+  "documents.colSize": "Mărime",
+  "documents.colDownload": "Descărcare",
+  "documents.download": "Descarcă",
+  "documents.noLink": "Fără link",
+  "documents.empty": "Niciun document încă.",
+  "documents.loadFailed": "Documentele nu au putut fi citite din spațiul de stocare",
+  "documents.accessDenied":
+    "Utilizatorul AWS al aplicației poate salva și descărca fișiere, dar nu le poate lista. Adaugă permisiunea s3:ListBucket pentru bucket în politica lui din AWS IAM.",
+  "documents.newer": "Mai noi",
+  "documents.older": "Mai vechi",
+  "documents.pageOf": {
+    one: "Pagina {page} din {pageCount} · {count} document",
+    few: "Pagina {page} din {pageCount} · {count} documente",
+    other: "Pagina {page} din {pageCount} · {count} de documente",
+  },  "home.settings": "Greutatea coletelor și regulile pachetelor.",
   "home.developerPanel":
     "Verificări tehnice: Optimus, stocarea fișierelor, sarcini.",
 
