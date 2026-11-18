@@ -47,6 +47,11 @@ model AppSettings {
   /// when the filling one is locked. See `PackSchedule`.
   packStartWeekdays Int[] @default([])
 
+  /// The filling pack stops taking new orders once it holds this many: it
+  /// waits, and the next order starts a new pack. Read-only in Settings for
+  /// now; see docs/background-work-visibility-plan.md, phase 3.
+  packMaxOrders Int @default(200)
+
   updatedAt DateTime @updatedAt
 }
 

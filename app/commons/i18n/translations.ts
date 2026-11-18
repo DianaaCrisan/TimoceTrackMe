@@ -48,6 +48,7 @@ export const en = {
   "pack.status.LOCKED": "In progress",
   "pack.status.CLOSED": "Closed",
   "pack.status.waiting": "Waiting",
+  "pack.status.full": "Full",
   "pack.orderCount": { one: "{count} order", other: "{count} orders" },
   "pack.startedAt": "first order {time}",
   "pack.lockedAt": "started {time}",
@@ -95,6 +96,9 @@ export const en = {
     other: "Move {count} orders to another pack",
   },
   "pack.picker.noOtherPack": "There is no other pack to move to.",
+  // only shown past the limit, so always well above 20
+  "pack.picker.overLimit":
+    "The pack will have {count} orders, over the limit of {limit}. They all go in; new orders then start a new pack.",
   "pack.confirm.lockTitle": "Start working on {name}?",
   "pack.confirm.lockBody":
     "The pack stops taking new orders: the next order starts a new pack. You can still add orders by hand. Next, print its unfulfilled items report, then add tracking.",
@@ -285,6 +289,13 @@ export const en = {
   "settings.save": "Save",
   "settings.saved": "Settings saved",
   "settings.packScheduleHeading": "Packs",
+  "settings.packMaxOrders": "New pack after",
+  "settings.packMaxOrdersSuffix": "orders",
+  "settings.packMaxOrdersDetails":
+    "The recommended value for the current Shopify plan ({plan}): actions on a whole pack take about a minute. The filling pack then waits and new orders start a new pack. It cannot be changed for now.",
+  "settings.packMaxOrdersDetailsNoPlan":
+    "The recommended value for the current Shopify plan: actions on a whole pack take about a minute. The filling pack then waits and new orders start a new pack. It cannot be changed for now.",
+  "settings.packScheduleSectionHeading": "Scheduled new packs",
   "settings.packScheduleIntro":
     "A new pack always starts when you start working on the filling one. Tick days to also start a new pack at midnight before each of them.",
   "settings.packScheduleDetails":
@@ -733,6 +744,7 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "pack.status.LOCKED": "În lucru",
   "pack.status.CLOSED": "Închis",
   "pack.status.waiting": "În așteptare",
+  "pack.status.full": "Plin",
   "pack.orderCount": {
     one: "{count} comandă",
     few: "{count} comenzi",
@@ -790,6 +802,9 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
     other: "Mută {count} de comenzi în alt pachet",
   },
   "pack.picker.noOtherPack": "Nu există alt pachet în care să le muți.",
+  // only shown past the limit, so always well above 20: "de comenzi"
+  "pack.picker.overLimit":
+    "Pachetul va avea {count} de comenzi, peste limita de {limit}. Intră toate; comenzile noi pornesc apoi un pachet nou.",
   "pack.confirm.lockTitle": "Începi lucrul la {name}?",
   "pack.confirm.lockBody":
     "Pachetul nu mai primește comenzi noi: următoarea comandă pornește un pachet nou. Poți adăuga în continuare comenzi manual. Apoi printează raportul de produse neexecutate și adaugă tracking-ul.",
@@ -1012,6 +1027,13 @@ export const ro: Record<TranslationKey, TranslationEntry> = {
   "settings.save": "Salvează",
   "settings.saved": "Setările au fost salvate",
   "settings.packScheduleHeading": "Pachete",
+  "settings.packMaxOrders": "Pachet nou după",
+  "settings.packMaxOrdersSuffix": "comenzi",
+  "settings.packMaxOrdersDetails":
+    "Valoarea recomandată pentru planul Shopify actual ({plan}): acțiunile pe un pachet întreg durează în jur de un minut. Pachetul care se umple așteaptă apoi, iar comenzile noi pornesc un pachet nou. Nu poate fi modificată deocamdată.",
+  "settings.packMaxOrdersDetailsNoPlan":
+    "Valoarea recomandată pentru planul Shopify actual: acțiunile pe un pachet întreg durează în jur de un minut. Pachetul care se umple așteaptă apoi, iar comenzile noi pornesc un pachet nou. Nu poate fi modificată deocamdată.",
+  "settings.packScheduleSectionHeading": "Pachete noi programate",
   "settings.packScheduleIntro":
     "Un pachet nou pornește mereu când începi lucrul la cel care se umple. Bifează zile ca să pornească un pachet nou și la miezul nopții dinaintea fiecăreia.",
   "settings.packScheduleDetails":

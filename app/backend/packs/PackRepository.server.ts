@@ -7,7 +7,10 @@ import {
   toShopDay,
   type FulfillmentPackView,
 } from "app/commons/packs/FulfillmentPack";
-import { hasScheduledCutSince } from "app/commons/packs/PackSchedule";
+import {
+  DEFAULT_PACK_MAX_ORDERS,
+  getWaitingReason,
+} from "app/commons/packs/PackSchedule";
 import { RequestError } from "../core/errors/RequestError";
 import { SETTINGS_SINGLETON_ID } from "../settings/SettingsRepository.server";
 import { PackTagSyncRepository } from "./PackTagSyncRepository.server";
@@ -412,9 +415,12 @@ function toTagChange(order: OrderLeavingPack) {
 }
 
 /**
- * The pack taking new orders: the newest OPEN pack, unless a scheduled cut
- * has happened since its first order. Then it is waiting, and the next
+ * The pack taking new orders: the newest OPEN pack, unless it is waiting
+ * (see `getWaitingReason`): full, or past a scheduled cut. Then the next
  * order starts a new pack.
+ *
+ * Counted inside the packs lock (every caller holds it), so two orders
+ * arriving at the limit cannot both get in.
  *
  * An empty pack never waits: with no first order, nothing has been cut.
  */
@@ -425,29 +431,27 @@ async function findFillingPack(tx: Tx): Promise<FulfillmentPack | null> {
   });
   if (!newestOpen) return null;
 
-  const startWeekdays = await readPackStartWeekdays(tx);
-  return isWaiting(newestOpen, startWeekdays, new Date()) ? null : newestOpen;
+  const [rules, orderCount] = await Promise.all([
+    readPackRules(tx),
+    tx.fulfillmentPackOrder.count({ where: { packId: newestOpen.id } }),
+  ]);
+  return getWaitingReason(newestOpen, orderCount, rules, new Date())
+    ? null
+    : newestOpen;
 }
 
-function isWaiting(
-  pack: Pick<FulfillmentPack, "status" | "startedAt">,
-  startWeekdays: readonly number[],
-  now: Date,
-): boolean {
-  return (
-    pack.status === "OPEN" &&
-    pack.startedAt !== null &&
-    hasScheduledCutSince(pack.startedAt, now, startWeekdays)
-  );
-}
+type PackRules = { startWeekdays: number[]; packMaxOrders: number | null };
 
 /** Read here, not through SettingsRepository, so it joins the transaction. */
-async function readPackStartWeekdays(db: Tx): Promise<number[]> {
+async function readPackRules(db: Tx): Promise<PackRules> {
   const settings = await db.appSettings.findUnique({
     where: { id: SETTINGS_SINGLETON_ID },
-    select: { packStartWeekdays: true },
+    select: { packStartWeekdays: true, packMaxOrders: true },
   });
-  return settings?.packStartWeekdays ?? [];
+  return {
+    startWeekdays: settings?.packStartWeekdays ?? [],
+    packMaxOrders: settings?.packMaxOrders ?? DEFAULT_PACK_MAX_ORDERS,
+  };
 }
 
 /**
@@ -539,32 +543,37 @@ async function toRecords(
 
   const packIds = packs.map((pack) => pack.id);
   const now = new Date();
-  const [orderCounts, tagCounts, startWeekdays] = await Promise.all([
+  const [orderCounts, tagCounts, rules] = await Promise.all([
     db.fulfillmentPackOrder.groupBy({
       by: ["packId"],
       where: { packId: { in: packIds } },
       _count: { _all: true },
     }),
     PackTagSyncRepository.countByPack(db, packIds),
-    readPackStartWeekdays(db),
+    readPackRules(db),
   ]);
   const countFor = (
     counts: { packId: string; _count: { _all: number } }[],
     packId: string,
   ) => counts.find((row) => row.packId === packId)?._count._all ?? 0;
 
-  return packs.map((pack) => ({
-    id: pack.id,
-    day: pack.day.toISOString().slice(0, 10),
-    daySequence: pack.daySequence,
-    status: pack.status,
-    isWaiting: isWaiting(pack, startWeekdays, now),
-    startedAt: pack.startedAt?.toISOString() ?? null,
-    lockedAt: pack.lockedAt?.toISOString() ?? null,
-    closedAt: pack.closedAt?.toISOString() ?? null,
-    orderCount: countFor(orderCounts, pack.id),
-    taggingCount: tagCounts.get(pack.id)?.pending ?? 0,
-    tagFailedCount: tagCounts.get(pack.id)?.failed ?? 0,
-    orderTag: pack.orderTag,
-  }));
+  return packs.map((pack) => {
+    const orderCount = countFor(orderCounts, pack.id);
+    const waitingReason = getWaitingReason(pack, orderCount, rules, now);
+    return {
+      id: pack.id,
+      day: pack.day.toISOString().slice(0, 10),
+      daySequence: pack.daySequence,
+      status: pack.status,
+      isWaiting: waitingReason !== null,
+      waitingReason,
+      startedAt: pack.startedAt?.toISOString() ?? null,
+      lockedAt: pack.lockedAt?.toISOString() ?? null,
+      closedAt: pack.closedAt?.toISOString() ?? null,
+      orderCount,
+      taggingCount: tagCounts.get(pack.id)?.pending ?? 0,
+      tagFailedCount: tagCounts.get(pack.id)?.failed ?? 0,
+      orderTag: pack.orderTag,
+    };
+  });
 }

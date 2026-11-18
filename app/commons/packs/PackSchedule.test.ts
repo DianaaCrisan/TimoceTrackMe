@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  getWaitingReason,
   hasScheduledCutSince,
   isoWeekday,
   parsePackStartWeekdays,
@@ -143,5 +144,52 @@ describe("parsePackStartWeekdays", () => {
     expect(parsePackStartWeekdays(["5", "1", "1", "0", "8", "x"])).toEqual([
       1, 5,
     ]);
+  });
+});
+
+describe("getWaitingReason", () => {
+  // Tue 17.11.2026 10:00 Bucharest
+  const startedAt = new Date("2026-11-17T08:00:00Z");
+  const sameDay = new Date("2026-11-17T12:00:00Z");
+  const thursday = new Date("2026-11-19T12:00:00Z");
+  const open = { status: "OPEN", startedAt };
+  const rules = { startWeekdays: [WEDNESDAY], packMaxOrders: 200 };
+
+  it("takes orders while under the limit and before any cut", () => {
+    expect(getWaitingReason(open, 199, rules, sameDay)).toBeNull();
+  });
+
+  it("waits once it holds the limit, or more", () => {
+    expect(getWaitingReason(open, 200, rules, sameDay)).toBe("full");
+    // a selection added by hand can take it past the limit
+    expect(getWaitingReason(open, 350, rules, sameDay)).toBe("full");
+  });
+
+  it("waits after a scheduled cut", () => {
+    expect(getWaitingReason(open, 10, rules, thursday)).toBe("schedule");
+  });
+
+  it("says full when both apply", () => {
+    expect(getWaitingReason(open, 200, rules, thursday)).toBe("full");
+  });
+
+  it("never waits without a limit or chosen days", () => {
+    expect(
+      getWaitingReason(
+        open,
+        5000,
+        { startWeekdays: [], packMaxOrders: null },
+        thursday,
+      ),
+    ).toBeNull();
+  });
+
+  it("leaves locked and closed packs alone, and never waits while empty", () => {
+    expect(
+      getWaitingReason({ status: "LOCKED", startedAt }, 500, rules, thursday),
+    ).toBeNull();
+    expect(
+      getWaitingReason({ status: "OPEN", startedAt: null }, 0, rules, thursday),
+    ).toBeNull();
   });
 });

@@ -97,6 +97,7 @@ export async function loadOrdersDashboard({
     recentJobs,
     shopAdminUrl,
     parcelWeight,
+    packMaxOrders: settings.packMaxOrders,
     /** Packs that can take orders: for "Add to pack" and "Move to pack". */
     targetPacks: workingPacks.map(toPackView),
   };

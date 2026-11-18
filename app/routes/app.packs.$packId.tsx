@@ -63,6 +63,7 @@ export default function PackRoute() {
         pageNumbers={data.pageNumbers}
         recentJobs={data.recentJobs}
         parcelWeight={data.parcelWeight}
+        packMaxOrders={data.packMaxOrders}
         targetPacks={data.targetPacks}
       />
     </>

@@ -193,6 +193,8 @@ type OrdersDashboardPageProps = {
   pageNumbers: PageNumbers;
   recentJobs: RecentJobsSnapshot;
   parcelWeight: ParcelWeightSettings;
+  /** The pack size limit, for the warning when adding past it. */
+  packMaxOrders: number;
 };
 
 export function OrdersDashboardPage({
@@ -208,6 +210,7 @@ export function OrdersDashboardPage({
   pageNumbers,
   recentJobs,
   parcelWeight,
+  packMaxOrders,
 }: OrdersDashboardPageProps) {
   const { locale, t } = useI18n();
   const shopify = useAppBridge();
@@ -852,6 +855,8 @@ export function OrdersDashboardPage({
           )}
           packs={targetPacks}
           currentPackId={packId ?? undefined}
+          orderCount={selectedCount}
+          packMaxOrders={packMaxOrders}
           isBusy={packAction.isBusy}
           onConfirm={handleAddToPack}
           onCancel={() => setOpenPackDialog(null)}

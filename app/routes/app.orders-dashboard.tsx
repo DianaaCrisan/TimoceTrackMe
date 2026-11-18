@@ -36,6 +36,7 @@ export default function OrdersDashboardRoute() {
         pageNumbers={data.pageNumbers}
         recentJobs={data.recentJobs}
         parcelWeight={data.parcelWeight}
+        packMaxOrders={data.packMaxOrders}
         targetPacks={data.targetPacks}
       />
     </>

@@ -379,13 +379,20 @@ A setting: **"Pachet nou după N comenzi"**, fixed at **200** for now.
 
 ### Code
 
-- `findFillingPack`: the newest open pack waits if it has had a scheduled cut
-  **or** `orderCount >= packMaxOrders`. Counted inside the packs lock, so two
-  webhooks at the limit cannot both get in.
-- `isWaiting` in `toRecords` uses the same rule (the order count is already
-  there), and gets `waitingReason: "schedule" | "full"`.
-- Settings page: a **read-only** field next to the weekday cuts, showing
-  200, with the note: "Valoarea recomandată pentru planul Shopify actual
+- `getWaitingReason` (in `PackSchedule`): an open pack waits when it holds
+  `packMaxOrders` or more (`full`), or after a scheduled cut (`schedule`).
+  `full` wins when both apply. Locked, closed and empty packs never wait.
+- `findFillingPack` uses it, counting the pack's orders inside the packs
+  lock, so two webhooks at the limit cannot both get in.
+- `toRecords` uses the same rule: the pack view gets `waitingReason`, and
+  the badge says "Plin" or "În așteptare".
+- Leftovers moved on close go to the filling pack. If it is full, it is not
+  filling, so they start a new pack.
+- The pack picker shows how many orders the pack would have when a move
+  goes over the limit, and still allows it.
+- Settings page: the Packs section shows a **read-only** field, showing 200
+  (the weekday cuts move to their own section, "Pachete noi programate"),
+  with the note: "Valoarea recomandată pentru planul Shopify actual
   (<plan>): acțiunile pe un pachet întreg durează în jur de un minut. Nu
   poate fi modificată deocamdată."
   - `<plan>` comes from `shop { plan { displayName } }`, read in the settings
