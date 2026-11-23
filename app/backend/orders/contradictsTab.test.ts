@@ -72,6 +72,16 @@ describe("contradictsTab", () => {
     ).toBe(false);
   });
 
+  it("flags a cancelled order on 'Unfulfilled'", () => {
+    expect(
+      contradictsTab(
+        order({ cancelledAt: "2026-11-20T10:00:00Z" }),
+        "pending_fulfillment",
+        null,
+      ),
+    ).toBe(true);
+  });
+
   it("flags a printed or cancelled order on 'Unprinted'", () => {
     expect(
       contradictsTab(order({ tags: [PRINTED_ORDER_TAG] }), "unprinted", null),

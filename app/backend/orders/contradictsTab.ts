@@ -37,7 +37,9 @@ export function contradictsTab(
     case "all":
       return false;
     case "pending_fulfillment":
-      return SHIPPED_STATUSES.has(order.displayFulfillmentStatus);
+      return (
+        SHIPPED_STATUSES.has(order.displayFulfillmentStatus) || isCancelled
+      );
     case "zip_to_fix":
       return (
         !hasTag(ZIP_TO_FIX_ORDER_TAG) ||
