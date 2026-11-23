@@ -247,11 +247,11 @@ describe("resolveOrderIds", () => {
 
     const variables = vi.mocked(runGraphQL).mock.calls.map((call) => call[4]);
     expect(variables).toEqual([
-      { first: 250, after: null, query: "fulfillment_status:unfulfilled" },
+      { first: 250, after: null, query: "fulfillment_status:unfulfilled AND NOT status:cancelled" },
       {
         first: 250,
         after: "cursor-1",
-        query: "fulfillment_status:unfulfilled",
+        query: "fulfillment_status:unfulfilled AND NOT status:cancelled",
       },
     ]);
   });
