@@ -4,7 +4,9 @@ import { PACKED_ORDER_TAG } from "app/commons/packs/FulfillmentPack";
 
 const SEARCH_QUERY_BY_FILTER: Record<OrdersDashboardFilter, string | null> = {
   all: null,
-  pending_fulfillment: "fulfillment_status:unfulfilled",
+  // A cancelled order keeps "unfulfilled" in Shopify, but there is nothing
+  // left to ship, so it would sit here forever.
+  pending_fulfillment: "fulfillment_status:unfulfilled AND NOT status:cancelled",
   // Add tracking failed on the ZIP and there is still something to ship. An
   // order fulfilled or cancelled some other way drops out on its own.
   zip_to_fix:

@@ -35,7 +35,7 @@ describe("buildOrdersSearchQuery", () => {
   it("keeps the other tabs as they were", () => {
     expect(buildOrdersSearchQuery("all")).toBeNull();
     expect(buildOrdersSearchQuery("pending_fulfillment")).toBe(
-      "fulfillment_status:unfulfilled",
+      "fulfillment_status:unfulfilled AND NOT status:cancelled",
     );
   });
 });
@@ -55,7 +55,7 @@ describe("buildOrdersSearchQuery: inside a pack", () => {
 
   it("limits a tab to the pack's orders", () => {
     expect(buildOrdersSearchQuery("pending_fulfillment", PACK_TAG)).toBe(
-      "tag:pachet-2026-11-14-2 AND (fulfillment_status:unfulfilled)",
+      "tag:pachet-2026-11-14-2 AND (fulfillment_status:unfulfilled AND NOT status:cancelled)",
     );
   });
 
